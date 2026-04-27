@@ -429,22 +429,52 @@ custom `mcmod.info` `coremod` declaration. The patches inject:
   `GulliverEnvoy.alongStickySurface`, etc. inserted into
   `Entity.onUpdate` / `Entity.moveEntity`.
 
-**Port on 26.x:** the entire patch surface becomes:
-- A "size component" attached to every Entity via Fabric API entity
-  components (or alternatively a `LivingEntity` Mixin with @Unique fields).
+**Port on 26.x — reimplement the size system field-for-field. NO vanilla shortcuts.**
+
+This is binding: do NOT substitute `Attributes.SCALE` or
+`Attributes.STEP_HEIGHT` for Gulliver's own multipliers. Vanilla SCALE
+(added in 1.20.5) only does uniform bbox/eye-height/step-height/reach
+multiplication. Gulliver does substantially more — custom walking-animation
+timing, sound volume scaling by `sizeMultiplierRoot`, custom
+`pushOutOfBlocks` that lets tinies fit in tunnels, `smallBlockOpeningStrength`,
+material-typed `blockClimbingRateForTiny`, heat-source `getRisingUpdraft`
+physics, `alongStickySurface`, `tinyCaughtInRain`, brittle-block stomping,
+huge-footprint trampling, `breakBlocksViaGrowth`, `resizeCollision` push-out
+— and these are the *feel* of the mod, not implementation details. They
+go in verbatim.
+
+The patch surface becomes:
+- Mixin-injected `@Unique` fields on `Entity` for `sizeBaseMultiplier`,
+  `sizePotionMultiplier`, `sizeItemMultiplier`. `getSizeMultiplier()`
+  composes them as the original did. **Not** `getAttributeValue(SCALE)`.
 - Mixins into `Entity#tick`, `Entity#move`, `LivingEntity#tickMovement`,
-  `PlayerEntity#travel`, `Entity#playSound`, `Entity#getEyeHeight`, etc.,
-  to inject the per-tick callouts.
-- Use vanilla `Attributes.SCALE` (1.20.5+) where possible: it already
-  multiplies bbox, eye-height, step-height, reach, attack-range. So
-  `getSizeMultiplier()` on the port is just `entity.getAttributeValue(Attributes.SCALE)`.
-  The Gulliver-specific multipliers (potion, items, base) get
-  composed onto the SCALE attribute via `EntityAttributeModifier` instances.
-- `Attributes.STEP_HEIGHT` for step height (replaces 1.6.4 manual stepHeight field).
-- The "shoulder entity" feature has a partial vanilla equivalent now
-  (`PlayerEntity#shoulder_left/right` for parrots) — but Gulliver allows
-  any compatible-sized entity, so Mixin into the vanilla shoulder logic
-  to widen the type filter and width check.
+  `PlayerEntity#travel`, `Entity#playSound`, `Entity#getEyeHeight`,
+  `Entity#getStepHeight`, `Entity#pushOutOfBlocks`, etc., to inject
+  callouts at the same code points the 1.6.4 ASM patches did.
+- Eye height = `1.62F * getSizeMultiplier()` for players (and the
+  1.6.4 corresponding default for other living entities). Mixin into
+  `Entity#getEyeHeight`/`LivingEntity#getActiveEyeHeight` to return the
+  Gulliver-computed value, **not** SCALE attribute output.
+- Step height = port the original `getStepHeight()` formula. Mixin into
+  `Entity#getStepHeight` (or its modern equivalent) to override.
+- Reach = port `getRangeMultiplier()` and Mixin into the reach checks
+  where Gulliver applied them (chest distance, container interaction).
+- Sound volume = Mixin into `Entity#playSound(SoundEvent, vol, pitch)` to
+  multiply `vol *= getSizeMultiplierRoot()` exactly as the 1.6.4
+  `EntityResizeableClientPlayerMP.a(String, float, float)` did.
+- Push-out = Mixin into `Entity#pushOutOfBlocks` mirroring
+  `EntityResizeableClientPlayerMP.i(double, double, double)` so tinies
+  who fit in 1-block tunnels are NOT pushed out.
+- Shoulder entity = Mixin into the vanilla parrot-shoulder logic to widen
+  the type filter and width check, OR add a parallel shoulder slot. Drive
+  the full mechanic from Gulliver's own `pickUpEntity`/`dropHeldEntity`/
+  `maxHeldWidth`/`heldEntity`/`holdingEntity` fields, ported as
+  `@Unique` Mixin fields on `PlayerEntity`.
+
+Vanilla classes that the original ALREADY used (`EntityDamageSource`,
+`Potion`, `Block` subclasses) can still be subclassed — that's not the
+shortcut rule. The rule is about scaling/movement/feel: those reproduce
+the original's formulas exactly.
 
 ## 15. What does NOT get ported
 
@@ -468,11 +498,17 @@ and the player-class extensions.
 ## 16. Phase plan (binding)
 
 1. **Phase 1 — skeleton.** Empty jar builds. **(DONE — commit `1388a55`).**
-2. **Phase 2 — size attribute & API.** Create `IResizeableEntity` /
-   `IResizeableLiving` / `IResizeablePlayer` Mixin interfaces. Wire them
-   to `Attributes.SCALE` for `getSizeMultiplier()`, derive
-   `getSizeMultiplierRoot()`. Implement `setBaseSize`/`adjustBaseSize`
-   (writes a `gulliver:base_size` modifier on SCALE).
+2. **Phase 2 — size data model & API.** Create `IResizeableEntity` /
+   `IResizeableLiving` / `IResizeablePlayer` Mixin interfaces. Inject
+   `@Unique` fields `sizeBaseMultiplier`, `sizePotionMultiplier`,
+   `sizeItemMultiplier` onto `Entity` (or `LivingEntity` where it
+   makes sense). `getSizeMultiplier()` returns their product as the
+   1.6.4 mod did. **No `Attributes.SCALE`.** Implement
+   `setBaseSize`/`adjustBaseSize` writing `sizeBaseMultiplier` directly.
+   Mixin into `Entity#getEyeHeight` returning `defaultEyeHeight *
+   sizeMultiplier`; Mixin into `Entity#getStepHeight` returning the
+   ported `getStepHeight()` formula. Persist size multipliers in
+   `writeNbt`/`readNbt` (Mixin) so they round-trip across save/load.
 3. **Phase 3 — config (Gson).** Port the 4 categories with all keys.
 4. **Phase 4 — packets.** `EntitySizePayload`, `AttachSpecialPayload`. Wire
    server→client size sync.
