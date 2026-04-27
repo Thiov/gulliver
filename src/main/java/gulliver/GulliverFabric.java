@@ -1,6 +1,7 @@
 package gulliver;
 
 import gulliver.common.GulliverConfig;
+import gulliver.network.PacketHandlers;
 import net.fabricmc.api.ModInitializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -13,5 +14,6 @@ public class GulliverFabric implements ModInitializer {
     public void onInitialize() {
         LOGGER.info("Gulliver (Fabric) initializing");
         GulliverConfig.load();
+        PacketHandlers.registerCommon();
     }
 }
