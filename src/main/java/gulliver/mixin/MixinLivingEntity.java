@@ -1,6 +1,8 @@
 package gulliver.mixin;
 
 import gulliver.api.IResizeableLiving;
+import gulliver.common.GulliverConfig;
+import gulliver.common.GulliverEnvoy;
 import net.minecraft.world.entity.LivingEntity;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
@@ -10,16 +12,14 @@ import org.spongepowered.asm.mixin.Unique;
  * on the parent Entity via MixinEntity; this mixin reads/writes through the
  * IGulliverEntityInternal interface that MixinEntity also implements.
  *
- * setBaseSize / adjustBaseSize clamp to the hard bounds 0.125–8.0 from the
- * 1.6.4 mod's GulliverConfigHelper defaults. Per-class min/max-size and
- * per-entity overrides will tighten this further once GulliverEnvoy and the
- * config are ported in later phases.
+ * setBaseSize / adjustBaseSize clamp to the per-entity bounds from the
+ * config: GulliverEnvoy.getMin/MaxSizeForEntity (size-limit category) AND
+ * the global min/maxEntityBaseSize (general category). The intersection of
+ * both is applied — the same composition the 1.6.4 mod did via two layered
+ * Forge config keys.
  */
 @Mixin(LivingEntity.class)
 public abstract class MixinLivingEntity implements IResizeableLiving {
-
-    @Unique private static final float HARD_MIN = 0.125F;
-    @Unique private static final float HARD_MAX = 8.0F;
 
     @Override
     @Unique
@@ -36,7 +36,11 @@ public abstract class MixinLivingEntity implements IResizeableLiving {
     @Override
     @Unique
     public void setBaseSize(float size) {
-        float clamped = Math.max(HARD_MIN, Math.min(HARD_MAX, size));
+        LivingEntity self = (LivingEntity) (Object) this;
+        GulliverConfig.General g = GulliverConfig.INSTANCE.general;
+        float lo = (float) Math.max(GulliverEnvoy.getMinSizeForEntity(self), g.minEntityBaseSize);
+        float hi = (float) Math.min(GulliverEnvoy.getMaxSizeForEntity(self), g.maxEntityBaseSize);
+        float clamped = Math.max(lo, Math.min(hi, size));
         ((IGulliverEntityInternal) this).gulliver$setSizeBaseMultiplier(clamped);
     }
 
