@@ -17,7 +17,7 @@ import org.spongepowered.asm.mixin.Unique;
  *                push-out threshold in EntityResizeableClientPlayerMP.i)
  */
 @Mixin(Entity.class)
-public abstract class MixinEntity implements IResizeableEntity {
+public abstract class MixinEntity implements IResizeableEntity, IGulliverEntityInternal {
 
     @Unique private float gulliver$sizeBaseMultiplier = 1.0F;
     @Unique private float gulliver$sizePotionMultiplier = 1.0F;
@@ -73,11 +73,11 @@ public abstract class MixinEntity implements IResizeableEntity {
         return 0.6F * getSizeMultiplier();
     }
 
-    @Unique public float gulliver$getSizeBaseMultiplier() { return gulliver$sizeBaseMultiplier; }
-    @Unique public float gulliver$getSizePotionMultiplier() { return gulliver$sizePotionMultiplier; }
-    @Unique public float gulliver$getSizeItemMultiplier() { return gulliver$sizeItemMultiplier; }
+    @Override @Unique public float gulliver$getSizeBaseMultiplier() { return gulliver$sizeBaseMultiplier; }
+    @Override @Unique public float gulliver$getSizePotionMultiplier() { return gulliver$sizePotionMultiplier; }
+    @Override @Unique public float gulliver$getSizeItemMultiplier() { return gulliver$sizeItemMultiplier; }
 
-    @Unique public void gulliver$setSizeBaseMultiplier(float v) { gulliver$sizeBaseMultiplier = v; }
-    @Unique public void gulliver$setSizePotionMultiplier(float v) { gulliver$sizePotionMultiplier = v; }
-    @Unique public void gulliver$setSizeItemMultiplier(float v) { gulliver$sizeItemMultiplier = v; }
+    @Override @Unique public void gulliver$setSizeBaseMultiplier(float v) { gulliver$sizeBaseMultiplier = v; }
+    @Override @Unique public void gulliver$setSizePotionMultiplier(float v) { gulliver$sizePotionMultiplier = v; }
+    @Override @Unique public void gulliver$setSizeItemMultiplier(float v) { gulliver$sizeItemMultiplier = v; }
 }
