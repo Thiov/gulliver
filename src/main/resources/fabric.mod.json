@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "id": "gulliver",
+  "version": "${version}",
+  "name": "Gulliver",
+  "description": "Fabric port of Gulliver Forged 0.14.3-MC1.6.4 (the original resizing mod). Translates the exact 1.6.4 behavior to Minecraft 26.1.2.",
+  "authors": ["UncleMion (original)", "Fabric port"],
+  "contact": {},
+  "license": "All-Rights-Reserved",
+  "environment": "*",
+  "entrypoints": {
+    "main": ["gulliver.GulliverFabric"],
+    "client": ["gulliver.client.GulliverFabricClient"]
+  },
+  "depends": {
+    "fabricloader": ">=0.19.2",
+    "fabric-api": ">=0.146.1",
+    "minecraft": ">=26.1.2",
+    "java": ">=25"
+  }
+}
