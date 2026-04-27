@@ -12,6 +12,9 @@
     "main": ["gulliver.GulliverFabric"],
     "client": ["gulliver.client.GulliverFabricClient"]
   },
+  "mixins": [
+    "gulliver.mixins.json"
+  ],
   "depends": {
     "fabricloader": ">=0.19.2",
     "fabric-api": ">=0.146.1",
