@@ -2,8 +2,13 @@ package gulliver.mixin;
 
 import gulliver.api.IResizeableEntity;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntityDimensions;
+import net.minecraft.world.entity.Pose;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
+import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 /**
  * Implements IResizeableEntity on every Entity. The three multipliers
@@ -80,4 +85,34 @@ public abstract class MixinEntity implements IResizeableEntity, IGulliverEntityI
     @Override @Unique public void gulliver$setSizeBaseMultiplier(float v) { gulliver$sizeBaseMultiplier = v; }
     @Override @Unique public void gulliver$setSizePotionMultiplier(float v) { gulliver$sizePotionMultiplier = v; }
     @Override @Unique public void gulliver$setSizeItemMultiplier(float v) { gulliver$sizeItemMultiplier = v; }
+
+    /**
+     * Scale the entity's dimensions (width, height, eye height) uniformly by
+     * sizeMultiplier. Mirrors the 1.6.4 mod where
+     * EntityResizeablePlayerMP.f() returned 1.62F * getSizeMultiplier() —
+     * the vanilla 1.62 default eye height multiplied. EntityDimensions.scale
+     * does width*=s, height*=s, eyeHeight*=s — same shape as 1.6.4's manual
+     * override, applied uniformly to every entity (not via Attributes.SCALE).
+     */
+    @Inject(method = "getDimensions", at = @At("RETURN"), cancellable = true)
+    private void gulliver$scaleDimensions(Pose pose, CallbackInfoReturnable<EntityDimensions> cir) {
+        float m = getSizeMultiplier();
+        if (m == 1.0F) return;
+        EntityDimensions base = cir.getReturnValue();
+        if (base == null) return;
+        cir.setReturnValue(base.scale(m));
+    }
+
+    /**
+     * Scale step height by sizeMultiplier. Placeholder formula
+     * (vanillaStepHeight × multiplier) until the original 1.6.4 helper is
+     * fully decoded — but the 1.6.4 IResizeableEntity.getStepHeight()
+     * contract is exactly this multiplicative shape.
+     */
+    @Inject(method = "maxUpStep", at = @At("RETURN"), cancellable = true)
+    private void gulliver$scaleStepHeight(CallbackInfoReturnable<Float> cir) {
+        float m = getSizeMultiplier();
+        if (m == 1.0F) return;
+        cir.setReturnValue(cir.getReturnValue() * m);
+    }
 }
