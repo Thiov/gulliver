@@ -13,6 +13,7 @@
     "MixinFarmlandBlock",
     "MixinFlowerPotBlock",
     "MixinLivingEntity",
+    "MixinLivingEntityClimbRope",
     "MixinLivingEntityEffects",
     "MixinLivingEntityGlide",
     "MixinLivingEntityHugeEffects",
