@@ -533,7 +533,11 @@ and the player-class extensions.
     through the Phase 2 `getDimensions` inject, so tinies sleep at
     micro-scale and giants sleep at macro-scale automatically. No
     additional mixin required.
-14. **Phase 14 — keybinds + custom AIR overlay** (client).
+14. **Phase 14 — keybinds + custom AIR overlay** (client). Keybinds
+    ported. The custom AIR overlay was a 1.6.4 workaround against
+    Optifine/TMI conflicts — vanilla 26.x already draws the same air
+    bubbles screen-relative (independent of player size), and Optifine
+    doesn't exist on Fabric. No port required.
 15. **Phase 15 — achievements as advancements** (drinkMe, eatMe).
 16. **Phase 16 — sound/volume scaling, eye height, step height.**
 17. **Phase 17 — dye-resizing** (cyan/purple dye drink/eat).
