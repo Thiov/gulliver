@@ -3,7 +3,7 @@ package gulliver.mixin;
 import gulliver.api.IResizeableLiving;
 import gulliver.common.GulliverConfig;
 import gulliver.common.GulliverEnvoy;
-import gulliver.mixin.iface.IGulliverEntityInternal;
+import gulliver.access.IGulliverEntityInternal;
 import gulliver.network.SizeSync;
 import net.minecraft.world.entity.LivingEntity;
 import org.spongepowered.asm.mixin.Mixin;

@@ -188,7 +188,7 @@ public final class GulliverCommands {
 
     private static int showSize(CommandContext<CommandSourceStack> ctx, ServerPlayer target) {
         IResizeableLiving sized = (IResizeableLiving) target;
-        float base = ((gulliver.mixin.iface.IGulliverEntityInternal) target).gulliver$getSizeBaseMultiplier();
+        float base = ((gulliver.access.IGulliverEntityInternal) target).gulliver$getSizeBaseMultiplier();
         float full = sized.getSizeMultiplier();
         String hs = GulliverEnvoy.getPlayerHeightStringFromSizeMult(full);
         if (!hs.isEmpty()) {
@@ -210,7 +210,7 @@ public final class GulliverCommands {
     private static int shoulderEntity(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
         ServerPlayer player = ctx.getSource().getPlayerOrException();
         // Already carrying? Drop.
-        if (((gulliver.mixin.iface.IGulliverShoulderInternal) player).gulliver$getHeldEntity() != null) {
+        if (((gulliver.access.IGulliverShoulderInternal) player).gulliver$getHeldEntity() != null) {
             if (gulliver.common.ShoulderHelper.drop(player)) {
                 ctx.getSource().sendSuccess(() -> Component.literal("Dropped passenger"), false);
                 return 1;
@@ -338,14 +338,14 @@ public final class GulliverCommands {
     }
 
     private static void successSize(CommandContext<CommandSourceStack> ctx, ServerPlayer target) {
-        float base = ((gulliver.mixin.iface.IGulliverEntityInternal) target).gulliver$getSizeBaseMultiplier();
+        float base = ((gulliver.access.IGulliverEntityInternal) target).gulliver$getSizeBaseMultiplier();
         float full = ((IResizeableEntity) target).getSizeMultiplier();
         ctx.getSource().sendSuccess(() -> Component.literal(
                 target.getName().getString() + " base " + base + " current " + full), true);
     }
 
     private static void successEntity(CommandContext<CommandSourceStack> ctx, LivingEntity living) {
-        float base = ((gulliver.mixin.iface.IGulliverEntityInternal) living).gulliver$getSizeBaseMultiplier();
+        float base = ((gulliver.access.IGulliverEntityInternal) living).gulliver$getSizeBaseMultiplier();
         float full = ((IResizeableEntity) living).getSizeMultiplier();
         ctx.getSource().sendSuccess(() -> Component.literal(
                 "Entity " + living.getId() + " base " + base + " current " + full), true);

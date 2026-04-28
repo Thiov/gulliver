@@ -1,7 +1,7 @@
 package gulliver.common;
 
 import gulliver.api.IResizeableEntity;
-import gulliver.mixin.iface.IGulliverShoulderInternal;
+import gulliver.access.IGulliverShoulderInternal;
 import gulliver.network.Payloads;
 import gulliver.network.SizeSync;
 import net.fabricmc.fabric.api.networking.v1.PlayerLookup;

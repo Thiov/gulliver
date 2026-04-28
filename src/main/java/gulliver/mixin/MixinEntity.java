@@ -1,8 +1,8 @@
 package gulliver.mixin;
 
 import gulliver.api.IResizeableEntity;
-import gulliver.mixin.iface.IGulliverEntityInternal;
-import gulliver.mixin.iface.IGulliverShoulderInternal;
+import gulliver.access.IGulliverEntityInternal;
+import gulliver.access.IGulliverShoulderInternal;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityDimensions;
 import net.minecraft.world.entity.Pose;

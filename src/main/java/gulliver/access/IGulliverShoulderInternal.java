@@ -1,4 +1,4 @@
-package gulliver.mixin.iface;
+package gulliver.access;
 
 import java.util.UUID;
 
