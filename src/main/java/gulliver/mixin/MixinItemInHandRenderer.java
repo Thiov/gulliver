@@ -63,9 +63,6 @@ public abstract class MixinItemInHandRenderer {
         // Translate to (player_world - camera_world). Apply body yaw.
         // Lay flat with X-rot. Render with ItemDisplayContext.NONE so
         // the item model doesn't apply its own offset.
-        net.minecraft.client.Camera cam = net.minecraft.client.Minecraft.getInstance()
-                .gameRenderer.getMainCamera();
-        net.minecraft.world.phys.Vec3 camPos = cam.position();
         float partialTick = net.minecraft.client.Minecraft.getInstance()
                 .getDeltaTracker().getGameTimeDeltaPartialTick(false);
         double px = net.minecraft.util.Mth.lerp(partialTick, entity.xOld, entity.getX());
@@ -74,11 +71,15 @@ public abstract class MixinItemInHandRenderer {
         pose.pushPose();
         pose.last().pose().identity();
         pose.last().normal().identity();
-        // Player head world position (slightly above head) relative to camera.
+        // Bug fix: pose.identity() puts us at WORLD origin (0,0,0), not
+        // camera origin. Subtracting camera position from player coords
+        // places paper at world (player - camera) which is far from
+        // both. Translate by RAW world coords so paper ends up at the
+        // actual player head world position.
         pose.translate(
-                (float) (px - camPos.x),
-                (float) (py + entity.getBbHeight() + 0.2D - camPos.y),
-                (float) (pz - camPos.z));
+                (float) px,
+                (float) (py + entity.getBbHeight() + 0.2D),
+                (float) pz);
         // Body yaw (paper rotates with body when player turns).
         pose.mulPose(com.mojang.math.Axis.YP.rotationDegrees(-entity.yBodyRot));
         // Lay flat (90° around X tips item face down).
