@@ -61,11 +61,12 @@ public final class GliderPaperWorldRenderer {
         double pz = Mth.lerp(pt, player.zOld, player.getZ());
 
         // World-space offsets for "above and to player's right".
+        // Sign was reversed last build (paper went left); flip to -cos/-sin.
         double yawRad = Math.toRadians(player.yBodyRot);
-        double rightX = Math.cos(yawRad);   // player-right direction in world XZ
-        double rightZ = Math.sin(yawRad);
-        double rightShift = 0.3D;
-        double upShift = 0.5D;  // raised from 0.3 — paper was too low
+        double rightX = -Math.cos(yawRad);
+        double rightZ = -Math.sin(yawRad);
+        double rightShift = 0.5D;  // wider shift to actually appear right
+        double upShift = 0.7D;     // higher above head
 
         pose.pushPose();
         // World-relative-to-camera convention: translate by (world - camera).
