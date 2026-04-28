@@ -15,15 +15,16 @@ public final class ClientPacketHandlers {
             ctx.client().execute(() -> {
                 Entity e = entityById(payload.entityId());
                 if (e == null) return;
-                // Server is the source of truth for sizeMultiplier. Store the
-                // entire composed value as the base on the client; potion and
-                // item modifiers stay 1.0F locally so getSizeMultiplier()
-                // reproduces the server-authoritative number exactly.
+                // Server sends the DESTINATION composed multiplier (base_dest
+                // × potion × item). Store it as the client's destination; the
+                // local MixinLivingEntitySizeTween will lerp the live base
+                // toward it using the same formula as the server. Potion and
+                // item kept at 1.0 locally so the tween's product matches the
+                // server-authoritative value exactly.
                 IGulliverEntityInternal sized = (IGulliverEntityInternal) e;
-                sized.gulliver$setSizeBaseMultiplier(payload.sizeMult());
+                sized.gulliver$setSizeBaseDestMultiplier(payload.sizeMult());
                 sized.gulliver$setSizePotionMultiplier(1.0F);
                 sized.gulliver$setSizeItemMultiplier(1.0F);
-                e.refreshDimensions();
             });
         });
 

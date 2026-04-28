@@ -338,15 +338,24 @@ public final class GulliverCommands {
     }
 
     private static void successSize(CommandContext<CommandSourceStack> ctx, ServerPlayer target) {
-        float base = ((gulliver.access.IGulliverEntityInternal) target).gulliver$getSizeBaseMultiplier();
-        float full = ((IResizeableEntity) target).getSizeMultiplier();
+        // Read the DESTINATION (the value the entity is tweening toward),
+        // not the live mid-lerp base — otherwise users see ugly intermediate
+        // floats like 0.508 right after pressing /halfsize.
+        gulliver.access.IGulliverEntityInternal access =
+                (gulliver.access.IGulliverEntityInternal) target;
+        float base = access.gulliver$getSizeBaseDestMultiplier();
+        float full = base * access.gulliver$getSizePotionMultiplier()
+                * access.gulliver$getSizeItemMultiplier();
         ctx.getSource().sendSuccess(() -> Component.literal(
                 target.getName().getString() + " base " + base + " current " + full), true);
     }
 
     private static void successEntity(CommandContext<CommandSourceStack> ctx, LivingEntity living) {
-        float base = ((gulliver.access.IGulliverEntityInternal) living).gulliver$getSizeBaseMultiplier();
-        float full = ((IResizeableEntity) living).getSizeMultiplier();
+        gulliver.access.IGulliverEntityInternal access =
+                (gulliver.access.IGulliverEntityInternal) living;
+        float base = access.gulliver$getSizeBaseDestMultiplier();
+        float full = base * access.gulliver$getSizePotionMultiplier()
+                * access.gulliver$getSizeItemMultiplier();
         ctx.getSource().sendSuccess(() -> Component.literal(
                 "Entity " + living.getId() + " base " + base + " current " + full), true);
     }

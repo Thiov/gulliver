@@ -1,5 +1,6 @@
 package gulliver.network;
 
+import gulliver.access.IGulliverEntityInternal;
 import gulliver.api.IResizeableEntity;
 import net.fabricmc.fabric.api.networking.v1.EntityTrackingEvents;
 import net.fabricmc.fabric.api.networking.v1.PlayerLookup;
@@ -23,30 +24,41 @@ public final class SizeSync {
 
     public static void registerCommon() {
         EntityTrackingEvents.START_TRACKING.register((entity, tracker) -> {
-            if (!(entity instanceof IResizeableEntity sized)) return;
-            float m = sized.getSizeMultiplier();
-            if (m == 1.0F) return;
-            ServerPlayNetworking.send(tracker, new Payloads.EntitySize(entity.getId(), m));
+            if (!(entity instanceof IGulliverEntityInternal sized)) return;
+            float dest = composedDest(sized);
+            if (dest == 1.0F) return;
+            ServerPlayNetworking.send(tracker, new Payloads.EntitySize(entity.getId(), dest));
         });
     }
 
     /**
-     * Broadcast the entity's current composed size to every tracking player.
-     * Players seeing themselves resize (the entity itself, when it's a
-     * ServerPlayer) are included via PlayerLookup.tracking.
+     * Broadcast the entity's destination composed size to every tracking
+     * player. The packet carries the FINAL value the entity is tweening
+     * toward, not the live (mid-lerp) value — clients copy it into their
+     * own gulliver$sizeBaseDestMultiplier and run their own local lerp
+     * with the same formula starting from their stored base, so server
+     * and client end up at the same value at the same time.
+     *
+     * Players seeing themselves resize (entity == ServerPlayer) are
+     * included via PlayerLookup.tracking + an explicit self-send (vanilla
+     * tracking does not include the entity itself).
      */
     public static void broadcast(Entity entity) {
         if (entity.level().isClientSide()) return;
-        if (!(entity instanceof IResizeableEntity sized)) return;
-        float m = sized.getSizeMultiplier();
-        Payloads.EntitySize p = new Payloads.EntitySize(entity.getId(), m);
+        if (!(entity instanceof IGulliverEntityInternal sized)) return;
+        float dest = composedDest(sized);
+        Payloads.EntitySize p = new Payloads.EntitySize(entity.getId(), dest);
         for (ServerPlayer viewer : PlayerLookup.tracking(entity)) {
             ServerPlayNetworking.send(viewer, p);
         }
-        // PlayerLookup.tracking does NOT include the entity itself when it's a
-        // player, so explicitly send to a player's own client too.
         if (entity instanceof ServerPlayer self) {
             ServerPlayNetworking.send(self, p);
         }
+    }
+
+    private static float composedDest(IGulliverEntityInternal sized) {
+        return sized.gulliver$getSizeBaseDestMultiplier()
+                * sized.gulliver$getSizePotionMultiplier()
+                * sized.gulliver$getSizeItemMultiplier();
     }
 }
