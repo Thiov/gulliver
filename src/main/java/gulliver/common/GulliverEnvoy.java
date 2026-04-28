@@ -452,6 +452,48 @@ public final class GulliverEnvoy {
      *     bottom ≤ stepper's bottom + (1/16 × stepper's height). Target
      *     is genuinely under the stepper's foot.
      */
+    /**
+     * 1.6.4 leaveHugeFootprints: when a huge entity steps, calls
+     * Block.onEntityWalking on the 4 corner blocks under its hitbox at
+     * foot level, alternating left/right corners by getStepSide()'s sign
+     * each stride. This is what makes farmland trample under a giant's
+     * footsteps, pressure plates trigger, sound blocks play, etc.
+     *
+     * Modern translation: Block.stepOn replaces onEntityWalking.
+     * getStepSide() (the 1.6.4 ASM-injected sign field that flipped each
+     * stride) is approximated by tickCount-mod-2 alternation — close
+     * enough to preserve the "diagonal corners alternating" feel.
+     *
+     * Only fires when the entity actually moved meaningful horizontal
+     * distance this tick, to avoid trampling under a stationary giant.
+     */
+    public static void leaveHugeFootprints(net.minecraft.world.entity.LivingEntity stepper) {
+        net.minecraft.world.level.Level level = stepper.level();
+        if (level.isClientSide()) return;
+        net.minecraft.world.phys.Vec3 dm = stepper.getDeltaMovement();
+        double horiz = dm.x * dm.x + dm.z * dm.z;
+        if (horiz < 1.0E-4D) return;
+
+        net.minecraft.world.phys.AABB box = stepper.getBoundingBox();
+        int y = net.minecraft.util.Mth.floor(box.minY - 0.2D - 0.001D);
+        int sx1 = net.minecraft.util.Mth.floor(box.minX + 0.001D);
+        int sz1 = net.minecraft.util.Mth.floor(box.minZ + 0.001D);
+        int sx2 = net.minecraft.util.Mth.floor(box.maxX - 0.001D);
+        int sz2 = net.minecraft.util.Mth.floor(box.maxZ - 0.001D);
+
+        // Alternate corner pair per stride — left/right.
+        int[][] pairs = (stepper.tickCount & 1) == 0
+                ? new int[][] { { sx1, sz1 }, { sx2, sz2 } }
+                : new int[][] { { sx1, sz2 }, { sx2, sz1 } };
+
+        for (int[] xz : pairs) {
+            net.minecraft.core.BlockPos pos = new net.minecraft.core.BlockPos(xz[0], y, xz[1]);
+            net.minecraft.world.level.block.state.BlockState state = level.getBlockState(pos);
+            if (state.isAir()) continue;
+            state.getBlock().stepOn(level, pos, state, stepper);
+        }
+    }
+
     public static void stepOnSmallerEntities(net.minecraft.world.entity.LivingEntity stepper) {
         net.minecraft.world.level.Level level = stepper.level();
         if (level.isClientSide()) return;

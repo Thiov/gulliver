@@ -24,6 +24,7 @@ public abstract class MixinLivingEntityHugeEffects {
         LivingEntity self = (LivingEntity) (Object) this;
         if (((IResizeableEntity) self).isHuge()) {
             GulliverEnvoy.stepOnSmallerEntities(self);
+            GulliverEnvoy.leaveHugeFootprints(self);
         }
     }
 }
