@@ -161,7 +161,14 @@ public final class ShoulderHelper {
         held.noPhysics = false;
         broadcastAttach(carrier, held, SLOT_DETACH);
         net.minecraft.world.phys.Vec3 look = carrier.getLookAngle();
-        float power = 1.5F * ((IResizeableEntity) carrier).getSizeMultiplierRoot();
+        // Throw power scales with size DIFFERENCE: heavy carrier vs
+        // light target = strong throw; near-equal sizes = gentler. Uses
+        // carrier_root / target_root ratio (same shape as 1.6.4 squish
+        // formula). Vanilla baseline 1.5.
+        float carrierRoot = ((IResizeableEntity) carrier).getSizeMultiplierRoot();
+        float targetRoot  = ((IResizeableEntity) held).getSizeMultiplierRoot();
+        if (targetRoot <= 0.0F) targetRoot = 1.0F;
+        float power = 1.5F * carrierRoot / targetRoot;
         held.setDeltaMovement(look.x * power, look.y * power + 0.3F, look.z * power);
         held.hurtMarked = true;
         return true;

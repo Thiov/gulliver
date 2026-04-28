@@ -34,31 +34,40 @@ public abstract class MixinPlayerShoulder {
         UUID left  = cs.gulliver$getLeftShoulder();
         if (hand == null && right == null && left == null) return;
 
-        // Use BODY yaw (yBodyRot) instead of head yaw — held entities
-        // should track the body direction, not turn with head movement.
         double yaw = Math.toRadians(self.yBodyRot);
         double sin = Math.sin(yaw);
         double cos = Math.cos(yaw);
 
-        // Shoulder y ≈ top-third of body (just below head).
-        double shoulderY = self.getY() + self.getBbHeight() * (24.0D / 32.0D);
-        // Side offset = half-shoulder-width, scaled with body width.
-        double sideUnit  = (5.0D / 16.0D) * self.getBbWidth() / 0.6D;
-        // Hand: extended forward of body. Need to be PAST the carrier's
-        // bbox so the held entity doesn't overlap the carrier.
-        double frontUnit = self.getBbWidth() * 0.5D + 0.5D;
-        // Hand y ≈ shoulder + a small lift (arm extends forward from
-        // shoulder, hand is slightly above shoulder when arm raised).
-        double handY     = self.getY() + self.getBbHeight() * 0.8D;
+        // Direction unit vectors. MC convention: with yaw=0 the player
+        // faces +Z (south). Forward = (-sin, +cos). Right side (the
+        // arm with the held item) is +X relative to forward, i.e.
+        // (+cos, +sin) at yaw=0 → (1, 0) which is +X. Correct for right.
+        double fwdX   = -sin;
+        double fwdZ   =  cos;
+        double rightX =  cos;
+        double rightZ =  sin;
+
+        // Vanilla model: shoulder at body-x = ±5/16, arm length 12/16
+        // when extended forward. Both scale linearly with bbWidth/0.6
+        // (which already reflects sizeMultiplier via Phase 2 dimensions).
+        double widthScale = self.getBbWidth() / 0.6D;
+        double sideUnit   = (5.0D  / 16.0D) * widthScale;       // shoulder offset
+        double armLength  = (12.0D / 16.0D) * widthScale;       // arm extended forward
+        // Shoulder height ≈ 24/32 of body height (just below head).
+        double shoulderY  = self.getY() + self.getBbHeight() * (24.0D / 32.0D);
 
         if (hand != null) {
             Entity h = lookup(self, hand);
             if (h == null) {
                 cs.gulliver$setHandEntity(null);
             } else {
-                double px = self.getX() + (-sin) * frontUnit;
-                double pz = self.getZ() + ( cos) * frontUnit;
-                placePassenger(h, px, handY, pz);
+                // Hand tip = shoulder position + forward arm length, on
+                // the carrier's RIGHT SIDE.
+                double px = self.getX() + rightX * sideUnit + fwdX * armLength;
+                double pz = self.getZ() + rightZ * sideUnit + fwdZ * armLength;
+                // Y at shoulder height — arm is horizontal forward, hand
+                // tip stays at shoulder Y.
+                placePassenger(h, px, shoulderY, pz);
             }
         }
         if (right != null) {

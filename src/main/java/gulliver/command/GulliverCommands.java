@@ -231,8 +231,11 @@ public final class GulliverCommands {
         net.minecraft.world.phys.Vec3 eye  = player.getEyePosition();
         net.minecraft.world.phys.Vec3 look = player.getLookAngle();
         net.minecraft.world.phys.Vec3 end  = eye.add(look.x * reach, look.y * reach, look.z * reach);
+        // No extra inflate — the bbox.clip ray-trace below is the
+        // strict gate. Tinies have small reach, so they need to be
+        // close to / overlapping the target.
         net.minecraft.world.phys.AABB scan =
-                player.getBoundingBox().expandTowards(look.scale(reach)).inflate(0.5);
+                player.getBoundingBox().expandTowards(look.scale(reach));
         for (Entity candidate : player.level().getEntities(player, scan)) {
             if (!(candidate instanceof net.minecraft.world.entity.LivingEntity)) continue;
             if (!gulliver.common.ShoulderHelper.canCarry(player, candidate)) continue;

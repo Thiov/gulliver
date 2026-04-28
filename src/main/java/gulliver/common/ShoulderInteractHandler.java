@@ -81,9 +81,8 @@ public final class ShoulderInteractHandler {
             return InteractionResult.PASS;
         });
 
-        // RMB on a block while carrying anything in HAND: drop the
-        // hand-held in place (block-click path is what fires when the
-        // player aims at the ground).
+        // RMB on a block while carrying anything in HAND: place the
+        // hand-held ON TOP of the clicked block (no fall damage).
         UseBlockCallback.EVENT.register((player, world, hand, hitResult) -> {
             if (hand != InteractionHand.MAIN_HAND) return InteractionResult.PASS;
             if (world.isClientSide()) return InteractionResult.PASS;
@@ -97,6 +96,17 @@ public final class ShoulderInteractHandler {
             if (held != null) {
                 ((IGulliverShoulderInternal) held).gulliver$setHoldingEntity(null);
                 held.noPhysics = false;
+                // Place precisely on top of the hit block. hitResult
+                // .getLocation() gives the exact 3D point; add the entity's
+                // half-height so it stands on top of that surface.
+                net.minecraft.world.phys.Vec3 hit = hitResult.getLocation();
+                net.minecraft.core.BlockPos pos  = hitResult.getBlockPos();
+                double placeY = (hitResult.getDirection() == net.minecraft.core.Direction.UP)
+                        ? pos.getY() + 1.0D
+                        : hit.y;
+                held.setPos(hit.x, placeY, hit.z);
+                held.setDeltaMovement(0.0D, 0.0D, 0.0D);
+                held.fallDistance = 0.0F;
                 ShoulderHelper.broadcastDetach(carrier, held);
             }
             return InteractionResult.SUCCESS;
