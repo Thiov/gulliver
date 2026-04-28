@@ -1,13 +1,19 @@
 package gulliver.common;
 
+import gulliver.api.IResizeableEntity;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.Identifier;
 import net.minecraft.tags.EntityTypeTags;
+import net.minecraft.tags.ItemTags;
+import net.minecraft.world.effect.MobEffectInstance;
+import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.monster.Monster;
 import net.minecraft.world.entity.npc.villager.Villager;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.level.Level;
 
 import java.util.IllegalFormatException;
@@ -315,5 +321,93 @@ public final class GulliverEnvoy {
      */
     public static float getSizeMultiplier(LivingEntity living) {
         return ((gulliver.api.IResizeableEntity) living).getSizeMultiplier();
+    }
+
+    // ---- canOpen* / smallBlockOpeningStrength (1.6.4 GulliverEnvoy) ----
+
+    /**
+     * Ports 1.6.4 GulliverEnvoy.smallBlockOpeningStrength verbatim:
+     *   start at 3
+     *   while mult < 0.6F: strengthadj--; mult *= 2.0F
+     *   if mult >= 0.6F at start: return 3 (no descent)
+     *   if holdingPointyItem: +1
+     *   if hasEffect(SLOWNESS): -(amplifier+1)
+     *   if hasEffect(HASTE):    +(amplifier+1)
+     *
+     * The original source short-circuited "mult >= 0.6F" before the loop —
+     * this preserves that ordering exactly.
+     */
+    public static int smallBlockOpeningStrength(LivingEntity living) {
+        float mult = ((IResizeableEntity) living).getSizeMultiplier();
+        int strengthadj = 3;
+        if (mult >= 0.6F) {
+            return strengthadj;
+        }
+        while (mult < 0.6F) {
+            strengthadj--;
+            mult *= 2.0F;
+        }
+        if (holdingPointyItem(living)) {
+            strengthadj++;
+        }
+        MobEffectInstance slowness = living.getEffect(MobEffects.SLOWNESS);
+        if (slowness != null) {
+            strengthadj -= slowness.getAmplifier() + 1;
+        }
+        MobEffectInstance haste = living.getEffect(MobEffects.HASTE);
+        if (haste != null) {
+            strengthadj += haste.getAmplifier() + 1;
+        }
+        return strengthadj;
+    }
+
+    public static boolean canOpenSingleBlock(LivingEntity living) {
+        return smallBlockOpeningStrength(living) >= 1;
+    }
+
+    public static boolean canOpenDoubleBlock(LivingEntity living) {
+        return smallBlockOpeningStrength(living) >= 2;
+    }
+
+    /**
+     * Huge entities trigger buttons by stepping on them, like pressure plates.
+     * Mirrors 1.6.4 GulliverEnvoy.canPressPlateLikeButton.
+     */
+    public static boolean canPressPlateLikeButton(LivingEntity living) {
+        return ((IResizeableEntity) living).isHuge();
+    }
+
+    // ---- isItemPointy / holdingPointyItem (1.6.4 GulliverEnvoy) ----
+
+    /**
+     * Ports 1.6.4 GulliverEnvoy.isItemPointy. The 1.6.4 version checked:
+     *   - block-form items where the block was Cactus, ThornyFlower, or
+     *     specific block IDs (snowball, scissors-block, etc.)
+     *   - or items: ItemSword, ItemPickaxe, ItemAxe, ItemShears, ItemHoe,
+     *     plus snowball, dye-stick, scissors, magma-cream-style.
+     *
+     * 26.x replaces the per-class instance check with item tags
+     * (minecraft:swords, :pickaxes, :axes, :shovels, :hoes). Snowball,
+     * shears, and the cactus/thorny-flower block-items map to their
+     * Items.* equivalents by identity. Behavior matches the 1.6.4
+     * "pointy = yes" set as closely as the new item taxonomy allows.
+     */
+    public static boolean isItemPointy(ItemStack stack) {
+        if (stack == null || stack.isEmpty()) return false;
+        if (stack.typeHolder().is(ItemTags.SWORDS)) return true;
+        if (stack.typeHolder().is(ItemTags.PICKAXES)) return true;
+        if (stack.typeHolder().is(ItemTags.AXES)) return true;
+        if (stack.typeHolder().is(ItemTags.HOES)) return true;
+        if (stack.typeHolder().is(ItemTags.SHOVELS)) return true;
+        if (stack.is(Items.SHEARS)) return true;
+        if (stack.is(Items.SNOWBALL)) return true;
+        if (stack.is(Items.CACTUS)) return true;
+        // Thorny-flower / scissors / magma-cream had no direct 26.x
+        // equivalents in the 1.6.4 vanilla set the original referenced.
+        return false;
+    }
+
+    public static boolean holdingPointyItem(LivingEntity living) {
+        return isItemPointy(living.getMainHandItem()) || isItemPointy(living.getOffhandItem());
     }
 }
