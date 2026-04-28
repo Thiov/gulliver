@@ -130,10 +130,16 @@ public final class GulliverCommands {
                 .then(Commands.argument("player", EntityArgument.player())
                         .executes(ctx -> instantKarma(ctx, EntityArgument.getPlayer(ctx, "player")))));
 
-        // /shoulderentity  (perm 0, player-only)
+        // /shoulderentity  (perm 0, player-only) — pickup or drop
+        // /shoulderentity throw — fling held entity in look direction
         dispatcher.register(Commands.literal("shoulderentity")
                 .requires(s -> s.getEntity() instanceof ServerPlayer)
-                .executes(GulliverCommands::shoulderEntity));
+                .executes(GulliverCommands::shoulderEntity)
+                .then(Commands.literal("throw").executes(ctx -> {
+                    ServerPlayer p = ctx.getSource().getPlayerOrException();
+                    if (gulliver.common.ShoulderHelper.throwHeld(p)) return 1;
+                    return 0;
+                })));
 
         // /reloadgullivercfg  (perm 4, the 1.6.4 mod's reload)
         dispatcher.register(Commands.literal("reloadgullivercfg").requires(OP4)

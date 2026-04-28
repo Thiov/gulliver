@@ -40,11 +40,38 @@ public final class ShoulderHelper {
     public static boolean canCarry(LivingEntity carrier, Entity target) {
         if (target == null || target == carrier) return false;
         if (target.getVehicle() != null) return false;
-        if (target instanceof Player) return false;
+        // Players ARE carryable (1.6.4 supported sufficiently-larger
+        // carriers picking up smaller players). Only the size-difference
+        // gate (bbWidth check below) blocks self/larger carriers.
         if (target.isPassenger() || target.getPassengers().size() > 0) return false;
         if (((IGulliverShoulderInternal) carrier).gulliver$getHeldEntity() != null) return false;
         if (((IGulliverShoulderInternal) target).gulliver$getHoldingEntity() != null) return false;
         if (target.getBbWidth() > maxHeldWidth(carrier)) return false;
+        return true;
+    }
+
+    /**
+     * Throw the carried entity in the carrier's look direction.
+     * 1.6.4 mod allowed left-click while holding a shoulder entity to
+     * fling them. Velocity scales with carrier size.
+     */
+    public static boolean throwHeld(ServerPlayer carrier) {
+        UUID heldId = ((IGulliverShoulderInternal) carrier).gulliver$getHeldEntity();
+        if (heldId == null) return false;
+        Entity held = resolve((ServerLevel) carrier.level(), heldId);
+        if (held == null) {
+            // Held UUID is stale — clear and broadcast detach.
+            return drop(carrier);
+        }
+        // Detach first
+        ((IGulliverShoulderInternal) carrier).gulliver$setHeldEntity(null);
+        ((IGulliverShoulderInternal) held).gulliver$setHoldingEntity(null);
+        broadcastAttach(carrier, held, (byte) 0);
+        // Apply velocity in look direction
+        net.minecraft.world.phys.Vec3 look = carrier.getLookAngle();
+        float power = 1.5F * ((IResizeableEntity) carrier).getSizeMultiplierRoot();
+        held.setDeltaMovement(look.x * power, look.y * power + 0.3F, look.z * power);
+        held.hurtMarked = true;
         return true;
     }
 

@@ -44,19 +44,17 @@ public abstract class MixinItemInHandRenderer {
 
         pose.pushPose();
         if (gliding || umbrella) {
-            // The pose-stack at this point has the vanilla hand-position
-            // baked in (translate to right-of-screen + tilt). To place the
-            // paper at a clean OVERHEAD-AND-FORWARD position independent of
-            // hand-pose, reset the local matrix to identity and translate
-            // in pure camera-relative coords: +X right, +Y up, -Z forward.
+            // Reset to identity so transforms are pure camera-relative
+            // (otherwise the vanilla hand-pose tilts the paper to the
+            // right of screen).
             pose.last().pose().identity();
             pose.last().normal().identity();
-            // Slightly above eye level, in front of player.
-            pose.translate(0.0F, 0.4F, -0.6F);
-            // Tilt 45° forward so the flat paper is visible from below
-            // (otherwise we'd see only its edge from the player's POV).
-            pose.mulPose(com.mojang.math.Axis.XP.rotationDegrees(45.0F));
-            pose.scale(0.8F, 0.8F, 0.8F);
+            // Move paper up + forward of the camera origin (eye level).
+            pose.translate(-0.5F, 0.4F, -0.5F);
+            // Lay paper FLAT (perpendicular to up axis): rotate 90° on X
+            // so its surface faces down (visible from below).
+            pose.mulPose(com.mojang.math.Axis.XP.rotationDegrees(90.0F));
+            pose.scale(1.0F, 1.0F, 1.0F);
         }
         if (size != 1.0F) {
             float invRoot = 1.0F / (float) Math.sqrt(size);
