@@ -15,6 +15,7 @@
     "MixinLivingEntityTinyEffects",
     "MixinPlayer",
     "MixinPlayerReach",
+    "MixinPlayerShoulder",
     "MixinSnowLayerBlock",
     "MixinSoulSandBlock",
     "MixinTntBlock",
