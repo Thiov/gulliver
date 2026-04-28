@@ -55,4 +55,21 @@ public abstract class MixinCamera {
         if (m == 1.0F) return c;
         return c * m;
     }
+
+    /**
+     * Scale the bed-camera Y offset (vanilla 0.3F) by sizeMultiplier so
+     * sleeping at a non-1 size shows the correct eye height. Without
+     * this, a tiny sleeps "above" the bed and a giant sleeps "inside"
+     * it. Camera.update applies move(0, 0.3F, 0) after positioning at
+     * the bed when isSleeping; we modify that 0.3F.
+     */
+    @ModifyConstant(method = "update", constant = @Constant(floatValue = 0.3F))
+    private float gulliver$scaleSleepCameraY(float c) {
+        if (entity == null) return c;
+        if (!(entity instanceof net.minecraft.world.entity.LivingEntity le)) return c;
+        if (!le.isSleeping()) return c;
+        float m = ((IResizeableEntity) entity).getSizeMultiplier();
+        if (m == 1.0F) return c;
+        return c * m;
+    }
 }
