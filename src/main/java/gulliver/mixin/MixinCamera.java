@@ -7,81 +7,48 @@ import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Constant;
 import org.spongepowered.asm.mixin.injection.ModifyArg;
 import org.spongepowered.asm.mixin.injection.ModifyConstant;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
-import org.spongepowered.asm.mixin.injection.Inject;
 
 /**
- * Third-person camera scaling — exact 1.6.4 bfe.java line 597 behaviour:
+ * Third-person camera scaling — exact 1.6.4 bfe.java:597 behaviour:
  *
- *     double d3 = baseCameraDist;
- *     d3 *= sizeMultiplier;     // ← actual distance, not just the cap
+ *     d3 *= pfactor;     // sizeMultiplier
+ *     for (probe corners 0..7) f4/f5/f6 *= 0.1F * pfactor;
+ *     // collision-clip then move(0,0,-d3)
  *
- * The 1.6.4 mod multiplied the live third-person camera distance by
- * sizeMultiplier so the framing stays consistent: a giant has the camera
- * 16 blocks behind their model (4 × 4), a tiny 0.5 blocks back (4 × 0.125).
+ * Modern Camera.alignWithEntity:
+ *     this.move(-this.getMaxZoom(maxZoom_4F), 0, 0);
  *
- * In modern Camera, the third-person path computes
- *   move(-getMaxZoom(scale * fovModifier * camDistanceAttr), 0, 0)
- * scaling by sizeMultiplier on the FIRST arg of move(...) is byte-
- * equivalent to the original's d3 *= pfactor.
+ * Strategy: scale the ARGUMENT to getMaxZoom by sizeMultiplier (so it
+ * probes for distance 4*size), and scale the 0.1F probe corner-bias by
+ * sizeMultiplier (matching 1.6.4 lines 626-628). getMaxZoom returns the
+ * collision-clipped value, which is then passed unchanged to move().
  *
- * Also keeps a safety cap on getMaxZoom — when the entity is huge the
- * unscaled vanilla cap (4) would clip the camera against the model, so
- * scaling the cap matches the 1.6.4 behaviour where the collision-probe
- * "stop here" distance was relative to a sizeMultiplier'd 0.1 step.
+ * Previous version (4(165)) double-scaled by ALSO modifying move's arg
+ * AND getMaxZoom's RETURN — that gave size² which is exactly the
+ * "too far when large, too close when small" feedback. This version
+ * scales once, at the input boundary.
  */
 @Mixin(Camera.class)
 public abstract class MixinCamera {
 
     @Shadow @Final public Entity entity;
 
-    @Inject(method = "getMaxZoom", at = @At("RETURN"), cancellable = true)
-    private void gulliver$scaleMaxZoom(float current, CallbackInfoReturnable<Float> cir) {
-        if (entity == null) return;
+    @ModifyArg(method = "alignWithEntity",
+               at = @At(value = "INVOKE",
+                        target = "Lnet/minecraft/client/Camera;getMaxZoom(F)F"),
+               index = 0)
+    private float gulliver$scaleZoomInputDist(float maxDist) {
+        if (entity == null) return maxDist;
         float m = ((IResizeableEntity) entity).getSizeMultiplier();
-        if (m == 1.0F) return;
-        cir.setReturnValue(cir.getReturnValue() * m);
+        if (m == 1.0F) return maxDist;
+        return maxDist * m;
     }
 
-    /**
-     * Scale the third-person camera-pull-back distance directly.
-     * The Camera.update third-person branch calls move(-distance, 0, 0)
-     * with the negated max-zoom result; we multiply the (negative)
-     * argument by sizeMultiplier to match 1.6.4's d3 *= pfactor.
-     */
-    @ModifyArg(
-        method = "alignWithEntity",
-        at = @At(value = "INVOKE",
-                 target = "Lnet/minecraft/client/Camera;move(FFF)V",
-                 ordinal = 0),
-        index = 0
-    )
-    private float gulliver$scaleThirdPersonDist(float distance) {
-        if (entity == null) return distance;
-        float m = ((IResizeableEntity) entity).getSizeMultiplier();
-        if (m == 1.0F) return distance;
-        return distance * m;
-    }
-
-    /**
-     * 1.6.4 bfe.java:626-628 — the third-person collision-probe corner
-     * offsets f4/f5/f6 are scaled by `0.1F * pfactor` (pfactor =
-     * sizeMultiplier). Modern Camera.getMaxZoom uses the same 0.1F probe
-     * bias but without scaling. When a tiny shrinks, the un-scaled 0.1F
-     * probes punch through walls and the camera gets kicked too far back;
-     * when a giant grows, the un-scaled probes hit the giant's own model
-     * and pull the camera too close. Scale every 0.1F constant in
-     * getMaxZoom by sizeMultiplier so the framing stays proportional.
-     *
-     * There are 6 occurrences of 0.1F in getMaxZoom: f *= 0.1F, g *= 0.1F,
-     * h *= 0.1F (corner-offset bias) plus three more in the ray-trace
-     * end-vector adds. Scaling all of them is the byte-for-byte equivalent
-     * of bfe.java's `f4 *= 0.1F * pfactor; f5 *= 0.1F * pfactor;
-     * f6 *= 0.1F * pfactor;`.
-     */
-    @ModifyConstant(method = "getMaxZoom", constant = @org.spongepowered.asm.mixin.injection.Constant(floatValue = 0.1F))
+    @ModifyConstant(method = "getMaxZoom",
+                    constant = @Constant(floatValue = 0.1F))
     private float gulliver$scaleProbeBias(float c) {
         if (entity == null) return c;
         float m = ((IResizeableEntity) entity).getSizeMultiplier();

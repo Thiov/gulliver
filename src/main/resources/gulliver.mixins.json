@@ -19,6 +19,7 @@
     "MixinLivingEntityEffects",
     "MixinLivingEntityGlide",
     "MixinLivingEntityHugeEffects",
+    "MixinLivingEntityHugeFall",
     "MixinLivingEntityMovement",
     "MixinLivingEntityRaft",
     "MixinLivingEntitySizeTween",

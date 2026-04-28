@@ -32,8 +32,13 @@ public abstract class MixinGameRendererBob {
     private float gulliver$scaleBob(float c) {
         Entity cam = this.minecraft.getCameraEntity();
         if (cam == null) return c;
+        // 1.6.4 bfe.java:251 used sqrt(size) directly. That AMPLIFIES bob
+        // for hugies (sqrt(8)*0.5 = 1.41x amplitude — visible as huge
+        // hand-side-to-side swing in 1st person). Clamp factor to 1.0
+        // so only tinies dampen, hugies stay vanilla. Better feel.
         float root = ((IResizeableEntity) cam).getSizeMultiplierRoot();
-        if (root == 1.0F) return c;
-        return c * root;
+        float factor = Math.min(root, 1.0F);
+        if (factor == 1.0F) return c;
+        return c * factor;
     }
 }
