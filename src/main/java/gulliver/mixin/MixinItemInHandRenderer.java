@@ -44,17 +44,17 @@ public abstract class MixinItemInHandRenderer {
 
         pose.pushPose();
         if (gliding || umbrella) {
-            // Reset to identity so transforms are pure camera-relative
-            // (otherwise the vanilla hand-pose tilts the paper to the
-            // right of screen).
+            // Reset to identity so transforms are pure camera-relative.
             pose.last().pose().identity();
             pose.last().normal().identity();
-            // Move paper up + forward of the camera origin (eye level).
-            pose.translate(-0.5F, 0.4F, -0.5F);
-            // Lay paper FLAT (perpendicular to up axis): rotate 90° on X
-            // so its surface faces down (visible from below).
+            // Position paper centered horizontally above and in front of
+            // the camera. -0.5 X centers around camera (vanilla item is
+            // offset right by ~0.5). +0.5 Y is overhead. -0.5 Z is forward.
+            pose.translate(-0.5F, 0.5F, -0.5F);
+            // Item models default to facing the camera. Rotate 90° around
+            // X so the FLAT FACE faces DOWN (visible from below). Then
+            // Z 0° (no further rotation needed for "lay flat overhead").
             pose.mulPose(com.mojang.math.Axis.XP.rotationDegrees(90.0F));
-            pose.scale(1.0F, 1.0F, 1.0F);
         }
         if (size != 1.0F) {
             float invRoot = 1.0F / (float) Math.sqrt(size);

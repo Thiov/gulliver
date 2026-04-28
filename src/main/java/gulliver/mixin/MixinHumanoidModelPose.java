@@ -12,25 +12,23 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 /**
- * Post-vanilla-setupAnim pose adjustments:
+ * Post-vanilla-setupAnim pose adjustments. KEY DESIGN RULE: vanilla
+ * walking/punching animation MUST be untouched across sizes (user
+ * observation: anything else feels jittery when /doublesize-ing during
+ * a walk). The model itself is scaled by `state.scale` already, so
+ * vanilla anim cycles naturally adjust to body size in render-space.
  *
- * 1. Glide pose (paper-as-parachute): both arms straight up + legs
- *    dampened. Pins rightArm.x = leftArm.x = 0 so both raised arms
- *    extend from body center, making the bone-attached held item
- *    appear centered above the head.
+ * The only entry-point for our pose changes:
+ *  - isGliding   -> arms straight up, legs dampened (parachute pose)
+ *  - doesUmbrella -> right arm straight up
+ *  - isRafting   -> seated paddle pose
  *
- * 2. Umbrella pose (lily-pad in rain): right arm up only.
- *
- * 3. Raft pose (lily-pad in water as tiny): seated with one arm
- *    paddling. Mirrors 1.6.4 bbj.java:149-156 isRafting branch.
- *
- * 4. Tiny walk-cycle frequency compensation: a tiny moves at sqrt(size)
- *    of world-speed so vanilla walkAnimationPos increments slowly,
- *    making the gait look like slow-motion. We recompute arm/leg
- *    rotations with adjustedPos = walkPos / sqrt(size) so the cycle
- *    runs at body-length-per-stride frequency. GATED on attackTime==0
- *    to not compose with the attack animation (which writes to
- *    rightArm.xRot/zRot during punch).
+ * IMPORTANT: arm.x / leg.x are RESET to vanilla defaults at HEAD of
+ * every setupAnim call. Setting arm.x = 0 (centering pin during glide)
+ * PERSISTS across frames in modern MC's reused ModelPart instances —
+ * any subsequent setupAnim including punch animation would inherit the
+ * compressed shoulders. We restore -5/+5 each frame so the leak heals
+ * the moment glide stops.
  */
 @Mixin(HumanoidModel.class)
 public abstract class MixinHumanoidModelPose {
@@ -41,29 +39,45 @@ public abstract class MixinHumanoidModelPose {
     @Shadow public ModelPart leftLeg;
     @Shadow public ModelPart body;
 
+    /**
+     * Reset arm.x / leg.x to vanilla defaults BEFORE vanilla setupAnim
+     * runs (so any leaked modification from a previous frame's glide
+     * pose doesn't carry over).
+     */
+    @Inject(method = "setupAnim(Lnet/minecraft/client/renderer/entity/state/HumanoidRenderState;)V",
+            at = @At("HEAD"))
+    private void gulliver$resetBonePositions(HumanoidRenderState state, CallbackInfo ci) {
+        rightArm.x = -5.0F;
+        leftArm.x  =  5.0F;
+        rightArm.y =  2.0F;
+        leftArm.y  =  2.0F;
+        rightLeg.x = -1.9F;
+        leftLeg.x  =  1.9F;
+        rightLeg.y = 12.0F;
+        leftLeg.y  = 12.0F;
+    }
+
     @Inject(method = "setupAnim(Lnet/minecraft/client/renderer/entity/state/HumanoidRenderState;)V",
             at = @At("RETURN"))
     private void gulliver$applyPose(HumanoidRenderState state, CallbackInfo ci) {
         IGlideRenderState g = (IGlideRenderState) state;
         if (g.gulliver$isGliding()) {
             float upRot = -(float) Math.PI;
-            // Pin both shoulders to body center so the raised arms
-            // converge overhead — held item (right-finger anchored)
-            // ends up visually centered above the head.
-            rightArm.x = 0.0F;
-            leftArm.x = 0.0F;
+            // Both arms straight up. We DON'T pin arm.x = 0 anymore (caused
+            // a leak/persist bug) — instead the held item is centered via
+            // a translate inside MixinItemInHandLayer.
             rightArm.xRot = upRot;
-            leftArm.xRot = upRot;
+            leftArm.xRot  = upRot;
             rightArm.yRot = 0.0F;
-            leftArm.yRot = 0.0F;
+            leftArm.yRot  = 0.0F;
             rightArm.zRot = 0.0F;
-            leftArm.zRot = 0.0F;
+            leftArm.zRot  = 0.0F;
             float pos = state.walkAnimationPos;
             float speed = Math.min(state.walkAnimationSpeed, 1.0F);
             rightLeg.xRot = Mth.cos(pos * 0.6662F * 0.25F + (float) Math.PI) * 1.4F * speed * 0.25F;
-            leftLeg.xRot  = Mth.cos(pos * 0.6662F * 0.25F)                  * 1.4F * speed * 0.25F;
+            leftLeg.xRot  = Mth.cos(pos * 0.6662F * 0.25F)                   * 1.4F * speed * 0.25F;
             rightLeg.yRot = 0.0F;
-            leftLeg.yRot = 0.0F;
+            leftLeg.yRot  = 0.0F;
             return;
         }
         if (g.gulliver$doesUmbrella()) {
@@ -73,37 +87,21 @@ public abstract class MixinHumanoidModelPose {
             return;
         }
         if (g.gulliver$isRafting()) {
-            // 1.6.4 bbj.java:149-156: arms paddle (slow swing), legs
-            // crossed forward (-72° xRot, ±18° yRot — sitting).
+            // 1.6.4 bbj.java:149-156: arms paddle, legs cross forward.
             float pos = state.walkAnimationPos;
             float speed = Math.min(state.walkAnimationSpeed, 1.0F);
-            // Right arm = slow opposing-phase paddle; left = normal phase.
             rightArm.xRot = Mth.cos(pos * 0.6662F * 0.125F + (float) Math.PI) * 2.0F * speed * 0.5F;
-            leftArm.xRot  = Mth.cos(pos * 0.6662F)                          * 2.0F * speed * 0.5F;
+            leftArm.xRot  = Mth.cos(pos * 0.6662F)                            * 2.0F * speed * 0.5F;
             rightArm.yRot = 0.0F;
-            leftArm.yRot = 0.0F;
-            rightLeg.xRot = -1.2566371F;   // -72° forward (sitting)
+            leftArm.yRot  = 0.0F;
+            rightLeg.xRot = -1.2566371F;
             leftLeg.xRot  = -1.2566371F;
-            rightLeg.yRot =  0.31415927F;  // splayed +18°
+            rightLeg.yRot =  0.31415927F;
             leftLeg.yRot  = -0.31415927F;
             return;
         }
-
-        // Tiny walk-cycle frequency compensation. Skip during attack so
-        // we don't fight setupAttackAnimation's xRot writes (otherwise
-        // arms cross into the body during punch).
-        if (state.attackTime <= 0.0F) {
-            float size = g.gulliver$getSizeMultiplier();
-            if (size < 1.0F && size > 0.0F) {
-                float root = (float) Math.sqrt(size);
-                float pos = state.walkAnimationPos / root;
-                float speed = Math.min(state.walkAnimationSpeed, 1.0F);
-                // Re-derive vanilla walking arm/leg cycles with adjusted pos
-                rightArm.xRot = Mth.cos(pos * 0.6662F + (float) Math.PI) * 2.0F * speed * 0.5F;
-                leftArm.xRot  = Mth.cos(pos * 0.6662F)                  * 2.0F * speed * 0.5F;
-                rightLeg.xRot = Mth.cos(pos * 0.6662F)                  * 1.4F * speed;
-                leftLeg.xRot  = Mth.cos(pos * 0.6662F + (float) Math.PI) * 1.4F * speed;
-            }
-        }
+        // No further modifications — vanilla anim runs at vanilla
+        // frequency for ALL sizes (consistent across size changes,
+        // matches user's "no jitter on /doublesize" requirement).
     }
 }

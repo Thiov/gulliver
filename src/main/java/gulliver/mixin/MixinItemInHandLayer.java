@@ -41,13 +41,31 @@ public abstract class MixinItemInHandLayer {
                      target = "Lcom/mojang/blaze3d/vertex/PoseStack;translate(FFF)V",
                      shift = At.Shift.AFTER,
                      ordinal = 0))
-    private void gulliver$scaleAtHand(ArmedEntityRenderState state, ItemStackRenderState itemRender,
-                                       ItemStack stack, HumanoidArm arm, PoseStack pose,
-                                       SubmitNodeCollector buf, int light, CallbackInfo ci) {
+    private void gulliver$adjustItem(ArmedEntityRenderState state, ItemStackRenderState itemRender,
+                                      ItemStack stack, HumanoidArm arm, PoseStack pose,
+                                      SubmitNodeCollector buf, int light, CallbackInfo ci) {
         if (!(state instanceof IGlideRenderState g)) return;
+        // Glide pose centering: the right arm is at body-x=-5 with both
+        // arms pointing UP. After all translateToHand transforms + the
+        // sub-bone translate, the item is at the right-finger position.
+        // Translate +0.3125 in arm-local +X (post-rotation: this is the
+        // direction from right-arm toward body center) + lay it FLAT on
+        // top of the head by rotating 90° around the local Z axis.
+        if (g.gulliver$isGliding() && arm == HumanoidArm.RIGHT) {
+            pose.translate(0.3125F, 0.0F, 0.0F);
+            // Rotate to lay flat (item's natural orientation is along
+            // the arm — we want it horizontal across the top of head).
+            pose.mulPose(com.mojang.math.Axis.ZP.rotationDegrees(90.0F));
+        }
+        // Hide the LEFT arm's empty-hand item-rendering (irrelevant).
+        if (g.gulliver$isGliding() && arm == HumanoidArm.LEFT) {
+            // No translate — left arm has no item, but if mod adds one
+            // we don't want it interfering.
+        }
         float size = g.gulliver$getSizeMultiplier();
-        if (size == 1.0F) return;
-        float invRoot = 1.0F / (float) Math.sqrt(size);
-        pose.scale(invRoot, invRoot, invRoot);
+        if (size != 1.0F) {
+            float invRoot = 1.0F / (float) Math.sqrt(size);
+            pose.scale(invRoot, invRoot, invRoot);
+        }
     }
 }

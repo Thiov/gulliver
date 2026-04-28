@@ -72,4 +72,38 @@ public abstract class MixinLivingEntityRenderer {
             cir.setReturnValue(false);
         }
     }
+
+    /**
+     * Render a lily-pad block under the player when rafting (1.6.4
+     * visual: tiny holding lily-pad in water sits ON TOP of a lily-pad
+     * block, like a tiny boat).
+     */
+    @Inject(method = "submit(Lnet/minecraft/client/renderer/entity/state/LivingEntityRenderState;Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/SubmitNodeCollector;Lnet/minecraft/client/renderer/state/level/CameraRenderState;)V",
+            at = @At("RETURN"),
+            require = 0)
+    private void gulliver$drawRaftLilypad(LivingEntityRenderState state,
+                                           com.mojang.blaze3d.vertex.PoseStack pose,
+                                           net.minecraft.client.renderer.SubmitNodeCollector buf,
+                                           net.minecraft.client.renderer.state.level.CameraRenderState cam,
+                                           CallbackInfo ci) {
+        if (!(state instanceof gulliver.access.IGlideRenderState g)) return;
+        if (!g.gulliver$isRafting()) return;
+        pose.pushPose();
+        // The pose-stack at this point is at entity origin. Translate
+        // down to feet height (state.scale * 0.0 — the entity's bbox
+        // bottom is at y=0 in entity-local space). Rotate Y 180° to match
+        // entity facing.
+        pose.translate(0.0F, 0.05F, 0.0F);
+        pose.scale(1.5F * state.scale, 0.1F * state.scale, 1.5F * state.scale);
+        net.minecraft.world.item.ItemStack stack =
+                new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.LILY_PAD);
+        net.minecraft.client.renderer.item.ItemStackRenderState itemState =
+                new net.minecraft.client.renderer.item.ItemStackRenderState();
+        net.minecraft.client.Minecraft.getInstance().getItemModelResolver().updateForTopItem(
+                itemState, stack, net.minecraft.world.item.ItemDisplayContext.GROUND,
+                null, null, 0);
+        itemState.submit(pose, buf, 15728880,
+                net.minecraft.client.renderer.texture.OverlayTexture.NO_OVERLAY, 0);
+        pose.popPose();
+    }
 }

@@ -23,6 +23,7 @@
     "MixinLivingEntityMovement",
     "MixinLivingEntityRaft",
     "MixinLivingEntitySizeTween",
+    "MixinLivingEntityTinyClimb",
     "MixinLivingEntityTinyEffects",
     "MixinPlayer",
     "MixinPlayerReach",
@@ -41,7 +42,8 @@
     "MixinHumanoidRenderState",
     "MixinItemInHandLayer",
     "MixinItemInHandRenderer",
-    "MixinLivingEntityRenderer"
+    "MixinLivingEntityRenderer",
+    "MixinMinecraftAttackThrow"
   ],
   "injectors": {
     "defaultRequire": 1

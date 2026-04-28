@@ -44,21 +44,6 @@ public abstract class MixinGameRendererBob {
         return c * factor;
     }
 
-    /**
-     * View-bob FREQUENCY compensation for tinies. bobView reads the camera
-     * entity's `backwardsInterpolatedWalkDistance` and stores it into a
-     * local at fstore_3 (slot 3). The local then drives both Mth.sin/cos
-     * for X-translate, Y-translate, and rotation. Tiny moves at sqrt(size)
-     * world-speed -> walkDistance increments slowly -> bob freq is slow.
-     * Scale the local by 1/sqrt(size) for tinies so bob cycles at
-     * body-length frequency.
-     */
-    @ModifyVariable(method = "bobView", at = @At(value = "STORE", ordinal = 0), index = 3)
-    private float gulliver$boostBobFreq(float walkDist) {
-        Entity cam = this.minecraft.getCameraEntity();
-        if (cam == null) return walkDist;
-        float size = ((IResizeableEntity) cam).getSizeMultiplier();
-        if (size >= 1.0F || size <= 0.0F) return walkDist;
-        return walkDist / (float) Math.sqrt(size);
-    }
+    // (View-bob frequency is left at vanilla for all sizes — user
+    // observation: scaling by 1/sqrt(size) felt jittery on size change.)
 }
