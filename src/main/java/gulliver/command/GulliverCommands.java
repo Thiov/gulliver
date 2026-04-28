@@ -130,15 +130,19 @@ public final class GulliverCommands {
                 .then(Commands.argument("player", EntityArgument.player())
                         .executes(ctx -> instantKarma(ctx, EntityArgument.getPlayer(ctx, "player")))));
 
-        // /shoulderentity  (perm 0, player-only) — pickup or drop
-        // /shoulderentity throw — fling held entity in look direction
+        // /shoulderentity  (V key) — cycle hand <-> shoulders
+        // /shoulderentity drop  — drop everything carried
+        // /shoulderentity throw — fling hand-held in look direction
         dispatcher.register(Commands.literal("shoulderentity")
                 .requires(s -> s.getEntity() instanceof ServerPlayer)
                 .executes(GulliverCommands::shoulderEntity)
                 .then(Commands.literal("throw").executes(ctx -> {
                     ServerPlayer p = ctx.getSource().getPlayerOrException();
-                    if (gulliver.common.ShoulderHelper.throwHeld(p)) return 1;
-                    return 0;
+                    return gulliver.common.ShoulderHelper.throwHeld(p) ? 1 : 0;
+                }))
+                .then(Commands.literal("drop").executes(ctx -> {
+                    ServerPlayer p = ctx.getSource().getPlayerOrException();
+                    return gulliver.common.ShoulderHelper.drop(p) ? 1 : 0;
                 })));
 
         // /reloadgullivercfg  (perm 4, the 1.6.4 mod's reload)
@@ -208,22 +212,14 @@ public final class GulliverCommands {
     }
 
     /**
-     * /shoulderentity: pick up the nearest carryable entity within the
-     * player's reach, OR drop the currently-held one. Mirrors 1.6.4
-     * CommandShoulderEntity.b which picks if heldEntity == null + has a
-     * passenger to take; drops if heldEntity != null.
+     * /shoulderentity (V keybind): cycle the carry slots — hand <-> shoulders.
      */
     private static int shoulderEntity(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
         ServerPlayer player = ctx.getSource().getPlayerOrException();
-        // Already carrying? Drop.
-        if (((gulliver.access.IGulliverShoulderInternal) player).gulliver$getHeldEntity() != null) {
-            if (gulliver.common.ShoulderHelper.drop(player)) {
-                ctx.getSource().sendSuccess(() -> Component.literal("Dropped passenger"), false);
-                return 1;
-            }
-            return 0;
+        if (gulliver.common.ShoulderHelper.toggleHandShoulder(player)) {
+            return 1;
         }
-        // Find nearest carryable entity in reach.
+        // Nothing carried — fallback: pick up nearest carryable.
         double reach = player.blockInteractionRange();
         Entity nearest = null;
         double bestDistSq = reach * reach;

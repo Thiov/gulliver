@@ -33,20 +33,42 @@ public final class ClientPacketHandlers {
                 Entity carrier = entityById(payload.vehicleEntityId());
                 Entity passenger = entityById(payload.entityId());
                 if (carrier == null) return;
-                gulliver.access.IGulliverShoulderInternal carrierAccess =
+                gulliver.access.IGulliverShoulderInternal cs =
                         (gulliver.access.IGulliverShoulderInternal) carrier;
-                if (payload.attachmentType() == 0) {
-                    java.util.UUID prev = carrierAccess.gulliver$getHeldEntity();
-                    carrierAccess.gulliver$setHeldEntity(null);
-                    if (passenger != null) {
-                        ((gulliver.access.IGulliverShoulderInternal) passenger).gulliver$setHoldingEntity(null);
-                    } else if (prev != null) {
-                        // Passenger entity is gone — best-effort detach.
-                    }
-                } else if (passenger != null) {
-                    carrierAccess.gulliver$setHeldEntity(passenger.getUUID());
-                    ((gulliver.access.IGulliverShoulderInternal) passenger)
-                            .gulliver$setHoldingEntity(carrier.getUUID());
+                byte slot = payload.attachmentType();
+                java.util.UUID pid = passenger == null ? null : passenger.getUUID();
+                // Detach this passenger from any slot it currently occupies
+                // before assigning the new slot, so /shoulderentity-style
+                // hand→shoulder cycling stays consistent.
+                if (pid != null) {
+                    if (pid.equals(cs.gulliver$getHandEntity()))     cs.gulliver$setHandEntity(null);
+                    if (pid.equals(cs.gulliver$getRightShoulder()))  cs.gulliver$setRightShoulder(null);
+                    if (pid.equals(cs.gulliver$getLeftShoulder()))   cs.gulliver$setLeftShoulder(null);
+                }
+                switch (slot) {
+                    case gulliver.common.ShoulderHelper.SLOT_DETACH:
+                        // slot-clear is enough; if passenger is known, also
+                        // clear its holding-back-ref.
+                        if (passenger != null) {
+                            ((gulliver.access.IGulliverShoulderInternal) passenger)
+                                    .gulliver$setHoldingEntity(null);
+                        }
+                        break;
+                    case gulliver.common.ShoulderHelper.SLOT_HAND:
+                        if (pid != null) cs.gulliver$setHandEntity(pid);
+                        if (passenger != null) ((gulliver.access.IGulliverShoulderInternal) passenger)
+                                .gulliver$setHoldingEntity(carrier.getUUID());
+                        break;
+                    case gulliver.common.ShoulderHelper.SLOT_RIGHT:
+                        if (pid != null) cs.gulliver$setRightShoulder(pid);
+                        if (passenger != null) ((gulliver.access.IGulliverShoulderInternal) passenger)
+                                .gulliver$setHoldingEntity(carrier.getUUID());
+                        break;
+                    case gulliver.common.ShoulderHelper.SLOT_LEFT:
+                        if (pid != null) cs.gulliver$setLeftShoulder(pid);
+                        if (passenger != null) ((gulliver.access.IGulliverShoulderInternal) passenger)
+                                .gulliver$setHoldingEntity(carrier.getUUID());
+                        break;
                 }
             });
         });

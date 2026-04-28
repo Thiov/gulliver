@@ -3,42 +3,30 @@ package gulliver.common;
 import gulliver.api.IResizeableEntity;
 import gulliver.access.IGulliverShoulderInternal;
 import gulliver.network.Payloads;
-import gulliver.network.SizeSync;
 import net.fabricmc.fabric.api.networking.v1.PlayerLookup;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.entity.player.Player;
 
 import java.util.UUID;
 
 /**
- * Shoulder-entity carry/drop helpers, ported from the 1.6.4 ASM-injected
- * methods on Entity / Player:
- *   maxHeldWidth(other) — biggest other.width that the carrier can lift.
- *                          1.6.4 used carrier.width / 2 - other.width as
- *                          a 'fits-on-shoulder' room check.
- *   pickUpEntity(target) — set heldEntity / holdingEntity, send packet.
- *   dropHeldEntity()     — clear fields, send drop packet.
+ * Carry slots: HAND + RIGHT shoulder + LEFT shoulder. Up to 3
+ * concurrent passengers. Pickup goes to HAND. V cycles HAND ↔ shoulders.
  */
 public final class ShoulderHelper {
     private ShoulderHelper() {}
 
-    /**
-     * Returns max bounding-box width of a target the carrier can put on
-     * their shoulder. Negative means 'no room'.
-     *
-     * 1.6.4 maxHeldWidth: carrier.width × 0.5 - margin, scaled by
-     * carrier.sizeMultiplier. Larger carrier ⇒ wider acceptable target.
-     */
+    /** Slot identifiers — also used as packet attachmentType byte. */
+    public static final byte SLOT_DETACH = 0;
+    public static final byte SLOT_HAND   = 1;
+    public static final byte SLOT_RIGHT  = 2;
+    public static final byte SLOT_LEFT   = 3;
+
     public static float maxHeldWidth(LivingEntity carrier) {
-        // Carrier can lift anything narrower than itself. Loosened from
-        // `bbWidth * 0.5F` (which required the carrier to be 2x bigger
-        // than target) to `bbWidth * 1.0F` so any smaller-or-equal target
-        // can be carried. Player-on-player at vanilla 1x both 0.6 width
-        // -> equal, returns true.
+        // Carrier can lift anything narrower than itself.
         return carrier.getBbWidth();
     }
 
@@ -46,60 +34,122 @@ public final class ShoulderHelper {
         if (target == null || target == carrier) return false;
         if (target.getVehicle() != null) return false;
         if (target.isPassenger() || target.getPassengers().size() > 0) return false;
-        if (((IGulliverShoulderInternal) carrier).gulliver$getHeldEntity() != null) return false;
         if (((IGulliverShoulderInternal) target).gulliver$getHoldingEntity() != null) return false;
-        // Carrier must be at least as big as the target (no equal-size
-        // pickup of larger entities). Use bbWidth which already reflects
-        // size scaling via Phase 2 dimensions.
         if (target.getBbWidth() > maxHeldWidth(carrier)) return false;
         return true;
     }
 
     /**
-     * Throw the carried entity in the carrier's look direction.
-     * 1.6.4 mod allowed left-click while holding a shoulder entity to
-     * fling them. Velocity scales with carrier size.
+     * Pick up the target into the HAND slot. If hand is occupied,
+     * caller is expected to handle (return false here).
+     */
+    public static boolean pickUp(ServerPlayer carrier, Entity target) {
+        if (!canCarry(carrier, target)) return false;
+        IGulliverShoulderInternal cs = (IGulliverShoulderInternal) carrier;
+        if (cs.gulliver$getHandEntity() != null) return false;
+        cs.gulliver$setHandEntity(target.getUUID());
+        ((IGulliverShoulderInternal) target).gulliver$setHoldingEntity(carrier.getUUID());
+        broadcastAttach(carrier, target, SLOT_HAND);
+        return true;
+    }
+
+    /**
+     * V keybind action — toggle the carry slot rotation:
+     *   - hand has someone: move them to first empty shoulder (right > left).
+     *     If both shoulders full, swap with the right shoulder (right -> hand,
+     *     hand -> right).
+     *   - hand is empty AND a shoulder has someone: move right (preferred) or
+     *     left into the hand.
+     *   - all empty: no-op.
+     */
+    public static boolean toggleHandShoulder(ServerPlayer carrier) {
+        IGulliverShoulderInternal cs = (IGulliverShoulderInternal) carrier;
+        UUID hand  = cs.gulliver$getHandEntity();
+        UUID right = cs.gulliver$getRightShoulder();
+        UUID left  = cs.gulliver$getLeftShoulder();
+
+        if (hand != null) {
+            if (right == null) {
+                cs.gulliver$setHandEntity(null);
+                cs.gulliver$setRightShoulder(hand);
+                broadcastAttachByUuid(carrier, hand, SLOT_RIGHT);
+                return true;
+            }
+            if (left == null) {
+                cs.gulliver$setHandEntity(null);
+                cs.gulliver$setLeftShoulder(hand);
+                broadcastAttachByUuid(carrier, hand, SLOT_LEFT);
+                return true;
+            }
+            // Both shoulders full — swap hand with right shoulder.
+            cs.gulliver$setHandEntity(right);
+            cs.gulliver$setRightShoulder(hand);
+            broadcastAttachByUuid(carrier, right, SLOT_HAND);
+            broadcastAttachByUuid(carrier, hand,  SLOT_RIGHT);
+            return true;
+        }
+        // Hand empty: pull right shoulder (preferred) into hand.
+        if (right != null) {
+            cs.gulliver$setRightShoulder(null);
+            cs.gulliver$setHandEntity(right);
+            broadcastAttachByUuid(carrier, right, SLOT_HAND);
+            return true;
+        }
+        if (left != null) {
+            cs.gulliver$setLeftShoulder(null);
+            cs.gulliver$setHandEntity(left);
+            broadcastAttachByUuid(carrier, left, SLOT_HAND);
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Drop ALL carried entities (hand + both shoulders).
+     */
+    public static boolean drop(ServerPlayer carrier) {
+        IGulliverShoulderInternal cs = (IGulliverShoulderInternal) carrier;
+        boolean any = false;
+        any |= dropSlotInternal(carrier, cs.gulliver$getHandEntity());
+        any |= dropSlotInternal(carrier, cs.gulliver$getRightShoulder());
+        any |= dropSlotInternal(carrier, cs.gulliver$getLeftShoulder());
+        cs.gulliver$setHandEntity(null);
+        cs.gulliver$setRightShoulder(null);
+        cs.gulliver$setLeftShoulder(null);
+        return any;
+    }
+
+    private static boolean dropSlotInternal(ServerPlayer carrier, UUID id) {
+        if (id == null) return false;
+        Entity e = resolve((ServerLevel) carrier.level(), id);
+        if (e != null) {
+            ((IGulliverShoulderInternal) e).gulliver$setHoldingEntity(null);
+            broadcastAttach(carrier, e, SLOT_DETACH);
+        } else {
+            ServerPlayNetworking.send(carrier, new Payloads.AttachEntitySpecial(-1, carrier.getId(), SLOT_DETACH));
+        }
+        return true;
+    }
+
+    /**
+     * Throw the HAND-carried entity in the carrier's look direction.
      */
     public static boolean throwHeld(ServerPlayer carrier) {
-        UUID heldId = ((IGulliverShoulderInternal) carrier).gulliver$getHeldEntity();
-        if (heldId == null) return false;
-        Entity held = resolve((ServerLevel) carrier.level(), heldId);
+        IGulliverShoulderInternal cs = (IGulliverShoulderInternal) carrier;
+        UUID handId = cs.gulliver$getHandEntity();
+        if (handId == null) return false;
+        Entity held = resolve((ServerLevel) carrier.level(), handId);
+        cs.gulliver$setHandEntity(null);
         if (held == null) {
-            // Held UUID is stale — clear and broadcast detach.
-            return drop(carrier);
+            ServerPlayNetworking.send(carrier, new Payloads.AttachEntitySpecial(-1, carrier.getId(), SLOT_DETACH));
+            return true;
         }
-        // Detach first
-        ((IGulliverShoulderInternal) carrier).gulliver$setHeldEntity(null);
         ((IGulliverShoulderInternal) held).gulliver$setHoldingEntity(null);
-        broadcastAttach(carrier, held, (byte) 0);
-        // Apply velocity in look direction
+        broadcastAttach(carrier, held, SLOT_DETACH);
         net.minecraft.world.phys.Vec3 look = carrier.getLookAngle();
         float power = 1.5F * ((IResizeableEntity) carrier).getSizeMultiplierRoot();
         held.setDeltaMovement(look.x * power, look.y * power + 0.3F, look.z * power);
         held.hurtMarked = true;
-        return true;
-    }
-
-    public static boolean pickUp(ServerPlayer carrier, Entity target) {
-        if (!canCarry(carrier, target)) return false;
-        ((IGulliverShoulderInternal) carrier).gulliver$setHeldEntity(target.getUUID());
-        ((IGulliverShoulderInternal) target).gulliver$setHoldingEntity(carrier.getUUID());
-        broadcastAttach(carrier, target, (byte) 1);
-        return true;
-    }
-
-    public static boolean drop(ServerPlayer carrier) {
-        UUID heldId = ((IGulliverShoulderInternal) carrier).gulliver$getHeldEntity();
-        if (heldId == null) return false;
-        Entity held = resolve((ServerLevel) carrier.level(), heldId);
-        ((IGulliverShoulderInternal) carrier).gulliver$setHeldEntity(null);
-        if (held != null) {
-            ((IGulliverShoulderInternal) held).gulliver$setHoldingEntity(null);
-            broadcastAttach(carrier, held, (byte) 0);
-        } else {
-            // resolve failed — still tell clients to detach by id 0
-            ServerPlayNetworking.send(carrier, new Payloads.AttachEntitySpecial(-1, carrier.getId(), (byte) 0));
-        }
         return true;
     }
 
@@ -108,12 +158,17 @@ public final class ShoulderHelper {
         return level.getEntity(id);
     }
 
-    private static void broadcastAttach(ServerPlayer carrier, Entity target, byte type) {
+    private static void broadcastAttach(ServerPlayer carrier, Entity target, byte slot) {
         Payloads.AttachEntitySpecial p =
-                new Payloads.AttachEntitySpecial(target.getId(), carrier.getId(), type);
+                new Payloads.AttachEntitySpecial(target.getId(), carrier.getId(), slot);
         for (ServerPlayer viewer : PlayerLookup.tracking(carrier)) {
             ServerPlayNetworking.send(viewer, p);
         }
         ServerPlayNetworking.send(carrier, p);
+    }
+
+    private static void broadcastAttachByUuid(ServerPlayer carrier, UUID targetId, byte slot) {
+        Entity e = resolve((ServerLevel) carrier.level(), targetId);
+        if (e != null) broadcastAttach(carrier, e, slot);
     }
 }

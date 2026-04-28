@@ -3,21 +3,33 @@ package gulliver.access;
 import java.util.UUID;
 
 /**
- * Internal accessor for the shoulder-entity @Unique fields. Mirrors
- * the 1.6.4 ASM-injected fields:
- *   Entity.holdingEntity  — UUID of the entity carrying me, or null
- *   Player.heldEntity     — UUID of the entity I'm carrying, or null
+ * Internal accessor for the shoulder/hand carry slots. Up to 3
+ * concurrent passengers per carrier:
+ *   - hand          (entity in carrier's hand, in front)
+ *   - right shoulder
+ *   - left shoulder
  *
- * These are stored as UUIDs (not direct refs) so they survive entity
- * unload and re-resolve via level.getEntity(uuid) lazily.
- *
- * Not part of the public IResizeable* API — purely a port-side mechanism
- * to coordinate between shoulder mixins.
+ * Plus the reverse-lookup `holdingEntity` UUID on every Entity (the
+ * UUID of whoever is carrying me, or null if not carried).
  */
 public interface IGulliverShoulderInternal {
     UUID gulliver$getHoldingEntity();
-    UUID gulliver$getHeldEntity();
-
     void gulliver$setHoldingEntity(UUID id);
-    void gulliver$setHeldEntity(UUID id);
+
+    UUID gulliver$getHandEntity();
+    UUID gulliver$getRightShoulder();
+    UUID gulliver$getLeftShoulder();
+    void gulliver$setHandEntity(UUID id);
+    void gulliver$setRightShoulder(UUID id);
+    void gulliver$setLeftShoulder(UUID id);
+
+    /**
+     * Convenience: returns true iff the entity is carried in any slot
+     * by the given carrier UUID.
+     */
+    default boolean gulliver$hasAnyCarry() {
+        return gulliver$getHandEntity() != null
+            || gulliver$getRightShoulder() != null
+            || gulliver$getLeftShoulder() != null;
+    }
 }

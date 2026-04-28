@@ -22,7 +22,7 @@ public abstract class MixinMinecraftAttackThrow {
     @Inject(method = "startAttack", at = @At("HEAD"), cancellable = true)
     private void gulliver$throwHeldOnAttack(CallbackInfoReturnable<Boolean> cir) {
         if (player == null) return;
-        if (((IGulliverShoulderInternal) player).gulliver$getHeldEntity() == null) return;
+        if (((IGulliverShoulderInternal) player).gulliver$getHandEntity() == null) return;
         // Send command to server; server side ShoulderHelper.throwHeld
         // does the actual throw + packet broadcast.
         if (player.connection != null) {

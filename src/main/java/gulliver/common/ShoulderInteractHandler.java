@@ -1,31 +1,56 @@
 package gulliver.common;
 
 import gulliver.access.IGulliverShoulderInternal;
+import gulliver.api.IResizeableEntity;
 import net.fabricmc.fabric.api.event.player.UseEntityCallback;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 
 /**
- * Shift + right-click on a carryable entity -> pick them up onto the
- * carrier's shoulder. Drop or throw via /shoulderentity (V key) or
- * left-click. This is the natural-feeling alternative to the V-grabs-
- * nearest-target flow.
+ * Right-click on a target entity (with optional sneak / string in hand)
+ * dispatches one of:
+ *  - shift+RMB on carryable target  -> pick up into HAND slot
+ *  - RMB while holding STRING on a sufficiently-larger target -> rider
+ *    starts riding the target (vanilla startRiding)
+ *  - shift+RMB while already carrying -> drop everything
  */
 public final class ShoulderInteractHandler {
     private ShoulderInteractHandler() {}
 
     public static void registerCommon() {
         UseEntityCallback.EVENT.register((player, world, hand, entity, hitResult) -> {
-            // Run only the main hand to avoid double-firing on offhand probe.
-            if (hand != net.minecraft.world.InteractionHand.MAIN_HAND) return InteractionResult.PASS;
+            if (hand != InteractionHand.MAIN_HAND) return InteractionResult.PASS;
             if (world.isClientSide()) return InteractionResult.PASS;
-            if (!player.isShiftKeyDown()) return InteractionResult.PASS;
             if (!(player instanceof ServerPlayer carrier)) return InteractionResult.PASS;
-            // Already carrying -> drop instead.
-            if (((IGulliverShoulderInternal) carrier).gulliver$getHeldEntity() != null) {
+            ItemStack stack = carrier.getMainHandItem();
+
+            // String-ride: rider holds STRING, RMB on a sufficiently-larger
+            // target -> rider starts riding the target.
+            if (!player.isShiftKeyDown() && stack != null && stack.is(Items.STRING)) {
+                if (entity instanceof LivingEntity target) {
+                    float riderSize  = ((IResizeableEntity) carrier).getSizeMultiplier();
+                    float targetSize = ((IResizeableEntity) target).getSizeMultiplier();
+                    // Rider must be at most half the target's size — same
+                    // size-difference gate as carry / squish.
+                    if (riderSize <= targetSize * 0.5F) {
+                        if (carrier.getVehicle() == null) {
+                            carrier.startRiding(target, true, false);
+                            return InteractionResult.SUCCESS;
+                        }
+                    }
+                }
+            }
+
+            // Sneak + RMB carry-pickup
+            if (!player.isShiftKeyDown()) return InteractionResult.PASS;
+            IGulliverShoulderInternal cs = (IGulliverShoulderInternal) carrier;
+            // Already carrying anything -> drop ALL.
+            if (cs.gulliver$hasAnyCarry()) {
                 ShoulderHelper.drop(carrier);
                 return InteractionResult.SUCCESS;
             }
