@@ -6,5 +6,6 @@ public class GulliverFabricClient implements ClientModInitializer {
     @Override
     public void onInitializeClient() {
         ClientPacketHandlers.register();
+        KeyInputHandler.register();
     }
 }
