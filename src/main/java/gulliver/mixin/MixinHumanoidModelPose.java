@@ -107,33 +107,11 @@ public abstract class MixinHumanoidModelPose {
             gulliver$resetBonePositions();
             return;
         }
-        // VANILLA-MATCHING WALK CYCLE FREQUENCY across all sizes —
-        // OVERRIDE arm/leg.xRot AFTER vanilla setupAnim with a freq-
-        // compensated cycle. Tinies move at sqrt(size)x world-speed,
-        // so vanilla walkAnimationPos increments slowly -> cycle slow.
-        // Multiply walkPos by 1/sqrt(size) to restore vanilla cycle
-        // rate at every body size. SKIP during attack so we don't
-        // compose with setupAttackAnimation.
-        float size = g.gulliver$getSizeMultiplier();
-        if (state.attackTime <= 0.0F && state.swimAmount <= 0.0F
-                && size != 1.0F && size > 0.0F
-                && !state.isCrouching && !state.isFallFlying) {
-            float root = (float) Math.sqrt(size);
-            float adjPos = state.walkAnimationPos / root;
-            float speed = Math.min(state.walkAnimationSpeed, 1.0F);
-            rightArm.xRot = Mth.cos(adjPos * 0.6662F + (float) Math.PI) * 2.0F * speed * 0.5F;
-            leftArm.xRot  = Mth.cos(adjPos * 0.6662F)                   * 2.0F * speed * 0.5F;
-            rightLeg.xRot = Mth.cos(adjPos * 0.6662F)                   * 1.4F * speed;
-            leftLeg.xRot  = Mth.cos(adjPos * 0.6662F + (float) Math.PI) * 1.4F * speed;
-            rightArm.yRot = 0.0F;
-            leftArm.yRot  = 0.0F;
-            rightArm.zRot = 0.0F;
-            leftArm.zRot  = 0.0F;
-            rightLeg.yRot = 0.0F;
-            leftLeg.yRot  = 0.0F;
-        }
-        // Re-reset bone positions AFTER vanilla setupAnim too — some
-        // attack-animation paths write to .x in addition to .xRot.
+        // Walk-cycle freq normalization is now done at SOURCE in
+        // MixinLivingEntityWalkAnim (scale walkAnimation.update speed
+        // arg by 1/sizeMovementMultiplier — matches 1.6.4 sf.java:574
+        // verbatim). No render-time recompute needed; vanilla setupAnim
+        // already sees a normalized walkAnimationPos.
         gulliver$resetBonePositions();
     }
 }

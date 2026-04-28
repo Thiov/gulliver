@@ -25,6 +25,7 @@
     "MixinLivingEntitySizeTween",
     "MixinLivingEntityStep",
     "MixinLivingEntityTinyClimb",
+    "MixinLivingEntityWalkAnim",
     "MixinLivingEntityTinyEffects",
     "MixinPlayer",
     "MixinPlayerReach",

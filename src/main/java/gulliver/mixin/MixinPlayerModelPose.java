@@ -77,25 +77,9 @@ public abstract class MixinPlayerModelPose {
             gulliver$resetBones(hm);
             return;
         }
-        // Vanilla-frequency walk cycle for all sizes.
-        float size = g.gulliver$getSizeMultiplier();
-        if (state.attackTime <= 0.0F && state.swimAmount <= 0.0F
-                && size != 1.0F && size > 0.0F
-                && !state.isCrouching && !state.isFallFlying) {
-            float root = (float) Math.sqrt(size);
-            float adjPos = state.walkAnimationPos / root;
-            float speed = Math.min(state.walkAnimationSpeed, 1.0F);
-            rightArm.xRot = Mth.cos(adjPos * 0.6662F + (float) Math.PI) * 2.0F * speed * 0.5F;
-            leftArm.xRot  = Mth.cos(adjPos * 0.6662F)                   * 2.0F * speed * 0.5F;
-            rightLeg.xRot = Mth.cos(adjPos * 0.6662F)                   * 1.4F * speed;
-            leftLeg.xRot  = Mth.cos(adjPos * 0.6662F + (float) Math.PI) * 1.4F * speed;
-            rightArm.yRot = 0.0F;
-            leftArm.yRot  = 0.0F;
-            rightArm.zRot = 0.0F;
-            leftArm.zRot  = 0.0F;
-            rightLeg.yRot = 0.0F;
-            leftLeg.yRot  = 0.0F;
-        }
+        // Walk-cycle freq normalization is done at the SOURCE in
+        // MixinLivingEntityWalkAnim — vanilla setupAnim runs with an
+        // already-normalized walkAnimationPos. No render-time recompute.
         gulliver$resetBones(hm);
     }
 
