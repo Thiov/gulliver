@@ -13,6 +13,7 @@
     "MixinEntitySound",
     "MixinFarmlandBlock",
     "MixinFlowerPotBlock",
+    "MixinItemEntityPickup",
     "MixinLivingEntity",
     "MixinLivingEntityClimbRope",
     "MixinLivingEntityDamage",

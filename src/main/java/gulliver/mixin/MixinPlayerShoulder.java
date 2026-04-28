@@ -38,14 +38,16 @@ public abstract class MixinPlayerShoulder {
         double sin = Math.sin(yaw);
         double cos = Math.cos(yaw);
 
-        // Direction unit vectors. MC convention: with yaw=0 the player
-        // faces +Z (south). Forward = (-sin, +cos). Right side (the
-        // arm with the held item) is +X relative to forward, i.e.
-        // (+cos, +sin) at yaw=0 → (1, 0) which is +X. Correct for right.
+        // MC yaw conventions: yaw=0 -> facing +Z (south), so forward
+        // direction = (-sin, +cos). Player model faces +Z by default;
+        // their RIGHT-arm bone is at body-x = -5, i.e. on the -X side of
+        // the model. World-space right direction = (-cos, -sin) at yaw=0
+        // gives (-1, 0) = -X. Negation matters — without it the held
+        // mob ends up on the LEFT side.
         double fwdX   = -sin;
         double fwdZ   =  cos;
-        double rightX =  cos;
-        double rightZ =  sin;
+        double rightX = -cos;
+        double rightZ = -sin;
 
         // Vanilla model: shoulder at body-x = ±5/16, arm length 12/16
         // when extended forward. Both scale linearly with bbWidth/0.6
@@ -75,8 +77,8 @@ public abstract class MixinPlayerShoulder {
             if (r == null) {
                 cs.gulliver$setRightShoulder(null);
             } else {
-                double px = self.getX() + cos * sideUnit;
-                double pz = self.getZ() + sin * sideUnit;
+                double px = self.getX() + rightX * sideUnit;
+                double pz = self.getZ() + rightZ * sideUnit;
                 placePassenger(r, px, shoulderY, pz);
             }
         }
@@ -85,8 +87,8 @@ public abstract class MixinPlayerShoulder {
             if (l == null) {
                 cs.gulliver$setLeftShoulder(null);
             } else {
-                double px = self.getX() + (-cos) * sideUnit;
-                double pz = self.getZ() + (-sin) * sideUnit;
+                double px = self.getX() - rightX * sideUnit;
+                double pz = self.getZ() - rightZ * sideUnit;
                 placePassenger(l, px, shoulderY, pz);
             }
         }
