@@ -4,6 +4,7 @@ import gulliver.command.GulliverCommands;
 import gulliver.common.DyeResizing;
 import gulliver.common.GulliverConfig;
 import gulliver.common.InteractEventHandler;
+import gulliver.common.KarmaMode;
 import gulliver.init.GulliverEffects;
 import gulliver.init.GulliverPotions;
 import gulliver.network.PacketHandlers;
@@ -32,6 +33,7 @@ public class GulliverFabric implements ModInitializer {
         SizeSync.registerCommon();
         InteractEventHandler.registerCommon();
         DyeResizing.registerCommon();
+        KarmaMode.registerCommon();
         CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) ->
                 GulliverCommands.register(dispatcher));
     }
