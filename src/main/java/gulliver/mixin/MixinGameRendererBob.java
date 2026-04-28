@@ -44,7 +44,19 @@ public abstract class MixinGameRendererBob {
         return c * factor;
     }
 
-    // 1.6.4 verbatim: bobView freq UNCHANGED (only the X-translate
-    // amplitude was scaled by sqrt(size) — handled above). Removing
-    // freq compensation to match the original mod's behavior.
+    /**
+     * View-bob frequency compensation: divide walkDistance local by
+     * sqrt(size) so bob cycles at vanilla frequency at every size.
+     * Without this, tiny moves slowly in world units -> bob slow,
+     * huge moves fast -> bob fast. User wants size-1 cadence at all
+     * sizes (frequency, not amplitude — amplitude is scaled separately).
+     */
+    @ModifyVariable(method = "bobView", at = @At(value = "STORE"), index = 3)
+    private float gulliver$normalizeBobFreq(float walkDist) {
+        Entity cam = this.minecraft.getCameraEntity();
+        if (cam == null) return walkDist;
+        float size = ((IResizeableEntity) cam).getSizeMultiplier();
+        if (size == 1.0F || size <= 0.0F) return walkDist;
+        return walkDist / (float) Math.sqrt(size);
+    }
 }

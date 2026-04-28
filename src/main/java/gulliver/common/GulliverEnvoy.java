@@ -968,6 +968,15 @@ public final class GulliverEnvoy {
     public static void stepOnSmallerEntities(net.minecraft.world.entity.LivingEntity stepper) {
         net.minecraft.world.level.Level level = stepper.level();
         if (level.isClientSide()) return;
+
+        // 1.6.4 canSquish gate (nn.java:1271): only crush when STEPPING.
+        // The 1.6.4 mod gated this on collision-while-moving, which we
+        // approximate with a horizontal-velocity threshold. Stationary
+        // giant standing on a tiny no longer crushes them.
+        net.minecraft.world.phys.Vec3 dm = stepper.getDeltaMovement();
+        double horizSqr = dm.x * dm.x + dm.z * dm.z;
+        if (horizSqr < 0.005D) return;
+
         net.minecraft.world.phys.AABB stepperBox = stepper.getBoundingBox();
         net.minecraft.world.phys.AABB scan = stepperBox.inflate(0.2D, 0.0D, 0.2D);
         java.util.List<Entity> nearby = level.getEntities(stepper, scan);
@@ -977,6 +986,10 @@ public final class GulliverEnvoy {
         float stepperRoot = ((IResizeableEntity) stepper).getSizeMultiplierRoot();
         double sBottom = stepperBox.minY;
         double sHeight = stepperBox.maxY - stepperBox.minY;
+        // 1.6.4 nn.java:1273 canSquish height-ratio gate: stepper must
+        // be at least 1.5x taller than target. Approximated here by
+        // bbox-height ratio.
+        float stepperHeight = stepper.getBbHeight();
 
         for (Entity target : nearby) {
             if (!(target instanceof net.minecraft.world.entity.LivingEntity living)) continue;
@@ -985,6 +998,7 @@ public final class GulliverEnvoy {
 
             IResizeableEntity tsized = (IResizeableEntity) target;
             if (tsized.getSizeMultiplier() >= stepperMult * 0.5F) continue;
+            if (stepperHeight <= target.getBbHeight() * 1.5F) continue;
 
             net.minecraft.world.phys.AABB tBox = target.getBoundingBox();
             if (tBox.maxY < sBottom) continue;
