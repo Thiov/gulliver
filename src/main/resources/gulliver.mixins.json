@@ -5,8 +5,10 @@
   "minVersion": "0.8",
   "mixins": [
     "MixinCactusBlock",
+    "MixinCarpetBlock",
     "MixinEntity",
     "MixinFarmlandBlock",
+    "MixinFlowerPotBlock",
     "MixinLivingEntity",
     "MixinLivingEntityEffects",
     "MixinPlayer",
@@ -14,6 +16,7 @@
     "MixinSnowLayerBlock",
     "MixinSoulSandBlock",
     "MixinTntBlock",
+    "MixinTripWireBlock",
     "MixinWebBlock"
   ],
   "client": [],
