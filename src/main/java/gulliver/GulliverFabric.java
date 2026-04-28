@@ -2,6 +2,7 @@ package gulliver;
 
 import gulliver.command.GulliverCommands;
 import gulliver.common.GulliverConfig;
+import gulliver.common.InteractEventHandler;
 import gulliver.init.GulliverEffects;
 import gulliver.init.GulliverPotions;
 import gulliver.network.PacketHandlers;
@@ -28,6 +29,7 @@ public class GulliverFabric implements ModInitializer {
         GulliverPotions.init();
         PacketHandlers.registerCommon();
         SizeSync.registerCommon();
+        InteractEventHandler.registerCommon();
         CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) ->
                 GulliverCommands.register(dispatcher));
     }
