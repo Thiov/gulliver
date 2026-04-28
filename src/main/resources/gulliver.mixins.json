@@ -4,12 +4,17 @@
   "compatibilityLevel": "JAVA_21",
   "minVersion": "0.8",
   "mixins": [
+    "MixinCactusBlock",
     "MixinEntity",
+    "MixinFarmlandBlock",
     "MixinLivingEntity",
     "MixinLivingEntityEffects",
     "MixinPlayer",
     "MixinPlayerReach",
-    "MixinSnowLayerBlock"
+    "MixinSnowLayerBlock",
+    "MixinSoulSandBlock",
+    "MixinTntBlock",
+    "MixinWebBlock"
   ],
   "client": [],
   "injectors": {

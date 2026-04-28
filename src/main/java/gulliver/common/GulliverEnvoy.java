@@ -3,6 +3,7 @@ package gulliver.common;
 import gulliver.api.IResizeableEntity;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.Identifier;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.tags.EntityTypeTags;
 import net.minecraft.tags.ItemTags;
 import net.minecraft.world.effect.MobEffectInstance;
@@ -15,6 +16,7 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.gamerules.GameRules;
 
 import java.util.IllegalFormatException;
 import java.util.Iterator;
@@ -409,5 +411,26 @@ public final class GulliverEnvoy {
 
     public static boolean holdingPointyItem(LivingEntity living) {
         return isItemPointy(living.getMainHandItem()) || isItemPointy(living.getOffhandItem());
+    }
+
+    /**
+     * 1.6.4 GulliverEnvoy.canSizeGrief: players are gated by an
+     * unmapped 'bG.d' flag (likely peaceful/disable-damage) AND the
+     * 'sizeGriefing' gamerule (defaulting on if unset). Mobs are also
+     * gated by mobGriefing.
+     *
+     * Modern translation: the 1.6.4 mod registered 'sizeGriefing' as a
+     * world gamerule on server start. We don't replicate that custom
+     * gamerule here yet (Phase 19 / config polish), so this falls back
+     * to: players → always allowed; mobs → mobGriefing gamerule.
+     */
+    public static boolean canSizeGrief(Entity entity) {
+        if (entity instanceof Player) {
+            return true;
+        }
+        if (entity.level() instanceof ServerLevel sl) {
+            return sl.getGameRules().get(GameRules.MOB_GRIEFING);
+        }
+        return false;
     }
 }
