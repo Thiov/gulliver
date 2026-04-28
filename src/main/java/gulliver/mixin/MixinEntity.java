@@ -96,10 +96,12 @@ public abstract class MixinEntity implements IResizeableEntity, IGulliverEntityI
     @Override
     @Unique
     public float getRangeMultiplier() {
-        // 1.6.4 nn.java line 304-313
-        float s = getSizeMultiplier();
-        if (s >= 1.0F) return s;
-        return getSizeMultiplierRoot();
+        // Linear scaling for ALL sizes — user playtest: sqrt-for-tinies
+        // gave ~3 block reach at size 0.125, which is too long. Linear
+        // gives 0.56 blocks at 0.125x, 2.25 at 0.5x, 4.5 at vanilla,
+        // 36 at size 8 — matches the original Gulliver mod's tighter
+        // reach feel.
+        return getSizeMultiplier();
     }
 
     @Override
