@@ -2,6 +2,7 @@ package gulliver;
 
 import gulliver.common.GulliverConfig;
 import gulliver.network.PacketHandlers;
+import gulliver.network.SizeSync;
 import net.fabricmc.api.ModInitializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -15,5 +16,6 @@ public class GulliverFabric implements ModInitializer {
         LOGGER.info("Gulliver (Fabric) initializing");
         GulliverConfig.load();
         PacketHandlers.registerCommon();
+        SizeSync.registerCommon();
     }
 }

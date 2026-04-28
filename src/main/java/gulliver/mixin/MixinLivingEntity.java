@@ -3,6 +3,7 @@ package gulliver.mixin;
 import gulliver.api.IResizeableLiving;
 import gulliver.common.GulliverConfig;
 import gulliver.common.GulliverEnvoy;
+import gulliver.network.SizeSync;
 import net.minecraft.world.entity.LivingEntity;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
@@ -42,6 +43,8 @@ public abstract class MixinLivingEntity implements IResizeableLiving {
         float hi = (float) Math.min(GulliverEnvoy.getMaxSizeForEntity(self), g.maxEntityBaseSize);
         float clamped = Math.max(lo, Math.min(hi, size));
         ((IGulliverEntityInternal) this).gulliver$setSizeBaseMultiplier(clamped);
+        self.refreshDimensions();
+        SizeSync.broadcast(self);
     }
 
     @Override
