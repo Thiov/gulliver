@@ -27,12 +27,32 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
  * Forge config keys.
  */
 @Mixin(LivingEntity.class)
-public abstract class MixinLivingEntity implements IResizeableLiving {
+public abstract class MixinLivingEntity implements IResizeableLiving,
+        gulliver.access.IGulliverFlagsInternal {
 
     @Unique private boolean gulliver$isGlidingFlag = false;
     @Unique private boolean gulliver$couldUseUmbrella = false;
     @Unique private boolean gulliver$isRaftingFlag = false;
     @Unique private boolean gulliver$isStruggling = false;
+
+    @Override @Unique public void gulliver$setGlidingFlag(boolean v) { gulliver$isGlidingFlag = v; }
+    @Override @Unique public void gulliver$setCouldUseUmbrella(boolean v) { gulliver$couldUseUmbrella = v; }
+    @Override @Unique public void gulliver$setRaftingFlag(boolean v) { gulliver$isRaftingFlag = v; }
+    @Override @Unique public void gulliver$setStruggling(boolean v) { gulliver$isStruggling = v; }
+
+    /**
+     * Per-tick feel-flag refresh. Mirrors 1.6.4 of.java l_() invocation of
+     * updateResizingFlags() (called via super.l_() into the Player override
+     * which in turn called the LivingEntity helper). On modern MC the
+     * baseTick is the canonical "called every tick" entrypoint shared by
+     * Player and all LivingEntity subclasses.
+     */
+    @Inject(method = "baseTick", at = @At("RETURN"))
+    private void gulliver$updateResizingFlags(
+            org.spongepowered.asm.mixin.injection.callback.CallbackInfo ci) {
+        LivingEntity self = (LivingEntity) (Object) this;
+        GulliverEnvoy.updateResizingFlags(self, this);
+    }
 
     @Override
     @Unique

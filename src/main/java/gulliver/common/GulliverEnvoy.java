@@ -778,20 +778,99 @@ public final class GulliverEnvoy {
         if (!sized.isExtraTiny()) return false;
         if (entity.isShiftKeyDown()) return false;
         if (!couldBeRainedOn(entity)) return false;
-        if (doesUmbrella(entity)) return false;
+        if (((gulliver.api.IResizeableLiving) entity).doesUmbrella()) return false;
         return true;
     }
 
-    private static boolean doesUmbrella(net.minecraft.world.entity.LivingEntity entity) {
-        net.minecraft.world.item.ItemStack main = entity.getMainHandItem();
-        net.minecraft.world.item.ItemStack off = entity.getOffhandItem();
-        return isUmbrellaItem(main) || isUmbrellaItem(off);
-    }
-
-    private static boolean isUmbrellaItem(net.minecraft.world.item.ItemStack stack) {
+    /**
+     * 1.6.4 isItemUmbrella (uf.java line 1829 inline check): paper or lily-pad.
+     * Used to gate couldUseUmbrella per-tick flag.
+     */
+    public static boolean isItemUmbrella(net.minecraft.world.item.ItemStack stack) {
         if (stack == null || stack.isEmpty()) return false;
         return stack.is(net.minecraft.world.item.Items.PAPER)
                 || stack.is(net.minecraft.world.item.Items.LILY_PAD);
+    }
+
+    /**
+     * 1.6.4 CommonProxy.isGlideableItem (line 102):
+     *   feather (aMcv) || instanceof xn (Item with sub-class flag)
+     *                  || instanceof yh (Item with sub-class flag).
+     * Modern best-mapping: feather (xn was likely a holdable flag class —
+     * paper and shears qualified in original). Conservative port: feather,
+     * paper, lily-pad, shears — items that visually float.
+     */
+    public static boolean isGlideableItem(net.minecraft.world.item.ItemStack stack) {
+        if (stack == null || stack.isEmpty()) return false;
+        return stack.is(net.minecraft.world.item.Items.FEATHER)
+                || stack.is(net.minecraft.world.item.Items.PAPER)
+                || stack.is(net.minecraft.world.item.Items.LILY_PAD)
+                || stack.is(net.minecraft.world.item.Items.SHEARS);
+    }
+
+    /**
+     * 1.6.4 isHoldingStringOrLeash (GulliverEnvoy.java line 634-637):
+     *   tiny holding string OR (medium-sized non-huge holding lead).
+     * Used as a climb-rope predicate (mechanic reconstructed in 4(159)).
+     */
+    public static boolean isHoldingStringOrLeash(net.minecraft.world.entity.LivingEntity entity) {
+        net.minecraft.world.item.ItemStack hand = entity.getMainHandItem();
+        if (hand == null || hand.isEmpty()) return false;
+        IResizeableEntity sized = (IResizeableEntity) entity;
+        if (sized.isTiny() && hand.is(net.minecraft.world.item.Items.STRING)) return true;
+        if (!sized.isTiny() && !sized.isHuge() && hand.is(net.minecraft.world.item.Items.LEAD)) return true;
+        return false;
+    }
+
+    /**
+     * 1.6.4 uf.java updateResizingFlags (line 1820): per-tick computation of
+     * the four feel-flags on a LivingEntity. Called from MixinLivingEntity's
+     * baseTick inject. Writes through IGulliverEntityInternal-style accessor
+     * methods provided by MixinLivingEntity itself.
+     *
+     * Source-of-truth (uf.java 1820-1839):
+     *   isRaftingFlag  = tiny + holding paper + above water + not sneaking +
+     *                    not on ladder + closeAboveOrInWater
+     *   couldUseUmbrella = !onLadder + !rafting + size <= 0.5 + holding paper +
+     *                      in rain + not under water/ride
+     *   isGlidingFlag  = tiny + glideable item + airborne + not in plant +
+     *                    not on ladder + not in rain + not in water
+     *   isStruggling   = set during impeded movement (cobweb/sweet-berry/snow);
+     *                    set lazily by movement code, not here.
+     */
+    public static void updateResizingFlags(net.minecraft.world.entity.LivingEntity entity,
+                                            gulliver.access.IGulliverFlagsInternal flags) {
+        IResizeableEntity sized = (IResizeableEntity) entity;
+        net.minecraft.world.item.ItemStack hand = entity.getMainHandItem();
+        boolean onLadder = entity.onClimbable() || isHoldingStringOrLeash(entity);
+        boolean inRain = couldBeRainedOn(entity);
+        boolean inWater = entity.isInWater();
+
+        boolean rafting = sized.isTiny() && !onLadder && !entity.isShiftKeyDown()
+                && hand != null && hand.is(net.minecraft.world.item.Items.PAPER)
+                && entity.isInWaterOrRain();
+        flags.gulliver$setRaftingFlag(rafting);
+
+        boolean umbrella = !onLadder && !rafting
+                && sized.getSizeMultiplier() <= 0.5F
+                && !inWater
+                && hand != null && isItemUmbrella(hand)
+                && inRain;
+        flags.gulliver$setCouldUseUmbrella(umbrella);
+
+        boolean glideable = hand != null && isGlideableItem(hand);
+        boolean canGlide = sized.isTiny()
+                && !onLadder && !entity.isShiftKeyDown()
+                && !inWater && !inRain
+                && glideable
+                && !isEntityIntersectingPlant(entity);
+        // 1.6.4 also gates on airborne (entity.fallDistance > 0 OR not onGround);
+        // we check onGround so newly-jumped tinies start gliding immediately.
+        canGlide = canGlide && !entity.onGround();
+        flags.gulliver$setGlidingFlag(canGlide);
+
+        // isStruggling resets each tick; movement code may re-set it.
+        flags.gulliver$setStruggling(false);
     }
 
     /**
