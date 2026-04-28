@@ -60,12 +60,19 @@ public final class GliderPaperWorldRenderer {
         double py = Mth.lerp(pt, player.yOld, player.getY());
         double pz = Mth.lerp(pt, player.zOld, player.getZ());
 
+        // World-space offsets for "above and to player's right".
+        double yawRad = Math.toRadians(player.yBodyRot);
+        double rightX = Math.cos(yawRad);   // player-right direction in world XZ
+        double rightZ = Math.sin(yawRad);
+        double rightShift = 0.3D;
+        double upShift = 0.5D;  // raised from 0.3 — paper was too low
+
         pose.pushPose();
         // World-relative-to-camera convention: translate by (world - camera).
         pose.translate(
-                (float) (px - camPos.x),
-                (float) (py + player.getBbHeight() + 0.3D - camPos.y),
-                (float) (pz - camPos.z));
+                (float) (px - camPos.x + rightX * rightShift),
+                (float) (py + player.getBbHeight() + upShift - camPos.y),
+                (float) (pz - camPos.z + rightZ * rightShift));
         // Body yaw — paper rotates with body when player turns.
         pose.mulPose(com.mojang.math.Axis.YP.rotationDegrees(180.0F - player.yBodyRot));
         // Lay flat (90° around X tips item face down).
