@@ -12,6 +12,7 @@
     "MixinLivingEntity",
     "MixinLivingEntityEffects",
     "MixinLivingEntityHugeEffects",
+    "MixinLivingEntityTinyEffects",
     "MixinPlayer",
     "MixinPlayerReach",
     "MixinSnowLayerBlock",
