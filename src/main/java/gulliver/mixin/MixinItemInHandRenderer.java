@@ -56,28 +56,22 @@ public abstract class MixinItemInHandRenderer {
             pose.scale(invRoot, invRoot, invRoot);
             return;
         }
-        // 1st person paper: anchor to PLAYER world position with body
-        // yaw rotation, ignoring camera look entirely. Reset matrix to
-        // identity then translate to player world coords (camera-
-        // relative subtraction for precision), apply body yaw, lay flat.
-        // Result: paper stays directly above player's head, rotates
-        // with body when player turns, ignores head pitch.
+        // 1st person paper: counter-rotate by NEGATIVE camera pitch to
+        // make local +Y = world-up (so paper stays level when looking
+        // up/down). Yaw is NOT countered — paper still rotates with
+        // camera yaw, but in 1st person camera-yaw == body-yaw, so
+        // this matches "follows body". Translate +Y for height above
+        // eye. Lay flat with X-rot.
         net.minecraft.client.Camera cam = net.minecraft.client.Minecraft.getInstance()
                 .gameRenderer.getMainCamera();
-        net.minecraft.world.phys.Vec3 camPos = cam.position();
         pose.pushPose();
-        pose.last().pose().identity();
-        pose.last().normal().identity();
-        // Player world position relative to camera origin.
-        double dx = entity.getX() - camPos.x;
-        double dy = entity.getY() + entity.getBbHeight() + 0.1D - camPos.y;
-        double dz = entity.getZ() - camPos.z;
-        pose.translate((float) dx, (float) dy, (float) dz);
-        // Body yaw — rotates the paper to face the same way as the body.
-        pose.mulPose(com.mojang.math.Axis.YP.rotationDegrees(-entity.yBodyRot));
+        // Negate the pitch sign — `mulPose(XP, -xRot)` undoes camera pitch
+        pose.mulPose(com.mojang.math.Axis.XP.rotationDegrees(-cam.xRot()));
+        // Now +Y is world-up. Just above eye.
+        pose.translate(0.0F, 0.3F, 0.0F);
         // Lay flat
         pose.mulPose(com.mojang.math.Axis.XP.rotationDegrees(90.0F));
-        // Recenter FIXED-context item around its center (after X-rot).
+        // Recenter FIXED-context item (corner -> center after X-rot).
         pose.translate(-0.5F, 0.0F, 0.5F);
 
         net.minecraft.client.renderer.item.ItemStackRenderState rs =
