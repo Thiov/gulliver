@@ -45,20 +45,24 @@ public abstract class MixinItemInHandLayer {
                                       ItemStack stack, HumanoidArm arm, PoseStack pose,
                                       SubmitNodeCollector buf, int light, CallbackInfo ci) {
         if (!(state instanceof IGlideRenderState g)) return;
-        // Glide pose centering. After translateToHand + the sub-bone
-        // translate, pose is at the FINGER position with arm-local frame.
-        // For arm pointing UP, the local +Y direction (arm extension) is
-        // already past the fingertip — moving in -Y goes back toward
-        // shoulder, +Z goes "above the held item". We want item to sit
-        // ABOVE the held finger (so hands grip it by the edges).
+        // Glide pose centering. After translateToHand + sub-bone
+        // translate, the pose is at the FINGERTIP of the right arm with
+        // arm-local frame (X+ = toward body's left, Y+ = up the arm
+        // toward shoulder, Z+ = forward in arm's facing direction).
+        //
+        // To put the paper SPANNING the gap between both raised hands
+        // (held by the fingers like a banner held overhead by both
+        // hands), we translate in arm-local X+ by half the shoulder
+        // width (5/16 = 0.3125), AND rotate so the paper's long axis
+        // lies horizontal between the hands. The item-natural Z (length)
+        // axis maps to spanning-the-hands direction after the 90° Z-rot.
         if (g.gulliver$isGliding() && arm == HumanoidArm.RIGHT) {
-            // Move the item +0.3125 in X (toward body center to span
-            // both hands), and -0.3 in Y (back toward shoulder so the
-            // ITEM is held BY the fingers, not at fingertip).
-            pose.translate(0.3125F, -0.3F, 0.0F);
-            // Rotate around Z 90° so paper lies horizontal across the
-            // top of head (long edge spans both hands like a banner).
+            pose.translate(0.3125F, 0.0F, 0.0F);
             pose.mulPose(com.mojang.math.Axis.ZP.rotationDegrees(90.0F));
+            // Lift paper UP from the finger tip a small amount — this is
+            // arm-local +Z (post-Z-rot, +Z is now the local "up" relative
+            // to the spanned-banner orientation).
+            pose.translate(0.0F, 0.0F, 0.25F);
         }
         float size = g.gulliver$getSizeMultiplier();
         if (size != 1.0F) {

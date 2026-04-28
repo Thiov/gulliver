@@ -57,16 +57,22 @@ public abstract class MixinItemInHandRenderer {
             return;
         }
         // Override: render paper flat overhead, FIXED context (no
-        // upright display transform).
+        // upright display transform). Camera space: +X right, +Y up,
+        // -Z forward into scene. Position above eye and slightly
+        // forward — placing it where you'd hold a parachute over your
+        // head looking up.
         pose.pushPose();
         pose.last().pose().identity();
         pose.last().normal().identity();
-        // Camera-relative: above and forward of player. Negative X to
-        // counter-shift from vanilla's right-hand offset.
-        pose.translate(0.0F, 0.5F, -0.5F);
-        // 90° around X tips the paper from upright to flat-facing-down.
+        // Closer to eye (-0.3 Z) and lower (0.2 Y) so visible at edge
+        // of view. Centered horizontally (X = -0.5 to span centered
+        // since FIXED renders item with its center near origin).
+        pose.translate(-0.5F, 0.2F, -0.3F);
+        // 90° around X tips the paper from item-natural orientation
+        // (vertical) to flat-facing-down (parallel to ground above
+        // player's head).
         pose.mulPose(com.mojang.math.Axis.XP.rotationDegrees(90.0F));
-        pose.scale(0.6F, 0.6F, 0.6F);
+        pose.scale(1.0F, 1.0F, 1.0F);
 
         net.minecraft.client.renderer.item.ItemStackRenderState rs =
                 new net.minecraft.client.renderer.item.ItemStackRenderState();

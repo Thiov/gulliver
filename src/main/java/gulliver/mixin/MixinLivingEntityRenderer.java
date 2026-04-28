@@ -49,17 +49,12 @@ public abstract class MixinLivingEntityRenderer {
             g.gulliver$setRafting(sized.isRafting());
             g.gulliver$setSizeMultiplier(sized.getSizeMultiplier());
         }
-        // PROPORTIONAL walk-cycle frequency: same body-stride feel at
-        // every size. walkAnimationPos increments by world-distance per
-        // tick, so a tiny walking sqrt(size)x slower (Phase 4 speed
-        // scaling) covers proportionally less world but PROPORTIONALLY
-        // SAME body-distance per tick. Divide walkAnimationPos by
-        // sqrt(size) to restore body-length-per-cycle frequency for
-        // BOTH tinies (faster than world-speed) AND hugies (slower).
-        if (m != 1.0F && m > 0.0F) {
-            float root = (float) Math.sqrt(m);
-            state.walkAnimationPos /= root;
-        }
+        // 1.6.4 verbatim: NO walkAnimationPos compensation. The anim runs
+        // at vanilla cycle frequency. Tiny moves slower in world units so
+        // anim slows; huge moves faster so anim speeds up. The model
+        // itself is scaled by state.scale, so visually the swing
+        // amplitude is body-proportional. This is exactly how 1.6.4
+        // bbj.java handled it (no per-size adjustment in the model anim).
     }
 
     /**

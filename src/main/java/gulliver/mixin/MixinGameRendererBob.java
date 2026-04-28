@@ -44,17 +44,7 @@ public abstract class MixinGameRendererBob {
         return c * factor;
     }
 
-    /**
-     * View-bob FREQUENCY proportional compensation. Same intent as the
-     * walkAnimationPos scaling in MixinLivingEntityRenderer — bob cycles
-     * at body-stride frequency regardless of size.
-     */
-    @ModifyVariable(method = "bobView", at = @At(value = "STORE", ordinal = 0), index = 3)
-    private float gulliver$boostBobFreq(float walkDist) {
-        Entity cam = this.minecraft.getCameraEntity();
-        if (cam == null) return walkDist;
-        float size = ((IResizeableEntity) cam).getSizeMultiplier();
-        if (size == 1.0F || size <= 0.0F) return walkDist;
-        return walkDist / (float) Math.sqrt(size);
-    }
+    // 1.6.4 verbatim: bobView freq UNCHANGED (only the X-translate
+    // amplitude was scaled by sqrt(size) — handled above). Removing
+    // freq compensation to match the original mod's behavior.
 }

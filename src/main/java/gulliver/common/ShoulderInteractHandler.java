@@ -19,7 +19,7 @@ public final class ShoulderInteractHandler {
 
     public static void registerCommon() {
         UseEntityCallback.EVENT.register((player, world, hand, entity, hitResult) -> {
-            if (world.isClientSide) return InteractionResult.PASS;
+            if (world.isClientSide()) return InteractionResult.PASS;
             if (!player.isShiftKeyDown()) return InteractionResult.PASS;
             if (!(player instanceof ServerPlayer carrier)) return InteractionResult.PASS;
             // Already carrying -> drop instead.
