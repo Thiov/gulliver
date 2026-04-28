@@ -29,9 +29,24 @@ public final class ClientPacketHandlers {
 
         ClientPlayNetworking.registerGlobalReceiver(Payloads.AttachEntitySpecial.TYPE, (payload, ctx) -> {
             ctx.client().execute(() -> {
-                // Wired in Phase 12 (shoulder entity). Receiver registered now
-                // so the channel exists end-to-end; no-op until the shoulder
-                // mechanic and the @Unique heldEntity field land.
+                Entity carrier = entityById(payload.vehicleEntityId());
+                Entity passenger = entityById(payload.entityId());
+                if (carrier == null) return;
+                gulliver.mixin.IGulliverShoulderInternal carrierAccess =
+                        (gulliver.mixin.IGulliverShoulderInternal) carrier;
+                if (payload.attachmentType() == 0) {
+                    java.util.UUID prev = carrierAccess.gulliver$getHeldEntity();
+                    carrierAccess.gulliver$setHeldEntity(null);
+                    if (passenger != null) {
+                        ((gulliver.mixin.IGulliverShoulderInternal) passenger).gulliver$setHoldingEntity(null);
+                    } else if (prev != null) {
+                        // Passenger entity is gone — best-effort detach.
+                    }
+                } else if (passenger != null) {
+                    carrierAccess.gulliver$setHeldEntity(passenger.getUUID());
+                    ((gulliver.mixin.IGulliverShoulderInternal) passenger)
+                            .gulliver$setHoldingEntity(carrier.getUUID());
+                }
             });
         });
     }

@@ -22,11 +22,13 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
  *                push-out threshold in EntityResizeableClientPlayerMP.i)
  */
 @Mixin(Entity.class)
-public abstract class MixinEntity implements IResizeableEntity, IGulliverEntityInternal {
+public abstract class MixinEntity implements IResizeableEntity, IGulliverEntityInternal, IGulliverShoulderInternal {
 
     @Unique private float gulliver$sizeBaseMultiplier = 1.0F;
     @Unique private float gulliver$sizePotionMultiplier = 1.0F;
     @Unique private float gulliver$sizeItemMultiplier = 1.0F;
+    @Unique private java.util.UUID gulliver$holdingEntity = null;
+    @Unique private java.util.UUID gulliver$heldEntity = null;
 
     @Override
     @Unique
@@ -85,6 +87,11 @@ public abstract class MixinEntity implements IResizeableEntity, IGulliverEntityI
     @Override @Unique public void gulliver$setSizeBaseMultiplier(float v) { gulliver$sizeBaseMultiplier = v; }
     @Override @Unique public void gulliver$setSizePotionMultiplier(float v) { gulliver$sizePotionMultiplier = v; }
     @Override @Unique public void gulliver$setSizeItemMultiplier(float v) { gulliver$sizeItemMultiplier = v; }
+
+    @Override @Unique public java.util.UUID gulliver$getHoldingEntity() { return gulliver$holdingEntity; }
+    @Override @Unique public java.util.UUID gulliver$getHeldEntity() { return gulliver$heldEntity; }
+    @Override @Unique public void gulliver$setHoldingEntity(java.util.UUID id) { gulliver$holdingEntity = id; }
+    @Override @Unique public void gulliver$setHeldEntity(java.util.UUID id) { gulliver$heldEntity = id; }
 
     /**
      * Scale the entity's dimensions (width, height, eye height) uniformly by

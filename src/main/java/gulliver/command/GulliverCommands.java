@@ -130,14 +130,10 @@ public final class GulliverCommands {
                 .then(Commands.argument("player", EntityArgument.player())
                         .executes(ctx -> instantKarma(ctx, EntityArgument.getPlayer(ctx, "player")))));
 
-        // /shoulderentity  (perm 0, player-only) — stub until Phase 12
+        // /shoulderentity  (perm 0, player-only)
         dispatcher.register(Commands.literal("shoulderentity")
                 .requires(s -> s.getEntity() instanceof ServerPlayer)
-                .executes(ctx -> {
-                    ctx.getSource().sendFailure(Component.literal(
-                            "shoulderentity is not yet wired (Phase 12)"));
-                    return 0;
-                }));
+                .executes(GulliverCommands::shoulderEntity));
 
         // /reloadgullivercfg  (perm 4, the 1.6.4 mod's reload)
         dispatcher.register(Commands.literal("reloadgullivercfg").requires(OP4)
@@ -203,6 +199,48 @@ public final class GulliverCommands {
                     target.getName().getString() + " base " + base + " current " + full), false);
         }
         return 1;
+    }
+
+    /**
+     * /shoulderentity: pick up the nearest carryable entity within the
+     * player's reach, OR drop the currently-held one. Mirrors 1.6.4
+     * CommandShoulderEntity.b which picks if heldEntity == null + has a
+     * passenger to take; drops if heldEntity != null.
+     */
+    private static int shoulderEntity(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
+        ServerPlayer player = ctx.getSource().getPlayerOrException();
+        // Already carrying? Drop.
+        if (((gulliver.mixin.IGulliverShoulderInternal) player).gulliver$getHeldEntity() != null) {
+            if (gulliver.common.ShoulderHelper.drop(player)) {
+                ctx.getSource().sendSuccess(() -> Component.literal("Dropped passenger"), false);
+                return 1;
+            }
+            return 0;
+        }
+        // Find nearest carryable entity in reach.
+        double reach = player.blockInteractionRange();
+        Entity nearest = null;
+        double bestDistSq = reach * reach;
+        for (Entity candidate : player.level().getEntities(player,
+                player.getBoundingBox().inflate(reach, reach, reach))) {
+            if (!gulliver.common.ShoulderHelper.canCarry(player, candidate)) continue;
+            double dsq = player.distanceToSqr(candidate);
+            if (dsq < bestDistSq) {
+                bestDistSq = dsq;
+                nearest = candidate;
+            }
+        }
+        if (nearest == null) {
+            ctx.getSource().sendFailure(Component.literal("No carryable entity in reach"));
+            return 0;
+        }
+        if (gulliver.common.ShoulderHelper.pickUp(player, nearest)) {
+            Entity picked = nearest;
+            ctx.getSource().sendSuccess(() -> Component.literal(
+                    "Picked up entity " + picked.getId()), false);
+            return 1;
+        }
+        return 0;
     }
 
     private static int instantKarma(CommandContext<CommandSourceStack> ctx, ServerPlayer target) {
