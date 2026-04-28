@@ -97,18 +97,30 @@ public abstract class MixinLivingEntity implements IResizeableLiving,
      * conservative widening: more entities count as weighted, biasing toward
      * linear (less generous) movement scaling.
      */
+    /**
+     * 1.6.4 of.java:2528 verbatim — `aqcv` resolves (yc.aq) to gold_boots
+     * (id 317) and the loop checks armor slots boots/leggings/chest/helm
+     * for ids aqcv-0..aqcv-3, i.e. the four GOLD armor pieces in their
+     * matching slots. So: weighted iff ANY gold armor piece is worn in
+     * its matching slot. Leather/iron/diamond/chain do NOT count.
+     *
+     * Folded in: 1.6.4 uf.java:1890 player override — gliding or rafting
+     * disables weighted regardless of armor. Holds for every LivingEntity
+     * in the port since the flags live on the IResizeableLiving interface.
+     */
     @Override
     @Unique
     public boolean isWeighted() {
+        if (isGliding() || isRafting()) return false;
         LivingEntity self = (LivingEntity) (Object) this;
-        try {
-            for (net.minecraft.world.entity.EquipmentSlot slot
-                    : net.minecraft.world.entity.EquipmentSlot.values()) {
-                if (slot.getType() != net.minecraft.world.entity.EquipmentSlot.Type.HUMANOID_ARMOR) continue;
-                if (!self.getItemBySlot(slot).isEmpty()) return true;
-            }
-        } catch (Throwable ignored) {}
-        return false;
+        return self.getItemBySlot(net.minecraft.world.entity.EquipmentSlot.FEET)
+                    .is(net.minecraft.world.item.Items.GOLDEN_BOOTS)
+            || self.getItemBySlot(net.minecraft.world.entity.EquipmentSlot.LEGS)
+                    .is(net.minecraft.world.item.Items.GOLDEN_LEGGINGS)
+            || self.getItemBySlot(net.minecraft.world.entity.EquipmentSlot.CHEST)
+                    .is(net.minecraft.world.item.Items.GOLDEN_CHESTPLATE)
+            || self.getItemBySlot(net.minecraft.world.entity.EquipmentSlot.HEAD)
+                    .is(net.minecraft.world.item.Items.GOLDEN_HELMET);
     }
 
     /**
