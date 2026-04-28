@@ -1,6 +1,7 @@
 package gulliver.common;
 
 import gulliver.init.GulliverEffects;
+import net.fabricmc.fabric.api.event.player.UseBlockCallback;
 import net.fabricmc.fabric.api.event.player.UseItemCallback;
 import net.minecraft.advancements.CriteriaTriggers;
 import net.minecraft.server.level.ServerPlayer;
@@ -33,21 +34,28 @@ public final class DyeResizing {
     private DyeResizing() {}
 
     public static void registerCommon() {
-        UseItemCallback.EVENT.register((player, level, hand) -> {
-            if (!GulliverConfig.INSTANCE.general.enableDyeResizing) {
-                return InteractionResult.PASS;
-            }
-            ItemStack stack = player.getItemInHand(hand);
-            if (stack.is(Items.CYAN_DYE)) {
-                apply(player, stack, level, hand, GulliverEffects.TINY);
-                return InteractionResult.SUCCESS_SERVER;
-            }
-            if (stack.is(Items.PURPLE_DYE)) {
-                apply(player, stack, level, hand, GulliverEffects.HUGE);
-                return InteractionResult.SUCCESS_SERVER;
-            }
+        UseItemCallback.EVENT.register((player, level, hand) -> tryDrink(player, level, hand));
+        // Also catch the block-RMB path: when the player right-clicks on
+        // a block (very common — even grass/dirt under feet), Fabric's
+        // UseBlockCallback fires INSTEAD of UseItemCallback. If we don't
+        // register here too, dyes do nothing on most surfaces.
+        UseBlockCallback.EVENT.register((player, level, hand, hitResult) -> tryDrink(player, level, hand));
+    }
+
+    private static InteractionResult tryDrink(Player player, Level level, InteractionHand hand) {
+        if (!GulliverConfig.INSTANCE.general.enableDyeResizing) {
             return InteractionResult.PASS;
-        });
+        }
+        ItemStack stack = player.getItemInHand(hand);
+        if (stack.is(Items.CYAN_DYE)) {
+            apply(player, stack, level, hand, GulliverEffects.TINY);
+            return InteractionResult.SUCCESS_SERVER;
+        }
+        if (stack.is(Items.PURPLE_DYE)) {
+            apply(player, stack, level, hand, GulliverEffects.HUGE);
+            return InteractionResult.SUCCESS_SERVER;
+        }
+        return InteractionResult.PASS;
     }
 
     private static void apply(Player player, ItemStack stack, Level level,
