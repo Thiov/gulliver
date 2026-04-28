@@ -54,7 +54,7 @@ public abstract class MixinPlayerShoulder {
         // (which already reflects sizeMultiplier via Phase 2 dimensions).
         double widthScale = self.getBbWidth() / 0.6D;
         double sideUnit   = (5.0D  / 16.0D) * widthScale;       // shoulder offset
-        double armLength  = (12.0D / 16.0D) * widthScale;       // arm extended forward
+        double armLength  = (8.0D  / 16.0D) * widthScale;       // arm extended forward (closer to body)
         // Shoulder height ≈ 24/32 of body height (just below head).
         double shoulderY  = self.getY() + self.getBbHeight() * (24.0D / 32.0D);
 

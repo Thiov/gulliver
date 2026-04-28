@@ -30,13 +30,13 @@ public abstract class MixinItemEntityPickup {
         IResizeableEntity sized = (IResizeableEntity) player;
         if (sized.getSizeMultiplier() >= 1.0F) return;
         ItemEntity self = (ItemEntity) (Object) this;
-        // Distance from player CENTER to item CENTER.
+        // Sum-of-half-widths: this is the standard bbox-overlap edge
+        // distance. For a tiny (bbWidth 0.075) + vanilla item (bbWidth
+        // 0.25): allowed = 0.0375 + 0.125 = 0.1625. Player must be
+        // close enough that their bbox EDGE touches the item bbox edge.
+        // Stable across animation frames (no center-precision jitter).
         double dist = player.distanceTo(self);
-        // Allowed distance scales with player's body width (which is
-        // already size-scaled via Phase 2 dimensions). Half-bbWidth ≈
-        // half a body radius — so tinies need their center within a
-        // fraction of a block of the item.
-        double allowed = player.getBbWidth() * 0.5D;
+        double allowed = (player.getBbWidth() + self.getBbWidth()) * 0.5D;
         if (dist > allowed) ci.cancel();
     }
 }
