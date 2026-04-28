@@ -433,4 +433,52 @@ public final class GulliverEnvoy {
         }
         return false;
     }
+
+    // ---- huge-entity ground effects (1.6.4 GulliverEnvoy) ----
+
+    /**
+     * 1.6.4 stepOnSmallerEntities verbatim. A huge entity walking in the
+     * world looks for small entities at its foot level and crushes them
+     * with PASSIVE damage equal to ceil(2 × stepperRoot / targetRoot).
+     *
+     * Original predicates:
+     *   - collideableRideEntity(other) — target is collidable, not the
+     *     stepper, not its passenger.
+     *   - canSquish(other) — stepper much larger than target. Modern
+     *     proxy: target's sizeMultiplier < stepper's / 2 (so a 4× giant
+     *     squishes only sub-2× targets, a normal-size player can't
+     *     squish another normal player just by walking near them).
+     *   - foot-level test: target's top ≥ stepper's bottom AND target's
+     *     bottom ≤ stepper's bottom + (1/16 × stepper's height). Target
+     *     is genuinely under the stepper's foot.
+     */
+    public static void stepOnSmallerEntities(net.minecraft.world.entity.LivingEntity stepper) {
+        net.minecraft.world.level.Level level = stepper.level();
+        if (level.isClientSide()) return;
+        net.minecraft.world.phys.AABB stepperBox = stepper.getBoundingBox();
+        net.minecraft.world.phys.AABB scan = stepperBox.inflate(0.2D, 0.0D, 0.2D);
+        java.util.List<Entity> nearby = level.getEntities(stepper, scan);
+        if (nearby == null || nearby.isEmpty()) return;
+
+        float stepperMult = ((IResizeableEntity) stepper).getSizeMultiplier();
+        float stepperRoot = ((IResizeableEntity) stepper).getSizeMultiplierRoot();
+        double sBottom = stepperBox.minY;
+        double sHeight = stepperBox.maxY - stepperBox.minY;
+
+        for (Entity target : nearby) {
+            if (!(target instanceof net.minecraft.world.entity.LivingEntity living)) continue;
+            if (target == stepper || target.getVehicle() == stepper) continue;
+            if (isDragonEntity(target)) continue;
+
+            IResizeableEntity tsized = (IResizeableEntity) target;
+            if (tsized.getSizeMultiplier() >= stepperMult * 0.5F) continue;
+
+            net.minecraft.world.phys.AABB tBox = target.getBoundingBox();
+            if (tBox.maxY < sBottom) continue;
+            if (tBox.minY > sBottom + sHeight * 0.0625F) continue;
+
+            float dmg = (float) Math.ceil(2.0F * stepperRoot / tsized.getSizeMultiplierRoot());
+            living.hurt(gulliver.init.GulliverDamageTypes.passive(level, stepper), dmg);
+        }
+    }
 }
