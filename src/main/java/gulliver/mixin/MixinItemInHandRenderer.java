@@ -56,29 +56,42 @@ public abstract class MixinItemInHandRenderer {
             pose.scale(invRoot, invRoot, invRoot);
             return;
         }
-        // 1st person paper — 1.6.4 bfj.java:418-450 verbatim port.
-        // Applied WITHIN the existing camera-attached hand-pose stack
-        // (no matrix reset). The 1.6.4 sequence puts the paper above
-        // the head with body-yaw following, no pitch tilt.
+        // 1st person paper: render at player world position with body
+        // yaw rotation, completely independent of camera. Reset matrix
+        // to identity (= camera-origin in camera-space, since
+        // RenderSystem.modelViewStack handles camera externally).
+        // Translate to (player_world - camera_world). Apply body yaw.
+        // Lay flat with X-rot. Render with ItemDisplayContext.NONE so
+        // the item model doesn't apply its own offset.
+        net.minecraft.client.Camera cam = net.minecraft.client.Minecraft.getInstance()
+                .gameRenderer.getMainCamera();
+        net.minecraft.world.phys.Vec3 camPos = cam.position();
+        float partialTick = net.minecraft.client.Minecraft.getInstance()
+                .getDeltaTracker().getGameTimeDeltaPartialTick(false);
+        double px = net.minecraft.util.Mth.lerp(partialTick, entity.xOld, entity.getX());
+        double py = net.minecraft.util.Mth.lerp(partialTick, entity.yOld, entity.getY());
+        double pz = net.minecraft.util.Mth.lerp(partialTick, entity.zOld, entity.getZ());
         pose.pushPose();
-        pose.mulPose(com.mojang.math.Axis.YP.rotationDegrees(90.0F));
-        pose.mulPose(com.mojang.math.Axis.ZP.rotationDegrees(160.0F));
-        pose.mulPose(com.mojang.math.Axis.ZP.rotationDegrees(80.0F));
-        pose.mulPose(com.mojang.math.Axis.XP.rotationDegrees(-90.0F));
-        pose.mulPose(com.mojang.math.Axis.XP.rotationDegrees(-60.0F));
-        // 1.6.4: glTranslatef(0, 0.1 * sizerootdiv, 0); glScalef(sizerootdiv);
-        // glTranslatef(-0.5, -0.5, 0.5)
-        // We use vanilla 1.0 scale (size handled separately) and apply
-        // the centering translate.
-        pose.translate(0.0F, 0.1F, 0.0F);
-        pose.translate(-0.5F, -0.5F, 0.5F);
-
+        pose.last().pose().identity();
+        pose.last().normal().identity();
+        // Player head world position (slightly above head) relative to camera.
+        pose.translate(
+                (float) (px - camPos.x),
+                (float) (py + entity.getBbHeight() + 0.2D - camPos.y),
+                (float) (pz - camPos.z));
+        // Body yaw (paper rotates with body when player turns).
+        pose.mulPose(com.mojang.math.Axis.YP.rotationDegrees(-entity.yBodyRot));
+        // Lay flat (90° around X tips item face down).
+        pose.mulPose(com.mojang.math.Axis.XP.rotationDegrees(90.0F));
+        // Recenter (model origin is corner; -0.5 in X and +0.5 in Z post-X-rot).
+        pose.translate(-0.5F, 0.0F, 0.5F);
+        // Render with NONE context (no display transform offset).
         net.minecraft.client.renderer.item.ItemStackRenderState rs =
                 new net.minecraft.client.renderer.item.ItemStackRenderState();
         net.minecraft.client.Minecraft.getInstance().getItemModelResolver()
-                .updateForTopItem(rs, stack, ItemDisplayContext.FIXED,
-                        entity.level(), entity instanceof net.minecraft.world.entity.LivingEntity le ? le : null, 0);
-        rs.submit(pose, buf, light,
+                .updateForTopItem(rs, stack, ItemDisplayContext.NONE,
+                        entity.level(), entity, 0);
+        rs.submit(pose, buf, 15728880,
                 net.minecraft.client.renderer.texture.OverlayTexture.NO_OVERLAY, 0);
         pose.popPose();
         ci.cancel();
