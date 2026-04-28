@@ -31,8 +31,11 @@ import net.minecraft.world.phys.EntityHitResult;
 public final class KeyInputHandler {
     private KeyInputHandler() {}
 
-    private static final KeyMapping.Category CATEGORY =
-            KeyMapping.Category.register("key.categories.gulliver");
+    // KeyMapping.Category.register is private at runtime; use the built-in
+    // MISC category so we don't trip an IllegalAccessError on init. Custom
+    // category labelling can come back via Mixin @Invoker on register() if
+    // worth the wiring later.
+    private static final KeyMapping.Category CATEGORY = KeyMapping.Category.MISC;
     // GLFW key codes inlined to avoid pulling in the LWJGL3 GLFW class:
     //   R = 82, F = 70, V = 86  (matches 1.6.4 LWJGL2 codes 19/33/47 by character).
     public static final KeyMapping UPSIZE = new KeyMapping(
