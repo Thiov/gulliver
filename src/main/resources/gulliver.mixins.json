@@ -30,6 +30,7 @@
     "MixinLivingEntityWalkAnim",
     "MixinLivingEntityTinyEffects",
     "MixinPlayer",
+    "MixinPlayerSaveSize",
     "MixinPlayerReach",
     "MixinPlayerShoulder",
     "MixinSnowLayerBlock",

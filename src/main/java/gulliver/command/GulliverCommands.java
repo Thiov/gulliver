@@ -254,10 +254,9 @@ public final class GulliverCommands {
     }
 
     private static int instantKarma(CommandContext<CommandSourceStack> ctx, ServerPlayer target) {
-        if (!GulliverConfig.INSTANCE.general.enableKarmaMode) {
-            ctx.getSource().sendFailure(Component.literal("Karma mode is not enabled"));
-            return 0;
-        }
+        // Manual one-off reset — always works regardless of enableKarmaMode
+        // (the config flag only controls AUTOMATIC reset on death, not
+        // this command).
         ((IResizeableLiving) target).setBaseSize(GulliverEnvoy.getNewBasePlayerSize());
         successSize(ctx, target);
         return 1;

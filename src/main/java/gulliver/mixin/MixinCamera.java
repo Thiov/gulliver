@@ -80,7 +80,10 @@ public abstract class MixinCamera {
         if (!(entity instanceof net.minecraft.world.entity.LivingEntity le)) return c;
         if (!le.isSleeping()) return c;
         float m = ((IResizeableEntity) entity).getSizeMultiplier();
-        if (m == 1.0F) return c;
-        return 0.2F * m + 0.1F;
+        if (m == 1.0F) return c;  // vanilla preserved
+        // Stronger lift: eye = 0.6 * m + 0.2.
+        // For m=8: 5.0  -> well above huge lying body.
+        // For m=0.125: 0.275 -> still above tiny body.
+        return 0.6F * m + 0.2F;
     }
 }

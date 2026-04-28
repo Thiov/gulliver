@@ -23,7 +23,8 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Mixin(LivingEntity.class)
 public abstract class MixinLivingEntitySaveSize {
 
-    @Inject(method = "addAdditionalSaveData", at = @At("RETURN"))
+    @Inject(method = "addAdditionalSaveData(Lnet/minecraft/world/level/storage/ValueOutput;)V",
+            at = @At("RETURN"))
     private void gulliver$saveSize(ValueOutput out, CallbackInfo ci) {
         IGulliverEntityInternal i = (IGulliverEntityInternal) this;
         out.putFloat("gulliver.sizeBase", i.gulliver$getSizeBaseMultiplier());
@@ -32,7 +33,8 @@ public abstract class MixinLivingEntitySaveSize {
         out.putFloat("gulliver.sizeItem", i.gulliver$getSizeItemMultiplier());
     }
 
-    @Inject(method = "readAdditionalSaveData", at = @At("RETURN"))
+    @Inject(method = "readAdditionalSaveData(Lnet/minecraft/world/level/storage/ValueInput;)V",
+            at = @At("RETURN"))
     private void gulliver$loadSize(ValueInput in, CallbackInfo ci) {
         IGulliverEntityInternal i = (IGulliverEntityInternal) this;
         i.gulliver$setSizeBaseMultiplier(in.getFloatOr("gulliver.sizeBase", 1.0F));
