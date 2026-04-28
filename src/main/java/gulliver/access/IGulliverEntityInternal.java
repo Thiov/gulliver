@@ -10,10 +10,12 @@ package gulliver.access;
  */
 public interface IGulliverEntityInternal {
     float gulliver$getSizeBaseMultiplier();
+    float gulliver$getSizeBaseDestMultiplier();
     float gulliver$getSizePotionMultiplier();
     float gulliver$getSizeItemMultiplier();
 
     void gulliver$setSizeBaseMultiplier(float v);
+    void gulliver$setSizeBaseDestMultiplier(float v);
     void gulliver$setSizePotionMultiplier(float v);
     void gulliver$setSizeItemMultiplier(float v);
 }

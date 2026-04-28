@@ -27,6 +27,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 public abstract class MixinEntity implements IResizeableEntity, IGulliverEntityInternal, IGulliverShoulderInternal {
 
     @Unique private float gulliver$sizeBaseMultiplier = 1.0F;
+    @Unique private float gulliver$sizeBaseDestMultiplier = 1.0F;
     @Unique private float gulliver$sizePotionMultiplier = 1.0F;
     @Unique private float gulliver$sizeItemMultiplier = 1.0F;
     @Unique private java.util.UUID gulliver$holdingEntity = null;
@@ -49,13 +50,17 @@ public abstract class MixinEntity implements IResizeableEntity, IGulliverEntityI
     @Override
     @Unique
     public void halveSize() {
-        gulliver$sizeBaseMultiplier *= 0.5F;
+        // Set the destination; the per-tick tween in MixinLivingEntitySizeTween
+        // will lerp the live base toward it. LivingEntity overrides this to
+        // honour per-class config bounds; on raw Entity (items, projectiles)
+        // we just halve the destination directly.
+        gulliver$sizeBaseDestMultiplier *= 0.5F;
     }
 
     @Override
     @Unique
     public void doubleSize() {
-        gulliver$sizeBaseMultiplier *= 2.0F;
+        gulliver$sizeBaseDestMultiplier *= 2.0F;
     }
 
     @Override
@@ -83,10 +88,12 @@ public abstract class MixinEntity implements IResizeableEntity, IGulliverEntityI
     }
 
     @Override @Unique public float gulliver$getSizeBaseMultiplier() { return gulliver$sizeBaseMultiplier; }
+    @Override @Unique public float gulliver$getSizeBaseDestMultiplier() { return gulliver$sizeBaseDestMultiplier; }
     @Override @Unique public float gulliver$getSizePotionMultiplier() { return gulliver$sizePotionMultiplier; }
     @Override @Unique public float gulliver$getSizeItemMultiplier() { return gulliver$sizeItemMultiplier; }
 
     @Override @Unique public void gulliver$setSizeBaseMultiplier(float v) { gulliver$sizeBaseMultiplier = v; }
+    @Override @Unique public void gulliver$setSizeBaseDestMultiplier(float v) { gulliver$sizeBaseDestMultiplier = v; }
     @Override @Unique public void gulliver$setSizePotionMultiplier(float v) { gulliver$sizePotionMultiplier = v; }
     @Override @Unique public void gulliver$setSizeItemMultiplier(float v) { gulliver$sizeItemMultiplier = v; }
 

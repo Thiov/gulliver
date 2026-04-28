@@ -41,24 +41,51 @@ public abstract class MixinLivingEntity implements IResizeableLiving {
         return ((IGulliverEntityInternal) this).gulliver$getSizeItemMultiplier();
     }
 
-    @Override
     @Unique
-    public void setBaseSize(float size) {
+    private float gulliver$clampBase(float size) {
         LivingEntity self = (LivingEntity) (Object) this;
         GulliverConfig.General g = GulliverConfig.INSTANCE.general;
         float lo = (float) Math.max(GulliverEnvoy.getMinSizeForEntity(self), g.minEntityBaseSize);
         float hi = (float) Math.min(GulliverEnvoy.getMaxSizeForEntity(self), g.maxEntityBaseSize);
-        float clamped = Math.max(lo, Math.min(hi, size));
-        ((IGulliverEntityInternal) this).gulliver$setSizeBaseMultiplier(clamped);
-        self.refreshDimensions();
+        return Math.max(lo, Math.min(hi, size));
+    }
+
+    @Override
+    @Unique
+    public void setBaseSize(float size) {
+        LivingEntity self = (LivingEntity) (Object) this;
+        float clamped = gulliver$clampBase(size);
+        // Set the DESTINATION; the per-tick tween in MixinLivingEntitySizeTween
+        // animates the live base toward it. Broadcast immediately so clients
+        // receive the destination and animate locally with the same lerp.
+        ((IGulliverEntityInternal) this).gulliver$setSizeBaseDestMultiplier(clamped);
         SizeSync.broadcast(self);
     }
 
     @Override
     @Unique
     public void adjustBaseSize(float factor) {
-        float current = ((IGulliverEntityInternal) this).gulliver$getSizeBaseMultiplier();
+        float current = ((IGulliverEntityInternal) this).gulliver$getSizeBaseDestMultiplier();
         setBaseSize(current * factor);
+    }
+
+    /**
+     * Override halveSize / doubleSize on LivingEntity to honour the per-class
+     * config bounds. Without this, /halfsize and /doublesize bypass the
+     * 0.125–8.0 limits because they bind to the raw Entity-level methods.
+     */
+    @Override
+    @Unique
+    public void halveSize() {
+        float current = ((IGulliverEntityInternal) this).gulliver$getSizeBaseDestMultiplier();
+        setBaseSize(current * 0.5F);
+    }
+
+    @Override
+    @Unique
+    public void doubleSize() {
+        float current = ((IGulliverEntityInternal) this).gulliver$getSizeBaseDestMultiplier();
+        setBaseSize(current * 2.0F);
     }
 
     /**
