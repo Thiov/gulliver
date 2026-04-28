@@ -56,27 +56,22 @@ public abstract class MixinItemInHandRenderer {
             pose.scale(invRoot, invRoot, invRoot);
             return;
         }
-        // 1st person paper: previous attempts with `mulPose(XP, ±xRot)`
-        // didn't fully undo camera pitch (modern view uses a quaternion
-        // not separate pitch/yaw mulPose). Apply the conjugate of
-        // cam.rotation() to fully undo camera rotation -> world axes.
-        // Then RE-APPLY yaw only so the paper still rotates left/right
-        // with body. Pitch is now never applied to paper.
-        net.minecraft.client.Camera cam = net.minecraft.client.Minecraft.getInstance()
-                .gameRenderer.getMainCamera();
+        // 1st person paper — 1.6.4 bfj.java:418-450 verbatim port.
+        // Applied WITHIN the existing camera-attached hand-pose stack
+        // (no matrix reset). The 1.6.4 sequence puts the paper above
+        // the head with body-yaw following, no pitch tilt.
         pose.pushPose();
-        org.joml.Quaternionf invCam = new org.joml.Quaternionf(cam.rotation()).conjugate();
-        pose.mulPose(invCam);
-        // Re-apply yaw rotation around world-Y so paper turns left/right
-        // with body. MC's view matrix uses (yRot + 180) for yaw; matching
-        // sign here.
-        pose.mulPose(com.mojang.math.Axis.YP.rotationDegrees(cam.yRot() + 180.0F));
-        // Now +Y = world-up, X/Z = camera-yaw rotated. Translate up.
-        pose.translate(0.0F, 0.3F, 0.0F);
-        // Lay flat
-        pose.mulPose(com.mojang.math.Axis.XP.rotationDegrees(90.0F));
-        // Recenter FIXED-context item.
-        pose.translate(-0.5F, 0.0F, 0.5F);
+        pose.mulPose(com.mojang.math.Axis.YP.rotationDegrees(90.0F));
+        pose.mulPose(com.mojang.math.Axis.ZP.rotationDegrees(160.0F));
+        pose.mulPose(com.mojang.math.Axis.ZP.rotationDegrees(80.0F));
+        pose.mulPose(com.mojang.math.Axis.XP.rotationDegrees(-90.0F));
+        pose.mulPose(com.mojang.math.Axis.XP.rotationDegrees(-60.0F));
+        // 1.6.4: glTranslatef(0, 0.1 * sizerootdiv, 0); glScalef(sizerootdiv);
+        // glTranslatef(-0.5, -0.5, 0.5)
+        // We use vanilla 1.0 scale (size handled separately) and apply
+        // the centering translate.
+        pose.translate(0.0F, 0.1F, 0.0F);
+        pose.translate(-0.5F, -0.5F, 0.5F);
 
         net.minecraft.client.renderer.item.ItemStackRenderState rs =
                 new net.minecraft.client.renderer.item.ItemStackRenderState();
