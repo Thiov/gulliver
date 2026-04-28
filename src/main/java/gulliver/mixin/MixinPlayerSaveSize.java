@@ -41,8 +41,12 @@ public abstract class MixinPlayerSaveSize {
         float dest = in.getFloatOr("gulliver.sizeBaseDest", 1.0F);
         float pot  = in.getFloatOr("gulliver.sizePotion", 1.0F);
         float item = in.getFloatOr("gulliver.sizeItem", 1.0F);
+        // Force LIVE = DEST on load so the server starts at the saved
+        // size with no tween needed. Same dest is sent to client; client
+        // also skips tween via the gulliver$setSizeBaseMultiplier branch
+        // in ClientPacketHandlers when receiving the spawn-time packet.
         i.gulliver$setSizeBaseMultiplier(base);
-        i.gulliver$setSizeBaseDestMultiplier(dest);
+        i.gulliver$setSizeBaseDestMultiplier(dest != 1.0F ? dest : base);
         i.gulliver$setSizePotionMultiplier(pot);
         i.gulliver$setSizeItemMultiplier(item);
         ((Player) (Object) this).refreshDimensions();

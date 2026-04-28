@@ -75,12 +75,10 @@ public abstract class MixinCamera {
      * For m=0.125 gives 0.125 (eye still above tiny body).
      */
     /**
-     * Sleep camera Y offset. The companion gulliver$sleepPitch handles
-     * pitch — together they put the camera ABOVE the lying body and
-     * angle it DOWN so the body fits in view at every size.
-     *
-     *   Y = max(0.3, 0.7 * m + 0.4)   (vanilla 0.3 preserved at m≤~0)
-     *   pitch = -45° when sized ≠ 1   (look down at body)
+     * 1.6.4 bfe.java:582-583 verbatim sleep camera scaling:
+     *   GL11.glTranslatef(0.0F, 0.3F * hfactor, 0.0F);
+     * where hfactor = sizeMultiplier (linear). No pitch tilt — original
+     * mod kept vanilla camera angle, just scaled the Y offset.
      */
     @ModifyConstant(method = "alignWithEntity", constant = @Constant(floatValue = 0.3F))
     private float gulliver$scaleSleepCameraY(float c) {
@@ -89,32 +87,6 @@ public abstract class MixinCamera {
         if (!le.isSleeping()) return c;
         float m = ((IResizeableEntity) entity).getSizeMultiplier();
         if (m == 1.0F) return c;
-        return Math.max(c, 0.7F * m + 0.4F);
-    }
-
-    /**
-     * Sleep camera pitch. alignWithEntity calls setRotation(yaw, 0) for
-     * sleep — pitch=0 = horizontal look, body at-or-below camera level
-     * isn't visible at extreme sizes. Modify the pitch fconst_0 to a
-     * downward angle so the body fits in frame.
-     *
-     * `setRotation(F, F)` is called with two consecutive fconst_0's
-     * (yaw fallback + pitch). The second 0F (the pitch) is what we
-     * want to change. Use @ModifyArg with index = 1.
-     */
-    @org.spongepowered.asm.mixin.injection.ModifyArg(
-        method = "alignWithEntity",
-        at = @At(value = "INVOKE",
-                 target = "Lnet/minecraft/client/Camera;setRotation(FF)V"),
-        index = 1
-    )
-    private float gulliver$scaleSleepCameraPitch(float pitch) {
-        if (entity == null) return pitch;
-        if (!(entity instanceof net.minecraft.world.entity.LivingEntity le)) return pitch;
-        if (!le.isSleeping()) return pitch;
-        float m = ((IResizeableEntity) entity).getSizeMultiplier();
-        if (m == 1.0F) return pitch;
-        // Tilt down 45° so the lying body is in view from above.
-        return 45.0F;
+        return c * m;
     }
 }

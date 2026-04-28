@@ -15,16 +15,21 @@ public final class ClientPacketHandlers {
             ctx.client().execute(() -> {
                 Entity e = entityById(payload.entityId());
                 if (e == null) return;
-                // Server sends the DESTINATION composed multiplier (base_dest
-                // × potion × item). Store it as the client's destination; the
-                // local MixinLivingEntitySizeTween will lerp the live base
-                // toward it using the same formula as the server. Potion and
-                // item kept at 1.0 locally so the tween's product matches the
-                // server-authoritative value exactly.
                 IGulliverEntityInternal sized = (IGulliverEntityInternal) e;
-                sized.gulliver$setSizeBaseDestMultiplier(payload.sizeMult());
+                float newSize = payload.sizeMult();
+                sized.gulliver$setSizeBaseDestMultiplier(newSize);
                 sized.gulliver$setSizePotionMultiplier(1.0F);
                 sized.gulliver$setSizeItemMultiplier(1.0F);
+                // If the live base is still at default 1.0 (entity just
+                // spawned client-side, no prior size sync), set the LIVE
+                // base immediately too — skip the tween. This prevents
+                // the visible "spawn at 1.0, resize to saved value" flash
+                // on join. Subsequent EntitySize packets (mid-game resize)
+                // still go through the tween via DEST-only update.
+                if (sized.gulliver$getSizeBaseMultiplier() == 1.0F && newSize != 1.0F) {
+                    sized.gulliver$setSizeBaseMultiplier(newSize);
+                    e.refreshDimensions();
+                }
             });
         });
 
