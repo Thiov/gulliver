@@ -581,6 +581,9 @@ public final class GulliverEnvoy {
         if (b instanceof net.minecraft.world.level.block.WebBlock) return 0.5F;
         if (st.is(net.minecraft.tags.BlockTags.LEAVES)) return 0.3F;
         if (st.is(net.minecraft.tags.BlockTags.DIRT)) return 0.7F;
+        // grass_block IS in BlockTags.DIRT in modern MC, but be explicit
+        // for clarity/safety since 1.6.4 distinguished Material.grass.
+        if (b == net.minecraft.world.level.block.Blocks.GRASS_BLOCK) return 0.7F;
         if (st.is(net.minecraft.tags.BlockTags.SAND)) return 0.7F;
         if (st.is(net.minecraft.tags.BlockTags.WOOL)) return 0.6F;
         if (b instanceof net.minecraft.world.level.block.CakeBlock) return 0.5F;
