@@ -59,10 +59,10 @@ public abstract class MixinItemInHandLayer {
         if (g.gulliver$isGliding() && arm == HumanoidArm.RIGHT) {
             pose.translate(0.3125F, 0.0F, 0.0F);
             pose.mulPose(com.mojang.math.Axis.ZP.rotationDegrees(90.0F));
-            // Lift paper UP from the finger tip a small amount — this is
-            // arm-local +Z (post-Z-rot, +Z is now the local "up" relative
-            // to the spanned-banner orientation).
-            pose.translate(0.0F, 0.0F, 0.25F);
+            // Lift paper higher above the hand tips and slightly back
+            // toward the head (arm-local -Y after Z-rot is "toward
+            // shoulder/back"; +Z is "up above the spanned banner").
+            pose.translate(0.0F, -0.25F, 0.6F);
         }
         float size = g.gulliver$getSizeMultiplier();
         if (size != 1.0F) {

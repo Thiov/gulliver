@@ -56,23 +56,17 @@ public abstract class MixinItemInHandRenderer {
             pose.scale(invRoot, invRoot, invRoot);
             return;
         }
-        // Override: render paper flat overhead, FIXED context (no
-        // upright display transform). Camera space: +X right, +Y up,
-        // -Z forward into scene. Position above eye and slightly
-        // forward — placing it where you'd hold a parachute over your
-        // head looking up.
+        // Override: render paper flat overhead in CAMERA-relative
+        // space. Don't reset to identity — that snapshots a fixed
+        // world matrix and the paper stays in place when looking
+        // around. Instead apply transforms within the existing
+        // pose-stack frame (which is camera-attached + bobView), so
+        // the paper rotates with the camera.
         pose.pushPose();
-        pose.last().pose().identity();
-        pose.last().normal().identity();
-        // Closer to eye (-0.3 Z) and lower (0.2 Y) so visible at edge
-        // of view. Centered horizontally (X = -0.5 to span centered
-        // since FIXED renders item with its center near origin).
-        pose.translate(-0.5F, 0.2F, -0.3F);
-        // 90° around X tips the paper from item-natural orientation
-        // (vertical) to flat-facing-down (parallel to ground above
-        // player's head).
+        // -0.5 X centers around camera, +0.5 Y above eye, -0.5 Z forward.
+        pose.translate(-0.5F, 0.5F, -0.5F);
+        // Lay paper flat (90° around X tips item face down).
         pose.mulPose(com.mojang.math.Axis.XP.rotationDegrees(90.0F));
-        pose.scale(1.0F, 1.0F, 1.0F);
 
         net.minecraft.client.renderer.item.ItemStackRenderState rs =
                 new net.minecraft.client.renderer.item.ItemStackRenderState();
