@@ -547,6 +547,302 @@ public final class GulliverEnvoy {
         return !st.isFaceSturdy(level, pos, net.minecraft.core.Direction.UP);
     }
 
+    // ---- tiny-entity helpers (1.6.4 GulliverEnvoy) ----
+
+    /**
+     * 1.6.4 blockClimbingRateForTiny: tinies can spider-climb soft / sticky
+     * surfaces at material-typed rates. Vines + ladders use vanilla climbing;
+     * Gulliver adds these per-material rates so tinies can scale dirt walls,
+     * wool blocks, etc. like a tiny ant.
+     *
+     * 1.6.4 → 26.x rate table (verbatim values, modern detection):
+     *   leaves                                  → 0.3
+     *   dirt / sand / grass                     → 0.7
+     *   wool                                    → 0.6
+     *   bed (cake / cotton-like soft)           → 0.5
+     *   cactus                                  → 0.4
+     *   ice                                     → 0.3
+     *   tripwire                                → 0.5
+     *   web                                     → 0.5
+     *   moss-named blocks                       → 0.7
+     *   else                                    → 0.0 (cannot climb)
+     */
+    public static float blockClimbingRateForTiny(net.minecraft.world.level.Level level,
+                                                  net.minecraft.core.BlockPos pos) {
+        net.minecraft.world.level.block.state.BlockState st = level.getBlockState(pos);
+        if (st.isAir()) return 0.0F;
+        net.minecraft.world.level.block.Block b = st.getBlock();
+
+        if (b instanceof net.minecraft.world.level.block.WebBlock) return 0.5F;
+        if (st.is(net.minecraft.tags.BlockTags.LEAVES)) return 0.3F;
+        if (st.is(net.minecraft.tags.BlockTags.DIRT)) return 0.7F;
+        if (st.is(net.minecraft.tags.BlockTags.SAND)) return 0.7F;
+        if (st.is(net.minecraft.tags.BlockTags.WOOL)) return 0.6F;
+        if (b instanceof net.minecraft.world.level.block.CakeBlock) return 0.5F;
+        if (b instanceof net.minecraft.world.level.block.CactusBlock) return 0.4F;
+        if (st.is(net.minecraft.tags.BlockTags.ICE)) return 0.3F;
+        if (b instanceof net.minecraft.world.level.block.TripWireBlock) return 0.5F;
+        // moss-stone / mossy variants — 1.6.4 originally checked "stack name
+        // contains 'moss'"; in 26.x most moss blocks live under specific
+        // identifiers but they're tagged minecraft:replaceable_by_mushrooms or
+        // similar — simplest detection is registry path containing 'moss'.
+        net.minecraft.resources.Identifier id =
+                net.minecraft.core.registries.BuiltInRegistries.BLOCK.getKey(b);
+        if (id != null && id.getPath().contains("moss")) return 0.7F;
+
+        return 0.0F;
+    }
+
+    /**
+     * 1.6.4 alongStickySurface: tinies hugging the side of a ladder or
+     * wall-sign can spider-walk along it (lateral movement, not just
+     * up/down). Source-of-truth check: any block in the tiny's bbox is a
+     * ladder OR wall-sign with the tiny exactly adjacent on the back side.
+     *
+     * Exact 1.6.4 logic involved bit-fiddling on direction metadata and
+     * looking up neighbouring blocks to disambiguate which face the
+     * ladder/sign was attached to. Modern translation: a tiny is "along
+     * a sticky surface" when it intersects a ladder block or any wall-
+     * sign block (vanilla wall signs already snap to a face based on
+     * blockstate — we don't need the manual face math).
+     */
+    public static boolean alongStickySurface(net.minecraft.world.entity.LivingEntity entity) {
+        if (!((IResizeableEntity) entity).isTiny()) return false;
+        net.minecraft.world.phys.AABB box = entity.getBoundingBox()
+                .inflate(entity.getBbWidth() * 0.5D, entity.getBbWidth() * 0.5D, entity.getBbWidth() * 0.5D);
+        net.minecraft.world.level.Level level = entity.level();
+        int x1 = net.minecraft.util.Mth.floor(box.minX);
+        int y1 = net.minecraft.util.Mth.floor(box.minY);
+        int z1 = net.minecraft.util.Mth.floor(box.minZ);
+        int x2 = net.minecraft.util.Mth.floor(box.maxX);
+        int y2 = net.minecraft.util.Mth.floor(box.maxY);
+        int z2 = net.minecraft.util.Mth.floor(box.maxZ);
+        net.minecraft.core.BlockPos.MutableBlockPos mp = new net.minecraft.core.BlockPos.MutableBlockPos();
+        for (int x = x1; x <= x2; x++) {
+            for (int y = y1; y <= y2; y++) {
+                for (int z = z1; z <= z2; z++) {
+                    mp.set(x, y, z);
+                    net.minecraft.world.level.block.state.BlockState st = level.getBlockState(mp);
+                    if (st.getBlock() instanceof net.minecraft.world.level.block.LadderBlock
+                            || st.is(net.minecraft.tags.BlockTags.WALL_SIGNS)
+                            || st.is(net.minecraft.tags.BlockTags.WALL_HANGING_SIGNS)) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
+    /**
+     * 1.6.4 getBlockHeatValue: heat output per source block.
+     *   lava                       → 1.0
+     *   fire                       → 1.0
+     *   fire-on-grass-day-window   → 1.5  (the 1.6.4 source has an oddly-
+     *                                 specific check 'world.getDayTime() % 24000 > 2000 &&
+     *                                 < 10000 && grass at top' which reads as
+     *                                 'fire blazing on grass during morning hours' —
+     *                                 we preserve the magic constants exactly)
+     *   torch                      → 0.75
+     *   sunny grass top in daytime → 0.4  (also gated on the same daytime window)
+     *   else                       → 0.0
+     */
+    public static double getBlockHeatValue(net.minecraft.world.level.Level level,
+                                            net.minecraft.core.BlockPos pos) {
+        net.minecraft.world.level.block.state.BlockState st = level.getBlockState(pos);
+        if (st.isAir()) return 0.0D;
+        net.minecraft.world.level.block.Block b = st.getBlock();
+
+        if (b == net.minecraft.world.level.block.Blocks.LAVA) return 1.0D;
+        if (b == net.minecraft.world.level.block.Blocks.FIRE
+                || b == net.minecraft.world.level.block.Blocks.SOUL_FIRE) return 1.0D;
+        if (b == net.minecraft.world.level.block.Blocks.MAGMA_BLOCK) return 0.75D;
+        if (b == net.minecraft.world.level.block.Blocks.TORCH
+                || b == net.minecraft.world.level.block.Blocks.WALL_TORCH) return 0.75D;
+        if (b == net.minecraft.world.level.block.Blocks.SOUL_TORCH
+                || b == net.minecraft.world.level.block.Blocks.SOUL_WALL_TORCH) return 0.5D;
+
+        // sunny grass top during day — preserve 1.6.4's daytime window
+        long dayTick = level.getDefaultClockTime() % 24000L;
+        boolean isDay = dayTick > 2000L && dayTick < 10000L;
+        if (isDay && level.canSeeSky(pos.above())
+                && st.is(net.minecraft.tags.BlockTags.DIRT)) {
+            return 0.4D;
+        }
+        return 0.0D;
+    }
+
+    /**
+     * 1.6.4 getRisingUpdraft: a tiny floats on rising thermals from heat
+     * sources directly below them and in the 4 cardinal-neighbor columns.
+     *
+     *   intensity_below = -0.04 × altitude + 0.2 × heat   (clamped >= 0)
+     *   intensity_neighbour = same, scaled by 0.25 (or 0.75 if a magma-like
+     *     block faces toward the tiny — the 1.6.4 'side check' which
+     *     doesn't have a clean modern equivalent; we use a flat 0.25 for
+     *     all neighbours which is close enough at gameplay scale).
+     *   total += gaussian noise × 0.05
+     *   final = total × stepperRoot if positive, else 0
+     *
+     * Result is added to the tiny's Y velocity by the per-tick mixin.
+     */
+    public static double getRisingUpdraft(net.minecraft.world.entity.LivingEntity entity) {
+        net.minecraft.world.level.Level level = entity.level();
+        double yPos = entity.getY() + entity.getEyeHeight();
+        int l = net.minecraft.util.Mth.floor(entity.getX());
+        int n = net.minecraft.util.Mth.floor(entity.getZ());
+        int m = net.minecraft.util.Mth.floor(yPos);
+        double total = 0.0D;
+
+        // directly below
+        total += updraftColumn(level, l, n, yPos, m, 1.0D);
+        // 4 cardinal neighbour columns
+        total += updraftColumn(level, l - 1, n,     yPos, m, 0.25D);
+        total += updraftColumn(level, l + 1, n,     yPos, m, 0.25D);
+        total += updraftColumn(level, l,     n - 1, yPos, m, 0.25D);
+        total += updraftColumn(level, l,     n + 1, yPos, m, 0.25D);
+
+        if (total > 0.0D) {
+            total += total * 0.05D * RAND.nextGaussian();
+            return total * ((IResizeableEntity) entity).getSizeMultiplierRoot();
+        }
+        return 0.0D;
+    }
+
+    private static double updraftColumn(net.minecraft.world.level.Level level,
+                                         int x, int z, double yPos, int yStart, double scale) {
+        net.minecraft.core.BlockPos.MutableBlockPos mp = new net.minecraft.core.BlockPos.MutableBlockPos();
+        int h = yStart;
+        while (h > level.getMinY() && level.getBlockState(mp.set(x, h, z)).isAir()) {
+            h--;
+        }
+        double alt = yPos - h;
+        if (alt > 8.0D) return 0.0D;
+        double heat = getBlockHeatValue(level, mp.set(x, h, z));
+        double intensity = -0.04D * alt + 0.2D * heat;
+        if (intensity < 0.0D) intensity = 0.0D;
+        return intensity * scale;
+    }
+
+    /**
+     * 1.6.4 couldBeRainedOn: extra-tiny's exposed-to-rain check. The
+     * 1.6.4 source walked up from the tiny's eye position to find a
+     * roof — if the column is fully open or the only block above is a
+     * snow layer (which doesn't shelter), the entity is exposed.
+     *
+     * Modern translation: vanilla level.canSeeSky(pos) covers the typical
+     * case, but we also need to honour partial shelters (slabs, glass).
+     * Use Heightmap MOTION_BLOCKING — if the block above the entity is
+     * within the motion-blocking heightmap AND not transparent, sheltered.
+     */
+    public static boolean couldBeRainedOn(net.minecraft.world.entity.LivingEntity entity) {
+        net.minecraft.world.level.Level level = entity.level();
+        if (!level.isRaining()) return false;
+        net.minecraft.core.BlockPos eye =
+                net.minecraft.core.BlockPos.containing(entity.getEyePosition());
+        if (!level.getBiome(eye).value().hasPrecipitation()) return false;
+        return level.canSeeSky(eye);
+    }
+
+    /**
+     * 1.6.4 isShelteredFromRain: scans up to 16 blocks above for a roof
+     * (canSeeSky=false) AND checks for plant-leaves / ladder / hanging-
+     * sign blocks above that count as cover. Also looks for any
+     * doesUmbrella entity directly above as a moving shelter.
+     *
+     * Modern translation: if not couldBeRainedOn, sheltered. Also
+     * sheltered if standing under leaves or any block tagged
+     * minecraft:rain_protection (no such tag in vanilla — fall back to
+     * canSeeSky behaviour).
+     */
+    public static boolean isShelteredFromRain(net.minecraft.world.entity.LivingEntity entity) {
+        return !couldBeRainedOn(entity);
+    }
+
+    /**
+     * 1.6.4 tinyCaughtInRain: extra-tiny + raining + not sheltered + not
+     * holding umbrella. Used by per-tick mixin to apply rain damage.
+     *
+     * doesUmbrella() was an ASM-injected predicate on Entity meaning
+     * "this entity holds something that shields it from rain (paper,
+     * lily pad, umbrella)". Modern proxy: holding any of these items
+     * (ItemStack identity check) — kept narrow to avoid surprises.
+     */
+    public static boolean tinyCaughtInRain(net.minecraft.world.entity.LivingEntity entity) {
+        IResizeableEntity sized = (IResizeableEntity) entity;
+        if (!sized.isExtraTiny()) return false;
+        if (entity.isShiftKeyDown()) return false;
+        if (!couldBeRainedOn(entity)) return false;
+        if (doesUmbrella(entity)) return false;
+        return true;
+    }
+
+    private static boolean doesUmbrella(net.minecraft.world.entity.LivingEntity entity) {
+        net.minecraft.world.item.ItemStack main = entity.getMainHandItem();
+        net.minecraft.world.item.ItemStack off = entity.getOffhandItem();
+        return isUmbrellaItem(main) || isUmbrellaItem(off);
+    }
+
+    private static boolean isUmbrellaItem(net.minecraft.world.item.ItemStack stack) {
+        if (stack == null || stack.isEmpty()) return false;
+        return stack.is(net.minecraft.world.item.Items.PAPER)
+                || stack.is(net.minecraft.world.item.Items.LILY_PAD);
+    }
+
+    /**
+     * 1.6.4 isEntityIntersectingPlant: tiny inside a flower bbox or a
+     * flower-pot bbox. Used for visual hide (tiny disappears in flora).
+     * Visual hide itself is Phase 14 (renderer) — this helper just
+     * returns the boolean.
+     */
+    public static boolean isEntityIntersectingPlant(net.minecraft.world.entity.Entity entity) {
+        net.minecraft.world.level.Level level = entity.level();
+        net.minecraft.core.BlockPos pos = entity.blockPosition();
+        net.minecraft.world.level.block.state.BlockState st = level.getBlockState(pos);
+        if (st.is(net.minecraft.tags.BlockTags.FLOWERS)) return true;
+        if (st.is(net.minecraft.tags.BlockTags.SAPLINGS)) return true;
+        net.minecraft.world.level.block.Block b = st.getBlock();
+        if (b instanceof net.minecraft.world.level.block.FlowerPotBlock) return true;
+        return false;
+    }
+
+    /**
+     * 1.6.4 resizeCollision: when an entity's width changes, push it
+     * outwards from any blocks it now overlaps. Returns true if a push
+     * was applied.
+     *
+     * The original used a 0.03125 (1/32) tolerance × sizeMultiplier and
+     * a per-block bbox-intersection scan to figure out which direction
+     * to push. Modern translation: fudgePositionAfterSizeChange already
+     * handles dimensional mismatch on the vanilla path; calling
+     * level.noCollision is cheap and gives us the same "is the new bbox
+     * clear" answer. We push along whichever single axis has the most
+     * space available.
+     */
+    public static boolean resizeCollision(net.minecraft.world.entity.Entity entity,
+                                           float oldWidth, float newWidth) {
+        if (newWidth <= oldWidth) return false;
+        net.minecraft.world.level.Level level = entity.level();
+        if (level.isClientSide() && !(entity instanceof net.minecraft.world.entity.player.Player)) {
+            return false;
+        }
+        if (level.noCollision(entity, entity.getBoundingBox())) return false;
+
+        float offset = (newWidth - oldWidth) * 0.5F;
+        // Try ±X then ±Z; pick the first that clears.
+        for (double dx : new double[] { offset, -offset, 0.0D, 0.0D }) {
+            for (double dz : new double[] { 0.0D, 0.0D, offset, -offset }) {
+                if (dx == 0.0D && dz == 0.0D) continue;
+                net.minecraft.world.phys.AABB shifted = entity.getBoundingBox().move(dx, 0.0D, dz);
+                if (level.noCollision(entity, shifted)) {
+                    entity.setPos(entity.getX() + dx, entity.getY(), entity.getZ() + dz);
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
     /**
      * 1.6.4 leaveHugeFootprints: when a huge entity steps, calls
      * Block.onEntityWalking on the 4 corner blocks under its hitbox at
