@@ -61,6 +61,19 @@ public abstract class MixinCamera {
      * sleeping at a non-1 size shows the correct eye height. The 0.3F
      * lives in Camera.alignWithEntity (the sleep branch's move call).
      */
+    /**
+     * Sleep camera Y offset above bed surface. Vanilla 0.3 puts the eye
+     * 0.1 above body-top (body height = 0.2 lying down). For sized players
+     * we want the SAME relative offset (eye 0.1 above body top) so the
+     * view always shows the body — keep vanilla's `0.1 above body` rule:
+     *
+     *   eye_offset = SLEEPING_DIMENSIONS.height * sizeMultiplier + 0.1
+     *              = 0.2 * m + 0.1
+     *
+     * For m=1 this gives 0.3 (vanilla unchanged).
+     * For m=8 gives 1.7 (eye at body-top + 0.1).
+     * For m=0.125 gives 0.125 (eye still above tiny body).
+     */
     @ModifyConstant(method = "alignWithEntity", constant = @Constant(floatValue = 0.3F))
     private float gulliver$scaleSleepCameraY(float c) {
         if (entity == null) return c;
@@ -68,6 +81,6 @@ public abstract class MixinCamera {
         if (!le.isSleeping()) return c;
         float m = ((IResizeableEntity) entity).getSizeMultiplier();
         if (m == 1.0F) return c;
-        return c * m;
+        return 0.2F * m + 0.1F;
     }
 }

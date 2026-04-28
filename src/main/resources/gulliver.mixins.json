@@ -23,6 +23,7 @@
     "MixinLivingEntityHugeFall",
     "MixinLivingEntityMovement",
     "MixinLivingEntityRaft",
+    "MixinLivingEntitySaveSize",
     "MixinLivingEntitySizeTween",
     "MixinLivingEntityStep",
     "MixinLivingEntityTinyClimb",
