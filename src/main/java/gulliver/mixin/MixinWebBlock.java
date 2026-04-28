@@ -21,15 +21,23 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Mixin(WebBlock.class)
 public abstract class MixinWebBlock {
 
-    @Inject(method = "entityInside", at = @At("HEAD"))
-    private void gulliver$hugeBreaks(BlockState state, Level level, BlockPos pos,
-                                      Entity entity, InsideBlockEffectApplier applier,
-                                      boolean inside, CallbackInfo ci) {
+    @Inject(method = "entityInside", at = @At("HEAD"), cancellable = true)
+    private void gulliver$tinySkipsAndHugeBreaks(BlockState state, Level level, BlockPos pos,
+                                                  Entity entity, InsideBlockEffectApplier applier,
+                                                  boolean inside, CallbackInfo ci) {
+        IResizeableEntity sized = (IResizeableEntity) entity;
+        // Tinies slip past silk strands — skip the slow + cancel vanilla
+        // entityInside entirely.
+        if (sized.isTiny()) {
+            ci.cancel();
+            return;
+        }
         if (level.isClientSide()) return;
-        if (!((IResizeableEntity) entity).isHuge()) return;
+        if (!sized.isHuge()) return;
         if (entity.isShiftKeyDown()) return;
         if (!GulliverEnvoy.canSizeGrief(entity)) return;
-        if (level.random.nextInt(50) != 0) return;
+        // Use getRandom() — Level.random is private since 26.x.
+        if (level.getRandom().nextInt(50) != 0) return;
 
         // Drop loot then remove the cobweb (vanilla destroyBlock with drop).
         level.destroyBlock(pos, true);
