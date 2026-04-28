@@ -38,27 +38,26 @@ public abstract class MixinLivingEntityTinyClimb {
     @Inject(method = "aiStep", at = @At("RETURN"))
     private void gulliver$dampClimbSpeed(CallbackInfo ci) {
         LivingEntity self = (LivingEntity) (Object) this;
-        if (!((IResizeableEntity) self).isTiny()) return;
-        // Only damp when actually on a SOFT (gulliver-only) climbable —
-        // skip ladders/vines/scaffolding so they keep vanilla speed.
+        IResizeableEntity sized = (IResizeableEntity) self;
+        if (!sized.isTiny()) return;
         float rate = gulliver$adjacentClimbRate(self);
         if (rate <= 0.0F) return;
         Vec3 dm = self.getDeltaMovement();
-        // Vanilla ladder climb-up Y velocity is ~0.2 per tick. Scale by
-        // the per-material rate so dirt (0.7) -> 0.14, wool (0.6) ->
-        // 0.12, ice (0.3) -> 0.06 etc.
+        // 1.6.4 of.java:2574 verbatim: y *= ladderRate * 0.5 * sqrt(size).
+        // For dirt (rate 0.7) at size 0.125: cap = 0.5 * 0.7 * 0.354 *
+        // 0.2 = 0.0248/tick. Matches 1.6.4 "extremely slow" climb feel.
+        // Express as a CAP on upward velocity (rather than multiply, to
+        // be safe against zero current velocity).
+        float root = sized.getSizeMultiplierRoot();
         if (dm.y > 0.0D) {
-            double cap = 0.2D * rate;
+            double cap = 0.2D * rate * 0.5D * root;
             if (dm.y > cap) {
                 self.setDeltaMovement(dm.x, cap, dm.z);
             }
         }
-        // Also dampen falling speed (clinging to the wall slows descent)
-        if (dm.y < 0.0D) {
-            double minY = -0.15D;  // vanilla ladder grace fall
-            if (dm.y < minY) {
-                self.setDeltaMovement(dm.x, minY, dm.z);
-            }
+        // Wall-cling slow descent at vanilla ladder rate.
+        if (dm.y < -0.15D) {
+            self.setDeltaMovement(dm.x, -0.15D, dm.z);
         }
     }
 
