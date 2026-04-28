@@ -8,6 +8,7 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.ModifyArg;
+import org.spongepowered.asm.mixin.injection.ModifyConstant;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import org.spongepowered.asm.mixin.injection.Inject;
 
@@ -62,5 +63,29 @@ public abstract class MixinCamera {
         float m = ((IResizeableEntity) entity).getSizeMultiplier();
         if (m == 1.0F) return distance;
         return distance * m;
+    }
+
+    /**
+     * 1.6.4 bfe.java:626-628 — the third-person collision-probe corner
+     * offsets f4/f5/f6 are scaled by `0.1F * pfactor` (pfactor =
+     * sizeMultiplier). Modern Camera.getMaxZoom uses the same 0.1F probe
+     * bias but without scaling. When a tiny shrinks, the un-scaled 0.1F
+     * probes punch through walls and the camera gets kicked too far back;
+     * when a giant grows, the un-scaled probes hit the giant's own model
+     * and pull the camera too close. Scale every 0.1F constant in
+     * getMaxZoom by sizeMultiplier so the framing stays proportional.
+     *
+     * There are 6 occurrences of 0.1F in getMaxZoom: f *= 0.1F, g *= 0.1F,
+     * h *= 0.1F (corner-offset bias) plus three more in the ray-trace
+     * end-vector adds. Scaling all of them is the byte-for-byte equivalent
+     * of bfe.java's `f4 *= 0.1F * pfactor; f5 *= 0.1F * pfactor;
+     * f6 *= 0.1F * pfactor;`.
+     */
+    @ModifyConstant(method = "getMaxZoom", constant = @org.spongepowered.asm.mixin.injection.Constant(floatValue = 0.1F))
+    private float gulliver$scaleProbeBias(float c) {
+        if (entity == null) return c;
+        float m = ((IResizeableEntity) entity).getSizeMultiplier();
+        if (m == 1.0F) return c;
+        return c * m;
     }
 }
