@@ -3,6 +3,7 @@ package gulliver;
 import gulliver.command.GulliverCommands;
 import gulliver.common.GulliverConfig;
 import gulliver.init.GulliverEffects;
+import gulliver.init.GulliverPotions;
 import gulliver.network.PacketHandlers;
 import gulliver.network.SizeSync;
 import net.fabricmc.api.ModInitializer;
@@ -24,6 +25,7 @@ public class GulliverFabric implements ModInitializer {
         LOGGER.info("Gulliver (Fabric) initializing");
         GulliverConfig.load();
         GulliverEffects.init();
+        GulliverPotions.init();
         PacketHandlers.registerCommon();
         SizeSync.registerCommon();
         CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) ->
