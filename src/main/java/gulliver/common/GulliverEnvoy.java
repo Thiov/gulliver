@@ -783,29 +783,25 @@ public final class GulliverEnvoy {
     }
 
     /**
-     * 1.6.4 isItemUmbrella (uf.java line 1829 inline check): paper or lily-pad.
-     * Used to gate couldUseUmbrella per-tick flag.
+     * 1.6.4 isItemUmbrella (uf.java line 1829: `d == bEcF`). bEcF resolves
+     * to aqz.bE = the lily-pad block (id 111). Lily pad alone — paper does
+     * NOT qualify here (verified from JDCore decoding).
      */
     public static boolean isItemUmbrella(net.minecraft.world.item.ItemStack stack) {
         if (stack == null || stack.isEmpty()) return false;
-        return stack.is(net.minecraft.world.item.Items.PAPER)
-                || stack.is(net.minecraft.world.item.Items.LILY_PAD);
+        return stack.is(net.minecraft.world.item.Items.LILY_PAD);
     }
 
     /**
      * 1.6.4 CommonProxy.isGlideableItem (line 102):
-     *   feather (aMcv) || instanceof xn (Item with sub-class flag)
-     *                  || instanceof yh (Item with sub-class flag).
-     * Modern best-mapping: feather (xn was likely a holdable flag class —
-     * paper and shears qualified in original). Conservative port: feather,
-     * paper, lily-pad, shears — items that visually float.
+     *   (d == aMcv) || (stack.b() instanceof xn) || (stack.b() instanceof yh)
+     * aMcv = yc.aM = paper (id 339). xn/yh are paper-derived MC item
+     * subclasses (filled-map / writable-book lineage). User playtest
+     * correction: only literal paper qualifies.
      */
     public static boolean isGlideableItem(net.minecraft.world.item.ItemStack stack) {
         if (stack == null || stack.isEmpty()) return false;
-        return stack.is(net.minecraft.world.item.Items.FEATHER)
-                || stack.is(net.minecraft.world.item.Items.PAPER)
-                || stack.is(net.minecraft.world.item.Items.LILY_PAD)
-                || stack.is(net.minecraft.world.item.Items.SHEARS);
+        return stack.is(net.minecraft.world.item.Items.PAPER);
     }
 
     /**
@@ -847,7 +843,7 @@ public final class GulliverEnvoy {
         boolean inWater = entity.isInWater();
 
         boolean rafting = sized.isTiny() && !onLadder && !entity.isShiftKeyDown()
-                && hand != null && hand.is(net.minecraft.world.item.Items.PAPER)
+                && hand != null && hand.is(net.minecraft.world.item.Items.LILY_PAD)
                 && entity.isInWaterOrRain();
         flags.gulliver$setRaftingFlag(rafting);
 
