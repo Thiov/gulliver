@@ -66,25 +66,67 @@ public abstract class MixinEntity implements IResizeableEntity, IGulliverEntityI
     @Override
     @Unique
     public boolean isTiny() {
-        return getSizeMultiplier() < 1.0F;
+        // 1.6.4 nn.java line 352: size < 0.3
+        return getSizeMultiplier() < 0.3F;
     }
 
     @Override
     @Unique
     public boolean isExtraTiny() {
-        return getSizeMultiplier() < 0.25F;
+        // 1.6.4 nn.java line 357: size < 0.15
+        return getSizeMultiplier() < 0.15F;
     }
 
     @Override
     @Unique
     public boolean isHuge() {
-        return getSizeMultiplier() > 1.0F;
+        // 1.6.4 nn.java line 362: size >= 2.4
+        return getSizeMultiplier() >= 2.4F;
     }
 
     @Override
     @Unique
     public float getStepHeight() {
-        return 0.6F * getSizeMultiplier();
+        // Default raw-Entity step height (overridden on LivingEntity by
+        // MixinLivingEntity.getStepHeight with the 1.6.4 power-of-2 formula).
+        return 0.0F;
+    }
+
+    @Override
+    @Unique
+    public float getRangeMultiplier() {
+        // 1.6.4 nn.java line 304-313
+        float s = getSizeMultiplier();
+        if (s >= 1.0F) return s;
+        return getSizeMultiplierRoot();
+    }
+
+    @Override
+    @Unique
+    public float getSizeMovementMultiplier() {
+        // 1.6.4 nn.java line 316-325
+        if (!isWeighted()) return getSizeMultiplierRoot();
+        return getSizeMultiplier();
+    }
+
+    @Override
+    @Unique
+    public boolean isWeighted() {
+        // 1.6.4 nn.java/of.java default; Player override comes from MixinPlayer.
+        return false;
+    }
+
+    @Override
+    @Unique
+    public boolean isSticky() {
+        return false;
+    }
+
+    @Override
+    @Unique
+    public int getStepSide() {
+        // 1.6.4 nn.java line 374: default 0; LivingEntity override returns 1.
+        return 0;
     }
 
     @Override @Unique public float gulliver$getSizeBaseMultiplier() { return gulliver$sizeBaseMultiplier; }
