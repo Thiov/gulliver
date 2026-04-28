@@ -425,13 +425,18 @@ public final class GulliverEnvoy {
      * to: players → always allowed; mobs → mobGriefing gamerule.
      */
     public static boolean canSizeGrief(Entity entity) {
-        if (entity instanceof Player) {
+        if (!(entity.level() instanceof ServerLevel sl)) {
+            // Client / no-server: be conservative, allow griefing (the
+            // server will be the source of truth — we only block
+            // grief actions on the server).
             return true;
         }
-        if (entity.level() instanceof ServerLevel sl) {
-            return sl.getGameRules().get(GameRules.MOB_GRIEFING);
+        boolean sizeGrief = sl.getGameRules().get(gulliver.init.GulliverGameRules.SIZE_GRIEFING);
+        if (entity instanceof Player) {
+            return sizeGrief;
         }
-        return false;
+        // Mobs: gated by both sizeGriefing AND mobGriefing (1.6.4 layered them).
+        return sizeGrief && sl.getGameRules().get(GameRules.MOB_GRIEFING);
     }
 
     // ---- huge-entity ground effects (1.6.4 GulliverEnvoy) ----

@@ -6,6 +6,7 @@ import gulliver.common.GulliverConfig;
 import gulliver.common.InteractEventHandler;
 import gulliver.common.KarmaMode;
 import gulliver.init.GulliverEffects;
+import gulliver.init.GulliverGameRules;
 import gulliver.init.GulliverPotions;
 import gulliver.network.PacketHandlers;
 import gulliver.network.SizeSync;
@@ -28,6 +29,7 @@ public class GulliverFabric implements ModInitializer {
         LOGGER.info("Gulliver (Fabric) initializing");
         GulliverConfig.load();
         GulliverEffects.init();
+        GulliverGameRules.init();
         GulliverPotions.init();
         PacketHandlers.registerCommon();
         SizeSync.registerCommon();
