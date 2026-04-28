@@ -1,13 +1,19 @@
 package gulliver.mixin;
 
+import gulliver.api.IResizeableEntity;
 import gulliver.api.IResizeableLiving;
 import gulliver.common.GulliverConfig;
 import gulliver.common.GulliverEnvoy;
 import gulliver.access.IGulliverEntityInternal;
 import gulliver.network.SizeSync;
+import net.minecraft.world.entity.EntityDimensions;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.Pose;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
+import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 /**
  * Implements IResizeableLiving on every LivingEntity. The size data lives
@@ -53,5 +59,22 @@ public abstract class MixinLivingEntity implements IResizeableLiving {
     public void adjustBaseSize(float factor) {
         float current = ((IGulliverEntityInternal) this).gulliver$getSizeBaseMultiplier();
         setBaseSize(current * factor);
+    }
+
+    /**
+     * LivingEntity.getDimensions(Pose) is final and computes its own
+     * EntityDimensions without calling Entity.getDimensions, so MixinEntity's
+     * scaling inject never fires for any living entity. Apply the same
+     * scaling here so refreshDimensions() actually picks up the resized
+     * dimensions for players, mobs, etc.
+     */
+    @Inject(method = "getDimensions", at = @At("RETURN"), cancellable = true)
+    private void gulliver$scaleLivingDimensions(Pose pose,
+                                                 CallbackInfoReturnable<EntityDimensions> cir) {
+        float m = ((IResizeableEntity) this).getSizeMultiplier();
+        if (m == 1.0F) return;
+        EntityDimensions base = cir.getReturnValue();
+        if (base == null) return;
+        cir.setReturnValue(base.scale(m));
     }
 }
