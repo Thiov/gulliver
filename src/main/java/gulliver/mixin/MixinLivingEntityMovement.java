@@ -90,6 +90,15 @@ public abstract class MixinLivingEntityMovement {
             y += (jb.getAmplifier() + 1) * 0.1F * (float) Math.sqrt(root);
         }
 
+        // Reconstructed sneak-jump (1.6.4 ASM patch invisible in JDCore):
+        // shift+space lifts higher than plain jump. Empirically 1.5x is the
+        // commonly-described "super-jump" feel. Only applies on solid ground
+        // (vanilla isShiftKeyDown is true even mid-air); we gate on onGround
+        // so it doesn't compound during the same airborne arc.
+        if (self.isShiftKeyDown() && self.onGround()) {
+            y *= 1.5F;
+        }
+
         cir.setReturnValue(y);
     }
 }
