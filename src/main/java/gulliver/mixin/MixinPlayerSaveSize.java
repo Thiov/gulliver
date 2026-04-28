@@ -24,10 +24,13 @@ public abstract class MixinPlayerSaveSize {
             at = @At("RETURN"))
     private void gulliver$saveSize(ValueOutput out, CallbackInfo ci) {
         IGulliverEntityInternal i = (IGulliverEntityInternal) this;
-        out.putFloat("gulliver.sizeBase", i.gulliver$getSizeBaseMultiplier());
-        out.putFloat("gulliver.sizeBaseDest", i.gulliver$getSizeBaseDestMultiplier());
+        float base = i.gulliver$getSizeBaseMultiplier();
+        float dest = i.gulliver$getSizeBaseDestMultiplier();
+        out.putFloat("gulliver.sizeBase", base);
+        out.putFloat("gulliver.sizeBaseDest", dest);
         out.putFloat("gulliver.sizePotion", i.gulliver$getSizePotionMultiplier());
         out.putFloat("gulliver.sizeItem", i.gulliver$getSizeItemMultiplier());
+        gulliver.GulliverFabric.LOGGER.info("[gulliver] SAVE size: base={} dest={}", base, dest);
     }
 
     @Inject(method = "readAdditionalSaveData(Lnet/minecraft/world/level/storage/ValueInput;)V",
@@ -35,16 +38,14 @@ public abstract class MixinPlayerSaveSize {
     private void gulliver$loadSize(ValueInput in, CallbackInfo ci) {
         IGulliverEntityInternal i = (IGulliverEntityInternal) this;
         float base = in.getFloatOr("gulliver.sizeBase", 1.0F);
-        // If the keys aren't present, getFloatOr returns the default 1.0F,
-        // so we don't accidentally clobber any value already set.
-        if (base != 1.0F || in.getFloatOr("gulliver.sizeBaseDest", 1.0F) != 1.0F
-                         || in.getFloatOr("gulliver.sizePotion", 1.0F) != 1.0F
-                         || in.getFloatOr("gulliver.sizeItem", 1.0F) != 1.0F) {
-            i.gulliver$setSizeBaseMultiplier(base);
-            i.gulliver$setSizeBaseDestMultiplier(in.getFloatOr("gulliver.sizeBaseDest", 1.0F));
-            i.gulliver$setSizePotionMultiplier(in.getFloatOr("gulliver.sizePotion", 1.0F));
-            i.gulliver$setSizeItemMultiplier(in.getFloatOr("gulliver.sizeItem", 1.0F));
-            ((Player) (Object) this).refreshDimensions();
-        }
+        float dest = in.getFloatOr("gulliver.sizeBaseDest", 1.0F);
+        float pot  = in.getFloatOr("gulliver.sizePotion", 1.0F);
+        float item = in.getFloatOr("gulliver.sizeItem", 1.0F);
+        i.gulliver$setSizeBaseMultiplier(base);
+        i.gulliver$setSizeBaseDestMultiplier(dest);
+        i.gulliver$setSizePotionMultiplier(pot);
+        i.gulliver$setSizeItemMultiplier(item);
+        ((Player) (Object) this).refreshDimensions();
+        gulliver.GulliverFabric.LOGGER.info("[gulliver] LOAD size: base={} dest={}", base, dest);
     }
 }

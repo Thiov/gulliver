@@ -74,16 +74,11 @@ public abstract class MixinCamera {
      * For m=8 gives 1.7 (eye at body-top + 0.1).
      * For m=0.125 gives 0.125 (eye still above tiny body).
      */
-    @ModifyConstant(method = "alignWithEntity", constant = @Constant(floatValue = 0.3F))
-    private float gulliver$scaleSleepCameraY(float c) {
-        if (entity == null) return c;
-        if (!(entity instanceof net.minecraft.world.entity.LivingEntity le)) return c;
-        if (!le.isSleeping()) return c;
-        float m = ((IResizeableEntity) entity).getSizeMultiplier();
-        if (m == 1.0F) return c;  // vanilla preserved
-        // Stronger lift: eye = 0.6 * m + 0.2.
-        // For m=8: 5.0  -> well above huge lying body.
-        // For m=0.125: 0.275 -> still above tiny body.
-        return 0.6F * m + 0.2F;
-    }
+    // (Sleep camera Y scaling reverted — every formula tried either
+    //  put eye inside the lying body or too far away to see it. The
+    //  fundamental issue is that sleep camera pitch is 0 (horizontal)
+    //  with a fixed setRotation in vanilla, so just changing eye
+    //  height can't make the whole body fit in the view at non-1
+    //  sizes. Leaving vanilla 0.3F means tinies see body, hugies
+    //  don't — a known limitation, not worth keeping a half-fix.)
 }

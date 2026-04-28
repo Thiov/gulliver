@@ -29,6 +29,20 @@ public final class SizeSync {
             if (dest == 1.0F) return;
             ServerPlayNetworking.send(tracker, new Payloads.EntitySize(entity.getId(), dest));
         });
+
+        // On player JOIN, broadcast their current size to themselves AND
+        // tracking players. This fixes the "size resets to 1.0 on world
+        // reload" symptom for cases where NBT save/load works server-side
+        // but the client never receives the synced value because
+        // START_TRACKING doesn't fire for self-tracking on initial join.
+        net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents.JOIN
+                .register((handler, sender, server) -> {
+                    ServerPlayer player = handler.getPlayer();
+                    // Schedule the broadcast a tick later — the client
+                    // hasn't fully spawned yet when JOIN fires; sending
+                    // immediately may go to a not-yet-listening client.
+                    server.execute(() -> broadcast(player));
+                });
     }
 
     /**
