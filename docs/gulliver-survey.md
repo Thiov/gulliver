@@ -525,7 +525,14 @@ and the player-class extensions.
 11. **Phase 11 — tiny-entity helpers** (climb rate, sticky surface,
     updraft, rain shelter, intersecting plant, push-out-of-blocks).
 12. **Phase 12 — shoulder entity.** Pick up / drop including the packet.
-13. **Phase 13 — sleep in sized bed.**
+13. **Phase 13 — sleep in sized bed.** Subsumed by Phase 2: 1.6.4's
+    `sleepInSizedBedAt` wrapped a strict bed-bbox check in 1.6.4
+    vanilla. Modern 26.x `Player#startSleepInBed` gates only on bed
+    reachability / occupancy / daytime — no size check. The SLEEPING
+    pose dimensions (`LivingEntity.SLEEPING_DIMENSIONS = 0.2×0.2`) flow
+    through the Phase 2 `getDimensions` inject, so tinies sleep at
+    micro-scale and giants sleep at macro-scale automatically. No
+    additional mixin required.
 14. **Phase 14 — keybinds + custom AIR overlay** (client).
 15. **Phase 15 — achievements as advancements** (drinkMe, eatMe).
 16. **Phase 16 — sound/volume scaling, eye height, step height.**
