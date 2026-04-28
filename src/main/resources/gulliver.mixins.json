@@ -6,6 +6,7 @@
   "mixins": [
     "MixinEntity",
     "MixinLivingEntity",
+    "MixinLivingEntityEffects",
     "MixinPlayer"
   ],
   "client": [],
