@@ -46,6 +46,7 @@ public abstract class MixinLivingEntityRenderer {
             gulliver.api.IResizeableLiving sized = (gulliver.api.IResizeableLiving) entity;
             g.gulliver$setGliding(sized.isGliding());
             g.gulliver$setDoesUmbrella(sized.doesUmbrella());
+            g.gulliver$setSizeMultiplier(sized.getSizeMultiplier());
         }
     }
 

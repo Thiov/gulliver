@@ -37,6 +37,7 @@
     "MixinGameRendererBob",
     "MixinHumanoidModelPose",
     "MixinHumanoidRenderState",
+    "MixinItemInHandLayer",
     "MixinLivingEntityRenderer"
   ],
   "injectors": {
