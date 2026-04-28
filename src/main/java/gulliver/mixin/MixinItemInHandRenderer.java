@@ -56,24 +56,24 @@ public abstract class MixinItemInHandRenderer {
             pose.scale(invRoot, invRoot, invRoot);
             return;
         }
-        // Render paper world-anchored above the player's head. In 1st
-        // person the camera IS the head, so "above head in world space"
-        // = "world-up offset from camera". The pose-stack at HEAD of
-        // renderItem is camera-rotated (looking direction); we
-        // counter-rotate by the camera's pitch and yaw so +Y becomes
-        // world-up regardless of where the player looks. Then translate
-        // +Y to lift the paper above the head.
+        // 1st person paper:
+        //   - Counter-PITCH only (not yaw). After this, +Y is world-up
+        //     (regardless of where player looks up/down), but the frame's
+        //     X/Z axes are still yaw-rotated -> paper rotates with body
+        //     yaw (when player turns around) but stays level on look-up
+        //     /look-down. Matches user request.
+        //   - Translate +Y for height above head.
+        //   - 90° X-rot to lay paper flat.
+        //   - Recenter the FIXED-context item: after X-rot the item's
+        //     model space is rotated, so the corner offset for centering
+        //     becomes (-0.5, 0, +0.5).
         net.minecraft.client.Camera cam = net.minecraft.client.Minecraft.getInstance()
                 .gameRenderer.getMainCamera();
         pose.pushPose();
-        // Undo camera rotation (modern MC applies pitch then yaw to view)
         pose.mulPose(com.mojang.math.Axis.XP.rotationDegrees(cam.xRot()));
-        pose.mulPose(com.mojang.math.Axis.YP.rotationDegrees(-cam.yRot() + 180.0F));
-        // Now +Y is world-up. Move above eye, then lay paper flat.
-        pose.translate(0.0F, 0.4F, 0.0F);
+        pose.translate(0.0F, 0.25F, 0.0F);
         pose.mulPose(com.mojang.math.Axis.XP.rotationDegrees(90.0F));
-        // Recenter FIXED-context item (its origin is at corner).
-        pose.translate(-0.5F, 0.0F, -0.5F);
+        pose.translate(-0.5F, 0.0F, 0.5F);
 
         net.minecraft.client.renderer.item.ItemStackRenderState rs =
                 new net.minecraft.client.renderer.item.ItemStackRenderState();
