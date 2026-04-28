@@ -453,6 +453,101 @@ public final class GulliverEnvoy {
      *     is genuinely under the stepper's foot.
      */
     /**
+     * 1.6.4 checkSupportingBlocksForHuge: when a huge entity stands on
+     * brittle materials (glass, wool, leaves), those blocks
+     * probabilistically break under the weight.
+     *
+     * Logic:
+     *   - Scan blocks under the entity's hitbox at foot level.
+     *   - Categorize each: solid (stone, dirt) → entity is "supported",
+     *     no breaking.
+     *     Brittle (glass, wool) → counted; only break if no solid support.
+     *     Flimsy (leaves, snow layer) → not counted but doesn't support.
+     *   - If unsupported (no solid blocks), break brittle blocks: blocks
+     *     toward the center break at 1/10, edge blocks at 1/(10×count).
+     *
+     * Modern translation:
+     *   - "brittle" = BlockTags.WOOL OR class == GlassBlock /
+     *     StainedGlassBlock / TintedGlassBlock.
+     *   - "flimsy" = BlockTags.LEAVES OR !state.isFaceSturdy(level, pos, UP)
+     *     (the modern test for "supports an entity standing on it").
+     *   - Edge width uses bbox-width / 3, same as 1.6.4 (Mth.ceil(O / 3)).
+     */
+    public static void checkSupportingBlocksForHuge(net.minecraft.world.entity.LivingEntity stepper,
+                                                     java.util.Random rand) {
+        net.minecraft.world.level.Level level = stepper.level();
+        if (level.isClientSide()) return;
+        if (!canSizeGrief(stepper)) return;
+
+        net.minecraft.world.phys.AABB box = stepper.getBoundingBox();
+        int y = net.minecraft.util.Mth.floor(box.minY - 0.2D - 0.001D);
+        int sx1 = net.minecraft.util.Mth.floor(box.minX + 0.001D);
+        int sz1 = net.minecraft.util.Mth.floor(box.minZ + 0.001D);
+        int sx2 = net.minecraft.util.Mth.floor(box.maxX - 0.001D);
+        int sz2 = net.minecraft.util.Mth.floor(box.maxZ - 0.001D);
+
+        boolean supported = false;
+        int brittleCount = 0;
+
+        // first pass — categorize
+        for (int x = sx1; x <= sx2 && !supported; x++) {
+            for (int z = sz1; z <= sz2 && !supported; z++) {
+                net.minecraft.core.BlockPos pos = new net.minecraft.core.BlockPos(x, y, z);
+                net.minecraft.world.level.block.state.BlockState st = level.getBlockState(pos);
+                if (st.isAir()) continue;
+                boolean brittle = isBrittleSupport(st);
+                boolean flimsy = isFlimsySupport(st, level, pos);
+                if (!brittle && !flimsy) {
+                    supported = true;
+                    break;
+                }
+                if (brittle && !flimsy) brittleCount++;
+            }
+        }
+        if (supported || brittleCount == 0) return;
+
+        // second pass — break brittle blocks per probability table
+        float bboxWidth = (float) (box.maxX - box.minX);
+        int edgew = (int) Math.ceil(bboxWidth / 3.0F);
+
+        for (int x = sx1; x <= sx2; x++) {
+            for (int z = sz1; z <= sz2; z++) {
+                net.minecraft.core.BlockPos pos = new net.minecraft.core.BlockPos(x, y, z);
+                net.minecraft.world.level.block.state.BlockState st = level.getBlockState(pos);
+                if (st.isAir() || !isBrittleSupport(st)) continue;
+
+                boolean center = (x >= sx1 + edgew) && (x <= sx2 - edgew)
+                              && (z >= sz1 + edgew) && (z <= sz2 - edgew);
+                int p = center ? 10 : (10 * brittleCount);
+                if (rand.nextInt(p) != 0) continue;
+
+                level.destroyBlock(pos, true);
+            }
+        }
+    }
+
+    private static boolean isBrittleSupport(net.minecraft.world.level.block.state.BlockState st) {
+        if (st.is(net.minecraft.tags.BlockTags.WOOL)) return true;
+        net.minecraft.world.level.block.Block b = st.getBlock();
+        if (b instanceof net.minecraft.world.level.block.StainedGlassBlock
+                || b instanceof net.minecraft.world.level.block.TintedGlassBlock) {
+            return true;
+        }
+        // Plain glass uses the vanilla Block class (no specialized GlassBlock
+        // class in 26.x). Detect via sound type — it's the unifying signal
+        // across plain / stained / tinted glass and any modded glass.
+        return st.getSoundType() == net.minecraft.world.level.block.SoundType.GLASS;
+    }
+
+    private static boolean isFlimsySupport(net.minecraft.world.level.block.state.BlockState st,
+                                            net.minecraft.world.level.Level level,
+                                            net.minecraft.core.BlockPos pos) {
+        if (st.is(net.minecraft.tags.BlockTags.LEAVES)) return true;
+        if (st.is(net.minecraft.tags.BlockTags.WOOL_CARPETS)) return true;
+        return !st.isFaceSturdy(level, pos, net.minecraft.core.Direction.UP);
+    }
+
+    /**
      * 1.6.4 leaveHugeFootprints: when a huge entity steps, calls
      * Block.onEntityWalking on the 4 corner blocks under its hitbox at
      * foot level, alternating left/right corners by getStepSide()'s sign

@@ -25,6 +25,7 @@ public abstract class MixinLivingEntityHugeEffects {
         if (((IResizeableEntity) self).isHuge()) {
             GulliverEnvoy.stepOnSmallerEntities(self);
             GulliverEnvoy.leaveHugeFootprints(self);
+            GulliverEnvoy.checkSupportingBlocksForHuge(self, GulliverEnvoy.getRand());
         }
     }
 }
