@@ -56,34 +56,13 @@ public abstract class MixinItemInHandRenderer {
             pose.scale(invRoot, invRoot, invRoot);
             return;
         }
-        // 1st person paper: use NATURAL pose-stack (no identity reset
-        // — that put us at world origin and broke positioning). Apply
-        // the conjugate of camera.rotation() to undo the camera's
-        // rotation -> local +Y becomes world-up. Re-apply body yaw so
-        // paper rotates with body. Translate up. Lay flat.
-        net.minecraft.client.Camera cam = net.minecraft.client.Minecraft.getInstance()
-                .gameRenderer.getMainCamera();
-        pose.pushPose();
-        // Undo camera rotation -> world-axis frame at the current
-        // pose origin (which is approximately camera position).
-        pose.mulPose(new org.joml.Quaternionf(cam.rotation()).conjugate());
-        // Now move up in WORLD up direction (since +Y is world-up).
-        pose.translate(0.0F, 0.5F, 0.0F);
-        // Re-apply body yaw so paper rotates with body when player turns.
-        pose.mulPose(com.mojang.math.Axis.YP.rotationDegrees(180.0F - entity.yBodyRot));
-        // Lay flat
-        pose.mulPose(com.mojang.math.Axis.XP.rotationDegrees(90.0F));
-        // Recenter (corner -> center after X-rot).
-        pose.translate(-0.5F, 0.0F, 0.5F);
-        // Render with NONE context (no display transform offset).
-        net.minecraft.client.renderer.item.ItemStackRenderState rs =
-                new net.minecraft.client.renderer.item.ItemStackRenderState();
-        net.minecraft.client.Minecraft.getInstance().getItemModelResolver()
-                .updateForTopItem(rs, stack, ItemDisplayContext.NONE,
-                        entity.level(), entity, 0);
-        rs.submit(pose, buf, 15728880,
-                net.minecraft.client.renderer.texture.OverlayTexture.NO_OVERLAY, 0);
-        pose.popPose();
+        // 1st person paper: rendering matrix conventions in modern MC
+        // are too unreliable for the camera-relative custom positioning
+        // we want (every approach either followed head pitch or
+        // disappeared). Cancel vanilla rendering so the held item
+        // doesn't appear — no paper visible in 1st person, but 3rd
+        // person bone-attached rendering still works correctly.
+        // Press F5 to see the parachute pose visually.
         ci.cancel();
     }
 
