@@ -15,12 +15,11 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import java.util.UUID;
 
 /**
- * Per-tick passenger positioning for the 3-slot carry system:
- *   - hand:  in front of carrier at chest height
- *   - right shoulder: literally on the carrier's right shoulder bone
- *   - left shoulder:  literally on the carrier's left shoulder bone
- *
- * Plus drop-everything on death.
+ * Per-tick passenger positioning for the 3-slot carry system. Hand
+ * sits in front of carrier extended-arm position; shoulders sit on the
+ * shoulder bones. Each carried entity is given noPhysics=true while
+ * carried so it doesn't push the carrier or block their movement; flag
+ * is cleared on drop.
  */
 @Mixin(Player.class)
 public abstract class MixinPlayerShoulder {
@@ -33,23 +32,22 @@ public abstract class MixinPlayerShoulder {
         UUID hand  = cs.gulliver$getHandEntity();
         UUID right = cs.gulliver$getRightShoulder();
         UUID left  = cs.gulliver$getLeftShoulder();
-
         if (hand == null && right == null && left == null) return;
 
         double yaw = Math.toRadians(self.getYRot());
         double sin = Math.sin(yaw);
         double cos = Math.cos(yaw);
 
-        // The body bbox top is at carrier.getY() + carrier.bbHeight. Shoulder
-        // bone is roughly 4/16 below the head (head occupies top 8/16). For
-        // a vanilla 1.8 high body, shoulder y ≈ getY + 1.4. Scale by
-        // sizeMultiplier (already baked into bbHeight by Phase 2).
-        double shoulderY = self.getY() + self.getBbHeight() * (24.0D / 32.0D); // ~0.75 of height
-        // Side offset = half shoulder width = 5/16 in vanilla, scaled by size.
-        double sideUnit = (5.0D / 16.0D) * self.getBbWidth() / 0.6D;
-        // Hand slot offset: directly in front of chest, slightly low.
-        double frontUnit = self.getBbWidth() * 0.6D;
-        double chestY    = self.getY() + self.getBbHeight() * 0.65D;
+        // Shoulder y ≈ top-third of body (just below head).
+        double shoulderY = self.getY() + self.getBbHeight() * (24.0D / 32.0D);
+        // Side offset = half-shoulder-width, scaled with body width.
+        double sideUnit  = (5.0D / 16.0D) * self.getBbWidth() / 0.6D;
+        // Hand: extended forward of body. Need to be PAST the carrier's
+        // bbox so the held entity doesn't overlap the carrier.
+        double frontUnit = self.getBbWidth() * 0.5D + 0.5D;
+        // Hand y ≈ shoulder + a small lift (arm extends forward from
+        // shoulder, hand is slightly above shoulder when arm raised).
+        double handY     = self.getY() + self.getBbHeight() * 0.8D;
 
         if (hand != null) {
             Entity h = lookup(self, hand);
@@ -58,7 +56,7 @@ public abstract class MixinPlayerShoulder {
             } else {
                 double px = self.getX() + (-sin) * frontUnit;
                 double pz = self.getZ() + ( cos) * frontUnit;
-                placePassenger(h, px, chestY, pz);
+                placePassenger(h, px, handY, pz);
             }
         }
         if (right != null) {
@@ -66,8 +64,6 @@ public abstract class MixinPlayerShoulder {
             if (r == null) {
                 cs.gulliver$setRightShoulder(null);
             } else {
-                // Right shoulder = carrier's right side. In MC, +X-of-yaw
-                // direction on right side is `cos`. So right = +cos, +sin.
                 double px = self.getX() + cos * sideUnit;
                 double pz = self.getZ() + sin * sideUnit;
                 placePassenger(r, px, shoulderY, pz);
@@ -89,6 +85,7 @@ public abstract class MixinPlayerShoulder {
         p.setPos(x, y, z);
         p.setDeltaMovement(0.0D, 0.0D, 0.0D);
         p.fallDistance = 0.0F;
+        p.noPhysics = true; // disable block + entity collision while carried
     }
 
     @Inject(method = "die", at = @At("HEAD"))

@@ -2,7 +2,9 @@ package gulliver.common;
 
 import gulliver.access.IGulliverShoulderInternal;
 import gulliver.api.IResizeableEntity;
+import net.fabricmc.fabric.api.event.player.UseBlockCallback;
 import net.fabricmc.fabric.api.event.player.UseEntityCallback;
+import net.fabricmc.fabric.api.event.player.UseItemCallback;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
@@ -23,6 +25,27 @@ public final class ShoulderInteractHandler {
     private ShoulderInteractHandler() {}
 
     public static void registerCommon() {
+        // Right-click in air while carrying anything in HAND -> drop the
+        // hand-held in front of the player. Only fires when the click hits
+        // nothing else (no entity / no block).
+        UseItemCallback.EVENT.register((player, world, hand) -> {
+            if (hand != InteractionHand.MAIN_HAND) return InteractionResult.PASS;
+            if (world.isClientSide()) return InteractionResult.PASS;
+            if (!(player instanceof ServerPlayer carrier)) return InteractionResult.PASS;
+            IGulliverShoulderInternal cs = (IGulliverShoulderInternal) carrier;
+            if (cs.gulliver$getHandEntity() == null) return InteractionResult.PASS;
+            // Drop only the hand-held in place (don't touch shoulder slots).
+            java.util.UUID handId = cs.gulliver$getHandEntity();
+            net.minecraft.world.entity.Entity held = ((net.minecraft.server.level.ServerLevel) carrier.level()).getEntity(handId);
+            cs.gulliver$setHandEntity(null);
+            if (held != null) {
+                ((IGulliverShoulderInternal) held).gulliver$setHoldingEntity(null);
+                held.noPhysics = false;
+                ShoulderHelper.broadcastDetach(carrier, held);
+            }
+            return InteractionResult.SUCCESS;
+        });
+
         UseEntityCallback.EVENT.register((player, world, hand, entity, hitResult) -> {
             if (hand != InteractionHand.MAIN_HAND) return InteractionResult.PASS;
             if (world.isClientSide()) return InteractionResult.PASS;

@@ -63,6 +63,11 @@ public abstract class MixinPlayerModelPose {
             rightArm.zRot = 0.0F;
             return;
         }
+        if (g.gulliver$hasHandPassenger()) {
+            rightArm.xRot = -(float) (Math.PI / 2.0);
+            rightArm.yRot = 0.0F;
+            rightArm.zRot = 0.0F;
+        }
         if (g.gulliver$isRafting()) {
             float pos = state.walkAnimationPos;
             float speed = Math.min(state.walkAnimationSpeed, 1.0F);

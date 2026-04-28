@@ -40,13 +40,25 @@ public final class ShoulderHelper {
     }
 
     /**
-     * Pick up the target into the HAND slot. If hand is occupied,
-     * caller is expected to handle (return false here).
+     * Pick up the target into the HAND slot. If hand is already
+     * occupied, the previous hand-held is dropped IN PLACE (it stays
+     * at the location where the carrier picked up the new target —
+     * effectively a "place down + swap").
      */
     public static boolean pickUp(ServerPlayer carrier, Entity target) {
         if (!canCarry(carrier, target)) return false;
         IGulliverShoulderInternal cs = (IGulliverShoulderInternal) carrier;
-        if (cs.gulliver$getHandEntity() != null) return false;
+        UUID prev = cs.gulliver$getHandEntity();
+        if (prev != null) {
+            // Drop the previous hand-held in place (do not touch shoulder slots).
+            Entity prevEntity = resolve((ServerLevel) carrier.level(), prev);
+            cs.gulliver$setHandEntity(null);
+            if (prevEntity != null) {
+                ((IGulliverShoulderInternal) prevEntity).gulliver$setHoldingEntity(null);
+                prevEntity.noPhysics = false;
+                broadcastAttach(carrier, prevEntity, SLOT_DETACH);
+            }
+        }
         cs.gulliver$setHandEntity(target.getUUID());
         ((IGulliverShoulderInternal) target).gulliver$setHoldingEntity(carrier.getUUID());
         broadcastAttach(carrier, target, SLOT_HAND);
@@ -124,6 +136,7 @@ public final class ShoulderHelper {
         Entity e = resolve((ServerLevel) carrier.level(), id);
         if (e != null) {
             ((IGulliverShoulderInternal) e).gulliver$setHoldingEntity(null);
+            e.noPhysics = false;
             broadcastAttach(carrier, e, SLOT_DETACH);
         } else {
             ServerPlayNetworking.send(carrier, new Payloads.AttachEntitySpecial(-1, carrier.getId(), SLOT_DETACH));
@@ -145,6 +158,7 @@ public final class ShoulderHelper {
             return true;
         }
         ((IGulliverShoulderInternal) held).gulliver$setHoldingEntity(null);
+        held.noPhysics = false;
         broadcastAttach(carrier, held, SLOT_DETACH);
         net.minecraft.world.phys.Vec3 look = carrier.getLookAngle();
         float power = 1.5F * ((IResizeableEntity) carrier).getSizeMultiplierRoot();
@@ -158,7 +172,11 @@ public final class ShoulderHelper {
         return level.getEntity(id);
     }
 
-    private static void broadcastAttach(ServerPlayer carrier, Entity target, byte slot) {
+    public static void broadcastDetach(ServerPlayer carrier, Entity target) {
+        broadcastAttach(carrier, target, SLOT_DETACH);
+    }
+
+    static void broadcastAttach(ServerPlayer carrier, Entity target, byte slot) {
         Payloads.AttachEntitySpecial p =
                 new Payloads.AttachEntitySpecial(target.getId(), carrier.getId(), slot);
         for (ServerPlayer viewer : PlayerLookup.tracking(carrier)) {

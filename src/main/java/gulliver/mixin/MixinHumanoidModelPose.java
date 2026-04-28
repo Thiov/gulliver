@@ -92,6 +92,13 @@ public abstract class MixinHumanoidModelPose {
             rightArm.zRot = 0.0F;
             return;
         }
+        if (g.gulliver$hasHandPassenger()) {
+            // Right arm extended forward + up to "hold" the passenger.
+            // -π/2 = 90° forward (pointing horizontally outward).
+            rightArm.xRot = -(float) (Math.PI / 2.0);
+            rightArm.yRot = 0.0F;
+            rightArm.zRot = 0.0F;
+        }
         if (g.gulliver$isRafting()) {
             // 1.6.4 bbj.java:149-156: arms paddle, legs cross forward.
             float pos = state.walkAnimationPos;

@@ -213,36 +213,41 @@ public final class GulliverCommands {
 
     /**
      * /shoulderentity (V keybind): cycle the carry slots — hand <-> shoulders.
+     * If nothing is carried AND the player is looking at a carryable
+     * LivingEntity in reach, pick that up. No fallback to nearest-anything
+     * (that picked up dropped items by accident).
      */
     private static int shoulderEntity(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
         ServerPlayer player = ctx.getSource().getPlayerOrException();
-        if (gulliver.common.ShoulderHelper.toggleHandShoulder(player)) {
+        // If carrying anything, V only cycles slots — does NOT pick up new.
+        if (((gulliver.access.IGulliverShoulderInternal) player).gulliver$hasAnyCarry()) {
+            gulliver.common.ShoulderHelper.toggleHandShoulder(player);
             return 1;
         }
-        // Nothing carried — fallback: pick up nearest carryable.
+        // Empty: pick up the LivingEntity the player is looking at, if any.
         double reach = player.blockInteractionRange();
-        Entity nearest = null;
+        Entity targeted = null;
         double bestDistSq = reach * reach;
-        for (Entity candidate : player.level().getEntities(player,
-                player.getBoundingBox().inflate(reach, reach, reach))) {
+        net.minecraft.world.phys.Vec3 eye  = player.getEyePosition();
+        net.minecraft.world.phys.Vec3 look = player.getLookAngle();
+        net.minecraft.world.phys.Vec3 end  = eye.add(look.x * reach, look.y * reach, look.z * reach);
+        net.minecraft.world.phys.AABB scan =
+                player.getBoundingBox().expandTowards(look.scale(reach)).inflate(0.5);
+        for (Entity candidate : player.level().getEntities(player, scan)) {
+            if (!(candidate instanceof net.minecraft.world.entity.LivingEntity)) continue;
             if (!gulliver.common.ShoulderHelper.canCarry(player, candidate)) continue;
-            double dsq = player.distanceToSqr(candidate);
+            net.minecraft.world.phys.AABB cb = candidate.getBoundingBox().inflate(0.3D);
+            java.util.Optional<net.minecraft.world.phys.Vec3> hit = cb.clip(eye, end);
+            if (hit.isEmpty()) continue;
+            double dsq = eye.distanceToSqr(hit.get());
             if (dsq < bestDistSq) {
                 bestDistSq = dsq;
-                nearest = candidate;
+                targeted = candidate;
             }
         }
-        if (nearest == null) {
-            ctx.getSource().sendFailure(Component.literal("No carryable entity in reach"));
-            return 0;
-        }
-        if (gulliver.common.ShoulderHelper.pickUp(player, nearest)) {
-            Entity picked = nearest;
-            ctx.getSource().sendSuccess(() -> Component.literal(
-                    "Picked up entity " + picked.getId()), false);
-            return 1;
-        }
-        return 0;
+        if (targeted == null) return 0;
+        gulliver.common.ShoulderHelper.pickUp(player, targeted);
+        return 1;
     }
 
     private static int instantKarma(CommandContext<CommandSourceStack> ctx, ServerPlayer target) {

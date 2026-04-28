@@ -48,6 +48,8 @@ public abstract class MixinLivingEntityRenderer {
             g.gulliver$setDoesUmbrella(sized.doesUmbrella());
             g.gulliver$setRafting(sized.isRafting());
             g.gulliver$setSizeMultiplier(sized.getSizeMultiplier());
+            g.gulliver$setHandPassenger(((gulliver.access.IGulliverShoulderInternal) entity)
+                    .gulliver$getHandEntity() != null);
         }
         // 1.6.4 verbatim: NO walkAnimationPos compensation. The anim runs
         // at vanilla cycle frequency. Tiny moves slower in world units so

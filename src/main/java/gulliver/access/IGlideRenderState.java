@@ -11,9 +11,11 @@ public interface IGlideRenderState {
     boolean gulliver$isGliding();
     boolean gulliver$doesUmbrella();
     boolean gulliver$isRafting();
+    boolean gulliver$hasHandPassenger();
     float gulliver$getSizeMultiplier();
     void gulliver$setGliding(boolean v);
     void gulliver$setDoesUmbrella(boolean v);
     void gulliver$setRafting(boolean v);
+    void gulliver$setHandPassenger(boolean v);
     void gulliver$setSizeMultiplier(float v);
 }
