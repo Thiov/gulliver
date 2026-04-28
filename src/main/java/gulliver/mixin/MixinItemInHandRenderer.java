@@ -43,17 +43,20 @@ public abstract class MixinItemInHandRenderer {
         if (!gliding && !umbrella && size == 1.0F) return;
 
         pose.pushPose();
-        if (gliding) {
-            // Position the paper above and in front of the camera. Camera
-            // space: +X right, +Y up, -Z forward (into scene). Move up + a
-            // touch forward so it visually shades the player from above.
-            pose.translate(0.0F, 0.5F, -0.4F);
-            // Make the paper big enough to actually be visible overhead
-            // (vanilla 1st-person items are tiny when at this offset).
-            pose.scale(2.0F, 2.0F, 2.0F);
-        } else if (umbrella) {
-            pose.translate(0.0F, 0.5F, -0.4F);
-            pose.scale(1.5F, 1.5F, 1.5F);
+        if (gliding || umbrella) {
+            // The pose-stack at this point has the vanilla hand-position
+            // baked in (translate to right-of-screen + tilt). To place the
+            // paper at a clean OVERHEAD-AND-FORWARD position independent of
+            // hand-pose, reset the local matrix to identity and translate
+            // in pure camera-relative coords: +X right, +Y up, -Z forward.
+            pose.last().pose().identity();
+            pose.last().normal().identity();
+            // Slightly above eye level, in front of player.
+            pose.translate(0.0F, 0.4F, -0.6F);
+            // Tilt 45° forward so the flat paper is visible from below
+            // (otherwise we'd see only its edge from the player's POV).
+            pose.mulPose(com.mojang.math.Axis.XP.rotationDegrees(45.0F));
+            pose.scale(0.8F, 0.8F, 0.8F);
         }
         if (size != 1.0F) {
             float invRoot = 1.0F / (float) Math.sqrt(size);

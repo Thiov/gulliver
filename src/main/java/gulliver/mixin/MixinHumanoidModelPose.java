@@ -61,18 +61,10 @@ public abstract class MixinHumanoidModelPose {
             rightArm.zRot = 0.0F;
             return;
         }
-        // Dampen walk-cycle amplitude for tinies so third-person bob looks
-        // proportional to body size. min(sqrt(size), 1) -> tinies dampen,
-        // hugies stay vanilla. Mirrors 1.6.4's getRenderViewbobFactor =
-        // sizeMultiplierRoot for the viewbob, applied here to the model
-        // itself since modern's third-person view-bob is the model's anim.
-        float size = g.gulliver$getSizeMultiplier();
-        if (size < 1.0F) {
-            float root = (float) Math.sqrt(size);
-            rightArm.xRot *= root;
-            leftArm.xRot *= root;
-            rightLeg.xRot *= root;
-            leftLeg.xRot *= root;
-        }
+        // Walk-cycle FREQUENCY compensation is done in MixinLivingEntityRenderer
+        // (scale walkAnimationPos by 1/sqrt(size) before setupAnim runs).
+        // Don't dampen amplitude here — tinies should swing arms/legs at
+        // body-proportional amplitude (which they do automatically since
+        // the whole model is scaled by size at render time).
     }
 }

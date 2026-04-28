@@ -48,6 +48,22 @@ public abstract class MixinLivingEntityRenderer {
             g.gulliver$setDoesUmbrella(sized.doesUmbrella());
             g.gulliver$setSizeMultiplier(sized.getSizeMultiplier());
         }
+        // Walk-cycle frequency compensation: a tiny moves at sqrt(size) of
+        // vanilla world-speed but covers MORE body-lengths per second
+        // (smaller body, same world distance). Vanilla walkAnimationPos
+        // increments by world-distance, so tiny anim cycles slowly = the
+        // "slow motion" the user reported. Scale walkAnimationPos by
+        // 1/sqrt(size) to restore body-length-per-cycle frequency.
+        if (state instanceof gulliver.access.IGlideRenderState g2) {
+            float size = g2.gulliver$getSizeMultiplier();
+            if (size < 1.0F && size > 0.0F) {
+                float root = (float) Math.sqrt(size);
+                state.walkAnimationPos /= root;
+                // Also boost speed clamp so amplitude doesn't get
+                // re-clamped to the smaller world-speed value.
+                state.walkAnimationSpeed = Math.min(state.walkAnimationSpeed / root, 1.0F);
+            }
+        }
     }
 
     /**

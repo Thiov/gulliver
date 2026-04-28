@@ -28,10 +28,19 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Mixin(ItemInHandLayer.class)
 public abstract class MixinItemInHandLayer {
 
+    /**
+     * Inject AFTER the sub-bone translate (the (±arm-x/16, hand-y/16,
+     * hand-z/16) call inside submitArmWithItem that positions the item
+     * at the FINGER tip, not the bone origin). After this point, all
+     * remaining transforms in submitArmWithItem affect ONLY the item
+     * itself, so scaling here scales the item without moving its anchor
+     * away from the hand.
+     */
     @Inject(method = "submitArmWithItem(Lnet/minecraft/client/renderer/entity/state/ArmedEntityRenderState;Lnet/minecraft/client/renderer/item/ItemStackRenderState;Lnet/minecraft/world/item/ItemStack;Lnet/minecraft/world/entity/HumanoidArm;Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/SubmitNodeCollector;I)V",
             at = @At(value = "INVOKE",
-                     target = "Lnet/minecraft/client/model/ArmedModel;translateToHand(Lnet/minecraft/client/renderer/entity/state/EntityRenderState;Lnet/minecraft/world/entity/HumanoidArm;Lcom/mojang/blaze3d/vertex/PoseStack;)V",
-                     shift = At.Shift.AFTER))
+                     target = "Lcom/mojang/blaze3d/vertex/PoseStack;translate(FFF)V",
+                     shift = At.Shift.AFTER,
+                     ordinal = 0))
     private void gulliver$scaleAtHand(ArmedEntityRenderState state, ItemStackRenderState itemRender,
                                        ItemStack stack, HumanoidArm arm, PoseStack pose,
                                        SubmitNodeCollector buf, int light, CallbackInfo ci) {

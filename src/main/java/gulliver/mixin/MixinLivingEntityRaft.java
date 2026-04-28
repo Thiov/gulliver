@@ -72,7 +72,7 @@ public abstract class MixinLivingEntityRaft {
         double horiz = Math.sqrt(dm.x * dm.x + dm.z * dm.z);
 
         // splash particles when moving horizontally enough
-        if (horiz > 0.15 * sizemult && self.level().isClientSide) {
+        if (horiz > 0.15 * sizemult && self.level().isClientSide()) {
             double angRad = self.getYRot() * Math.PI / 180.0;
             double cosA = Math.cos(angRad) * sizemult;
             double sinA = Math.sin(angRad) * sizemult;
