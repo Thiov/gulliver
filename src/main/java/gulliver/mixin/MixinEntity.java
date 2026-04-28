@@ -10,6 +10,7 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.ModifyVariable;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 /**
@@ -192,5 +193,32 @@ public abstract class MixinEntity implements IResizeableEntity, IGulliverEntityI
         while (norm * m > 1.0F) { norm /= 2.0F; f *= 2.0F; }
         if (norm * m < 0.65F) { f *= norm * m; }
         cir.setReturnValue(f);
+    }
+
+    /**
+     * 1.6.4 of.java:2638 — `moveFlying(par1, par2, getSizeMovementMultiplier()
+     * * f4)` scaled the third argument (friction-influenced speed) by the
+     * size-movement multiplier (sqrt(size) when !isWeighted, else linear).
+     *
+     * Modern equivalent: Entity.moveRelative(float amount, Vec3 input) is
+     * called from every travel path (travelInAir, travelInWater, etc.).
+     * Scale `amount` here so the input vector gets multiplied by the
+     * sized speed regardless of which travel branch the entity uses.
+     *
+     * Catches:
+     *   - LivingEntity.travelInAir's moveRelative
+     *   - travelInFluid / travelInWater / travelInLava
+     *   - Player.travel overrides if any
+     *   - Mob AI travel paths
+     *
+     * Replaces the previous getSpeed() injection which didn't propagate
+     * through every travel branch.
+     */
+    @ModifyVariable(method = "moveRelative(FLnet/minecraft/world/phys/Vec3;)V",
+                    at = @At("HEAD"), argsOnly = true, ordinal = 0)
+    private float gulliver$scaleMoveSpeed(float amount) {
+        float m = getSizeMultiplier();
+        if (m == 1.0F) return amount;
+        return amount * ((IResizeableEntity) this).getSizeMovementMultiplier();
     }
 }

@@ -43,14 +43,6 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 @Mixin(LivingEntity.class)
 public abstract class MixinLivingEntityMovement {
 
-    @Inject(method = "getSpeed", at = @At("RETURN"), cancellable = true)
-    private void gulliver$scaleSpeed(CallbackInfoReturnable<Float> cir) {
-        IResizeableEntity sized = (IResizeableEntity) this;
-        float m = sized.getSizeMultiplier();
-        if (m == 1.0F) return;
-        cir.setReturnValue(cir.getReturnValue() * sized.getSizeMovementMultiplier());
-    }
-
     @Inject(method = "getJumpPower()F", at = @At("RETURN"), cancellable = true)
     private void gulliver$scaleJump(CallbackInfoReturnable<Float> cir) {
         LivingEntity self = (LivingEntity) (Object) this;

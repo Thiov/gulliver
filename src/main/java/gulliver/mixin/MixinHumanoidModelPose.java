@@ -53,10 +53,26 @@ public abstract class MixinHumanoidModelPose {
             leftLeg.xRot  = Mth.cos(pos * 0.6662F * 0.25F)                  * 1.4F * speed * 0.25F;
             rightLeg.yRot = 0.0F;
             leftLeg.yRot = 0.0F;
-        } else if (g.gulliver$doesUmbrella()) {
+            return;
+        }
+        if (g.gulliver$doesUmbrella()) {
             rightArm.xRot = -(float) Math.PI;
             rightArm.yRot = 0.0F;
             rightArm.zRot = 0.0F;
+            return;
+        }
+        // Dampen walk-cycle amplitude for tinies so third-person bob looks
+        // proportional to body size. min(sqrt(size), 1) -> tinies dampen,
+        // hugies stay vanilla. Mirrors 1.6.4's getRenderViewbobFactor =
+        // sizeMultiplierRoot for the viewbob, applied here to the model
+        // itself since modern's third-person view-bob is the model's anim.
+        float size = g.gulliver$getSizeMultiplier();
+        if (size < 1.0F) {
+            float root = (float) Math.sqrt(size);
+            rightArm.xRot *= root;
+            leftArm.xRot *= root;
+            rightLeg.xRot *= root;
+            leftLeg.xRot *= root;
         }
     }
 }

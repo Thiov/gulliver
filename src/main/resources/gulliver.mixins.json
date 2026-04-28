@@ -20,6 +20,7 @@
     "MixinLivingEntityGlide",
     "MixinLivingEntityHugeEffects",
     "MixinLivingEntityMovement",
+    "MixinLivingEntityRaft",
     "MixinLivingEntitySizeTween",
     "MixinLivingEntityTinyEffects",
     "MixinPlayer",
@@ -38,6 +39,7 @@
     "MixinHumanoidModelPose",
     "MixinHumanoidRenderState",
     "MixinItemInHandLayer",
+    "MixinItemInHandRenderer",
     "MixinLivingEntityRenderer"
   ],
   "injectors": {
