@@ -34,18 +34,23 @@ public final class ShoulderHelper {
      * carrier.sizeMultiplier. Larger carrier ⇒ wider acceptable target.
      */
     public static float maxHeldWidth(LivingEntity carrier) {
-        return carrier.getBbWidth() * 0.5F;
+        // Carrier can lift anything narrower than itself. Loosened from
+        // `bbWidth * 0.5F` (which required the carrier to be 2x bigger
+        // than target) to `bbWidth * 1.0F` so any smaller-or-equal target
+        // can be carried. Player-on-player at vanilla 1x both 0.6 width
+        // -> equal, returns true.
+        return carrier.getBbWidth();
     }
 
     public static boolean canCarry(LivingEntity carrier, Entity target) {
         if (target == null || target == carrier) return false;
         if (target.getVehicle() != null) return false;
-        // Players ARE carryable (1.6.4 supported sufficiently-larger
-        // carriers picking up smaller players). Only the size-difference
-        // gate (bbWidth check below) blocks self/larger carriers.
         if (target.isPassenger() || target.getPassengers().size() > 0) return false;
         if (((IGulliverShoulderInternal) carrier).gulliver$getHeldEntity() != null) return false;
         if (((IGulliverShoulderInternal) target).gulliver$getHoldingEntity() != null) return false;
+        // Carrier must be at least as big as the target (no equal-size
+        // pickup of larger entities). Use bbWidth which already reflects
+        // size scaling via Phase 2 dimensions.
         if (target.getBbWidth() > maxHeldWidth(carrier)) return false;
         return true;
     }

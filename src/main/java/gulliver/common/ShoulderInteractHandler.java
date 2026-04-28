@@ -19,6 +19,8 @@ public final class ShoulderInteractHandler {
 
     public static void registerCommon() {
         UseEntityCallback.EVENT.register((player, world, hand, entity, hitResult) -> {
+            // Run only the main hand to avoid double-firing on offhand probe.
+            if (hand != net.minecraft.world.InteractionHand.MAIN_HAND) return InteractionResult.PASS;
             if (world.isClientSide()) return InteractionResult.PASS;
             if (!player.isShiftKeyDown()) return InteractionResult.PASS;
             if (!(player instanceof ServerPlayer carrier)) return InteractionResult.PASS;
