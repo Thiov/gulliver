@@ -1,6 +1,7 @@
 package gulliver;
 
 import gulliver.command.GulliverCommands;
+import gulliver.common.DyeResizing;
 import gulliver.common.GulliverConfig;
 import gulliver.common.InteractEventHandler;
 import gulliver.init.GulliverEffects;
@@ -30,6 +31,7 @@ public class GulliverFabric implements ModInitializer {
         PacketHandlers.registerCommon();
         SizeSync.registerCommon();
         InteractEventHandler.registerCommon();
+        DyeResizing.registerCommon();
         CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) ->
                 GulliverCommands.register(dispatcher));
     }
