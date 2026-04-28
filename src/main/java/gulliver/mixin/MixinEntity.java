@@ -162,15 +162,35 @@ public abstract class MixinEntity implements IResizeableEntity, IGulliverEntityI
     }
 
     /**
-     * Scale step height by sizeMultiplier. Placeholder formula
-     * (vanillaStepHeight × multiplier) until the original 1.6.4 helper is
-     * fully decoded — but the 1.6.4 IResizeableEntity.getStepHeight()
-     * contract is exactly this multiplicative shape.
+     * 1.6.4 of.java lines 486-512 getStepHeight — power-of-2 normalization,
+     * NOT a simple linear multiplier:
+     *
+     *   f = Y          (vanilla maxUpStep)
+     *   norm = 1.0
+     *   while (norm * size < 0.5) { norm *= 2;  f /= 2; }
+     *   while (norm * size > 1.0) { norm /= 2;  f *= 2; }
+     *   if (norm * size < 0.65)   { f *= norm * size; }
+     *
+     * For size=2  (huge): one downward iteration -> norm=0.5,  f=2Y;
+     * for size=0.5      : norm=1, no iter, last clause: f *= 0.5 -> 0.5Y
+     * for size=0.125    : norm=8, f=Y/8; last clause not hit (1.0 >= 0.65) -> Y/8
+     * for size=0.25     : norm=2, f=Y/2; norm*size=0.5 < 0.65 -> f*=0.5 -> Y/4
+     *
+     * Linear "0.6 * size" would give 0.15 at size=0.25 — the 1.6.4 formula
+     * gives 0.15 for vanilla Y=0.6 too (Y/4 = 0.15), but for size=0.5 gives
+     * 0.3 vs linear's 0.3 — only diverges at extreme sizes. The whole point
+     * is huge entities can step over 2-block walls and tinies don't slip up
+     * staircases meant for full-size entities.
      */
     @Inject(method = "maxUpStep", at = @At("RETURN"), cancellable = true)
     private void gulliver$scaleStepHeight(CallbackInfoReturnable<Float> cir) {
         float m = getSizeMultiplier();
         if (m == 1.0F) return;
-        cir.setReturnValue(cir.getReturnValue() * m);
+        float f = cir.getReturnValue();
+        float norm = 1.0F;
+        while (norm * m < 0.5F) { norm *= 2.0F; f /= 2.0F; }
+        while (norm * m > 1.0F) { norm /= 2.0F; f *= 2.0F; }
+        if (norm * m < 0.65F) { f *= norm * m; }
+        cir.setReturnValue(f);
     }
 }

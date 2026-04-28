@@ -12,12 +12,11 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
  * so chests, furnaces, and entity-pickups match a resized player's arm
  * length proportionally.
  *
- * 1.6.4 GulliverEnvoy.canInteractWithLocatedContainer used
- * 'distSq <= 64.0 * player.getRangeMultiplier()'. The 64 was the squared
- * vanilla 8-block reach. getRangeMultiplier() was an ASM-injected method
- * we don't have a body for, but a faithful interpretation is sizeMultiplier^2
- * — which is identical to scaling the LINEAR reach by sizeMultiplier (since
- * 26.x's blockInteractionRange returns linear distance, not squared).
+ * 1.6.4 nn.java line 304 getRangeMultiplier:
+ *   size >= 1 -> linear size; else sqrt(size).
+ * Tinies get a softer reach penalty than full linear scaling — a 0.25x
+ * player reaches half-vanilla rather than quarter-vanilla, which the
+ * 1.6.4 mod arrived at empirically as the "feels right" curve.
  *
  * The 1.6.4 LittleBlocks worldscale=8 branch is dropped per scope.
  */
@@ -28,13 +27,15 @@ public abstract class MixinPlayerReach {
     private void gulliver$scaleBlockReach(CallbackInfoReturnable<Double> cir) {
         float m = ((IResizeableEntity) this).getSizeMultiplier();
         if (m == 1.0F) return;
-        cir.setReturnValue(cir.getReturnValue() * m);
+        float r = ((IResizeableEntity) this).getRangeMultiplier();
+        cir.setReturnValue(cir.getReturnValue() * r);
     }
 
     @Inject(method = "entityInteractionRange", at = @At("RETURN"), cancellable = true)
     private void gulliver$scaleEntityReach(CallbackInfoReturnable<Double> cir) {
         float m = ((IResizeableEntity) this).getSizeMultiplier();
         if (m == 1.0F) return;
-        cir.setReturnValue(cir.getReturnValue() * m);
+        float r = ((IResizeableEntity) this).getRangeMultiplier();
+        cir.setReturnValue(cir.getReturnValue() * r);
     }
 }
