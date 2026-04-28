@@ -13,6 +13,7 @@
     "MixinFlowerPotBlock",
     "MixinLivingEntity",
     "MixinLivingEntityEffects",
+    "MixinLivingEntityGlide",
     "MixinLivingEntityHugeEffects",
     "MixinLivingEntityMovement",
     "MixinLivingEntitySizeTween",
