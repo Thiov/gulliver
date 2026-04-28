@@ -31,32 +31,6 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 @Mixin(SnowLayerBlock.class)
 public abstract class MixinSnowLayerBlock {
 
-    /**
-     * 1.6.4 of.java line 2684-2700: when wading through snow, an extra-
-     * tiny entity is impeded — horizontal velocity damped to 0.2 * sizeAdj
-     * and isStruggling=true. Apply the same here in entityInside.
-     */
-    @Inject(method = "entityInside", at = @At("HEAD"))
-    private void gulliver$wadeDamping(BlockState state, net.minecraft.world.level.Level level,
-                                       BlockPos pos, Entity entity,
-                                       net.minecraft.world.entity.InsideBlockEffectApplier applier,
-                                       boolean inWorld,
-                                       org.spongepowered.asm.mixin.injection.callback.CallbackInfo ci) {
-        IResizeableEntity sized = (IResizeableEntity) entity;
-        if (!sized.isExtraTiny()) return;
-        int layers = state.getValue(SnowLayerBlock.LAYERS);
-        if (layers <= 1) return; // 1-layer snow doesn't impede
-
-        // 1.6.4: f2 *= 0.2 * sizeAdj; isStruggling = true
-        float root = sized.getSizeMultiplierRoot();
-        net.minecraft.world.phys.Vec3 dm = entity.getDeltaMovement();
-        entity.setDeltaMovement(dm.x * 0.4D * root, dm.y, dm.z * 0.4D * root);
-
-        if (entity instanceof net.minecraft.world.entity.LivingEntity) {
-            ((gulliver.access.IGulliverFlagsInternal) entity).gulliver$setStruggling(true);
-        }
-    }
-
     @Inject(method = "getCollisionShape", at = @At("HEAD"), cancellable = true)
     private void gulliver$resize(BlockState state, BlockGetter level, BlockPos pos,
                                   CollisionContext ctx, CallbackInfoReturnable<VoxelShape> cir) {

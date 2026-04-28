@@ -36,30 +36,6 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 @Mixin(CarpetBlock.class)
 public abstract class MixinCarpetBlock {
 
-    /**
-     * 1.6.4 carpet wading: extra-tiny entity standing on a carpet has
-     * horizontal velocity damped — small creatures push against the
-     * fibers as they cross. Mirrors the snow-wading slowdown but
-     * proportionally lighter (carpet is thinner than snow).
-     */
-    @Inject(method = "entityInside", at = @At("HEAD"))
-    private void gulliver$wadeDamping(BlockState state, net.minecraft.world.level.Level level,
-                                       BlockPos pos, Entity entity,
-                                       net.minecraft.world.entity.InsideBlockEffectApplier applier,
-                                       boolean inWorld,
-                                       org.spongepowered.asm.mixin.injection.callback.CallbackInfo ci) {
-        IResizeableEntity sized = (IResizeableEntity) entity;
-        if (!sized.isExtraTiny()) return;
-        float root = sized.getSizeMultiplierRoot();
-        net.minecraft.world.phys.Vec3 dm = entity.getDeltaMovement();
-        // 0.7 * root: lighter damping than snow's 0.4 * root.
-        entity.setDeltaMovement(dm.x * 0.7D * root, dm.y, dm.z * 0.7D * root);
-
-        if (entity instanceof net.minecraft.world.entity.LivingEntity) {
-            ((gulliver.access.IGulliverFlagsInternal) entity).gulliver$setStruggling(true);
-        }
-    }
-
     @Inject(method = "getCollisionShape", at = @At("HEAD"), cancellable = true, require = 0)
     private void gulliver$resizedCollision(BlockState state, BlockGetter level, BlockPos pos,
                                             CollisionContext ctx,
