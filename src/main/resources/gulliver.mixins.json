@@ -35,6 +35,8 @@
     "MixinCamera",
     "MixinCameraNearClip",
     "MixinGameRendererBob",
+    "MixinHumanoidModelPose",
+    "MixinHumanoidRenderState",
     "MixinLivingEntityRenderer"
   ],
   "injectors": {

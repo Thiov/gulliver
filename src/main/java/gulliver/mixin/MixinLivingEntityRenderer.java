@@ -36,9 +36,17 @@ public abstract class MixinLivingEntityRenderer {
     private void gulliver$applyScale(LivingEntity entity, LivingEntityRenderState state,
                                       float partialTick, CallbackInfo ci) {
         float m = ((IResizeableEntity) entity).getSizeMultiplier();
-        if (m == 1.0F) return;
-        state.scale *= m;
-        state.ageScale *= m;
+        if (m != 1.0F) {
+            state.scale *= m;
+            state.ageScale *= m;
+        }
+        // Carry glide / umbrella flags onto the state for HumanoidModel
+        // setupAnim to read (state pattern hides entity from model path).
+        if (state instanceof gulliver.access.IGlideRenderState g) {
+            gulliver.api.IResizeableLiving sized = (gulliver.api.IResizeableLiving) entity;
+            g.gulliver$setGliding(sized.isGliding());
+            g.gulliver$setDoesUmbrella(sized.doesUmbrella());
+        }
     }
 
     /**

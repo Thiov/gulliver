@@ -1,0 +1,24 @@
+package gulliver.mixin;
+
+import gulliver.access.IGlideRenderState;
+import net.minecraft.client.renderer.entity.state.HumanoidRenderState;
+import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Unique;
+
+/**
+ * Adds per-frame gliding / doesUmbrella flags to HumanoidRenderState so
+ * HumanoidModel.setupAnim can read them. Populated by
+ * MixinLivingEntityRenderer.extractRenderState; consumed by
+ * MixinHumanoidModelPose.
+ */
+@Mixin(HumanoidRenderState.class)
+public abstract class MixinHumanoidRenderState implements IGlideRenderState {
+
+    @Unique private boolean gulliver$isGliding;
+    @Unique private boolean gulliver$doesUmbrella;
+
+    @Override @Unique public boolean gulliver$isGliding() { return gulliver$isGliding; }
+    @Override @Unique public boolean gulliver$doesUmbrella() { return gulliver$doesUmbrella; }
+    @Override @Unique public void gulliver$setGliding(boolean v) { gulliver$isGliding = v; }
+    @Override @Unique public void gulliver$setDoesUmbrella(boolean v) { gulliver$doesUmbrella = v; }
+}
