@@ -41,7 +41,7 @@ public abstract class MixinCarpetBlock {
                                             CollisionContext ctx,
                                             CallbackInfoReturnable<VoxelShape> cir) {
         if (!(ctx instanceof EntityCollisionContext ecc)) return;
-        Entity entity = ecc.entity;
+        Entity entity = ((EntityCollisionContextAccessor) ecc).gulliver$getEntity();
         if (entity == null) return;
         IResizeableEntity sized = (IResizeableEntity) entity;
         if (sized.getSizeMultiplier() == 1.0F) return;

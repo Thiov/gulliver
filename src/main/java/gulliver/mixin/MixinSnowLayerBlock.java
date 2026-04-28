@@ -35,7 +35,7 @@ public abstract class MixinSnowLayerBlock {
     private void gulliver$resize(BlockState state, BlockGetter level, BlockPos pos,
                                   CollisionContext ctx, CallbackInfoReturnable<VoxelShape> cir) {
         if (!(ctx instanceof EntityCollisionContext ecc)) return;
-        Entity entity = ecc.entity;
+        Entity entity = ((EntityCollisionContextAccessor) ecc).gulliver$getEntity();
         if (entity == null) return;
         IResizeableEntity sized = (IResizeableEntity) entity;
         float mult = sized.getSizeMultiplier();
