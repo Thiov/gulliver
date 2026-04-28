@@ -62,10 +62,9 @@ public abstract class MixinItemInHandLayer {
             // Reversed signs from previous attempt — last build moved
             // paper DOWN. After Z-rot the local +Y now points UP (toward
             // head) and -Z points BACK. Lift +0.25 Y, push back -0.6 Z.
-            // Restore good rotation (+Y param controls tilt, not height —
-            // changing Y caused rotation, not lowering). Reduce Z
-            // magnitude to lower the paper instead. Was -0.6, try -0.3.
-            pose.translate(0.0F, 0.25F, -0.3F);
+            // Y in this rotated frame controls TILT/rotation. Increase
+            // from 0.25 -> 0.4 for more tilt.
+            pose.translate(0.0F, 0.4F, -0.3F);
         }
         float size = g.gulliver$getSizeMultiplier();
         if (size != 1.0F) {
