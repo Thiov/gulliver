@@ -7,7 +7,8 @@
     "MixinEntity",
     "MixinLivingEntity",
     "MixinLivingEntityEffects",
-    "MixinPlayer"
+    "MixinPlayer",
+    "MixinPlayerReach"
   ],
   "client": [],
   "injectors": {
