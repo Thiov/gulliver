@@ -7,6 +7,7 @@ import net.minecraft.client.renderer.entity.state.HumanoidRenderState;
 import net.minecraft.util.Mth;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
@@ -46,7 +47,12 @@ public abstract class MixinHumanoidModelPose {
      */
     @Inject(method = "setupAnim(Lnet/minecraft/client/renderer/entity/state/HumanoidRenderState;)V",
             at = @At("HEAD"))
-    private void gulliver$resetBonePositions(HumanoidRenderState state, CallbackInfo ci) {
+    private void gulliver$resetBonePositionsHead(HumanoidRenderState state, CallbackInfo ci) {
+        gulliver$resetBonePositions();
+    }
+
+    @Unique
+    private void gulliver$resetBonePositions() {
         rightArm.x = -5.0F;
         leftArm.x  =  5.0F;
         rightArm.y =  2.0F;
@@ -100,8 +106,10 @@ public abstract class MixinHumanoidModelPose {
             leftLeg.yRot  = -0.31415927F;
             return;
         }
-        // No further modifications — vanilla anim runs at vanilla
-        // frequency for ALL sizes (consistent across size changes,
-        // matches user's "no jitter on /doublesize" requirement).
+        // Re-reset bone positions AFTER vanilla setupAnim too — some
+        // attack-animation paths (zombie, etc.) write to .x in addition
+        // to .xRot. Doing this for player too is safe since vanilla
+        // PlayerModel doesn't depend on .x being modified mid-frame.
+        gulliver$resetBonePositions();
     }
 }

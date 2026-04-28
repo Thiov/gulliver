@@ -30,36 +30,53 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Mixin(ItemInHandRenderer.class)
 public abstract class MixinItemInHandRenderer {
 
+    /**
+     * 1st-person glide paper rendering. Cancels vanilla renderItem and
+     * submits the item ourselves with ItemDisplayContext.FIXED — that
+     * context lays the item flat (item-frame transform), avoiding the
+     * upright FIRST_PERSON_RIGHT_HAND display rotation that was making
+     * the paper "stand up to the right" in 1st person.
+     */
     @Inject(method = "renderItem(Lnet/minecraft/world/entity/LivingEntity;Lnet/minecraft/world/item/ItemStack;Lnet/minecraft/world/item/ItemDisplayContext;Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/SubmitNodeCollector;I)V",
-            at = @At("HEAD"))
-    private void gulliver$pushFirstPerson(LivingEntity entity, ItemStack stack,
-                                           ItemDisplayContext ctx, PoseStack pose,
-                                           SubmitNodeCollector buf, int light, CallbackInfo ci) {
+            at = @At("HEAD"), cancellable = true)
+    private void gulliver$replaceFirstPersonGlide(LivingEntity entity, ItemStack stack,
+                                                    ItemDisplayContext ctx, PoseStack pose,
+                                                    SubmitNodeCollector buf, int light, CallbackInfo ci) {
         if (!ctx.firstPerson()) return;
         IResizeableLiving sized = (IResizeableLiving) entity;
         boolean gliding = sized.isGliding();
         boolean umbrella = sized.doesUmbrella();
-        float size = sized.getSizeMultiplier();
-        if (!gliding && !umbrella && size == 1.0F) return;
-
-        pose.pushPose();
-        if (gliding || umbrella) {
-            // Reset to identity so transforms are pure camera-relative.
-            pose.last().pose().identity();
-            pose.last().normal().identity();
-            // Position paper centered horizontally above and in front of
-            // the camera. -0.5 X centers around camera (vanilla item is
-            // offset right by ~0.5). +0.5 Y is overhead. -0.5 Z is forward.
-            pose.translate(-0.5F, 0.5F, -0.5F);
-            // Item models default to facing the camera. Rotate 90° around
-            // X so the FLAT FACE faces DOWN (visible from below). Then
-            // Z 0° (no further rotation needed for "lay flat overhead").
-            pose.mulPose(com.mojang.math.Axis.XP.rotationDegrees(90.0F));
-        }
-        if (size != 1.0F) {
+        if (!gliding && !umbrella) {
+            // Non-glide first-person: just apply size scale at HEAD,
+            // pop on RETURN. Vanilla rendering proceeds unchanged.
+            float size = sized.getSizeMultiplier();
+            if (size == 1.0F) return;
+            pose.pushPose();
             float invRoot = 1.0F / (float) Math.sqrt(size);
             pose.scale(invRoot, invRoot, invRoot);
+            return;
         }
+        // Override: render paper flat overhead, FIXED context (no
+        // upright display transform).
+        pose.pushPose();
+        pose.last().pose().identity();
+        pose.last().normal().identity();
+        // Camera-relative: above and forward of player. Negative X to
+        // counter-shift from vanilla's right-hand offset.
+        pose.translate(0.0F, 0.5F, -0.5F);
+        // 90° around X tips the paper from upright to flat-facing-down.
+        pose.mulPose(com.mojang.math.Axis.XP.rotationDegrees(90.0F));
+        pose.scale(0.6F, 0.6F, 0.6F);
+
+        net.minecraft.client.renderer.item.ItemStackRenderState rs =
+                new net.minecraft.client.renderer.item.ItemStackRenderState();
+        net.minecraft.client.Minecraft.getInstance().getItemModelResolver()
+                .updateForTopItem(rs, stack, ItemDisplayContext.FIXED,
+                        entity.level(), entity instanceof net.minecraft.world.entity.LivingEntity le ? le : null, 0);
+        rs.submit(pose, buf, light,
+                net.minecraft.client.renderer.texture.OverlayTexture.NO_OVERLAY, 0);
+        pose.popPose();
+        ci.cancel();
     }
 
     @Inject(method = "renderItem(Lnet/minecraft/world/entity/LivingEntity;Lnet/minecraft/world/item/ItemStack;Lnet/minecraft/world/item/ItemDisplayContext;Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/SubmitNodeCollector;I)V",
@@ -69,10 +86,9 @@ public abstract class MixinItemInHandRenderer {
                                           SubmitNodeCollector buf, int light, CallbackInfo ci) {
         if (!ctx.firstPerson()) return;
         IResizeableLiving sized = (IResizeableLiving) entity;
-        boolean gliding = sized.isGliding();
-        boolean umbrella = sized.doesUmbrella();
+        if (sized.isGliding() || sized.doesUmbrella()) return; // already cancelled
         float size = sized.getSizeMultiplier();
-        if (!gliding && !umbrella && size == 1.0F) return;
+        if (size == 1.0F) return;
         pose.popPose();
     }
 }

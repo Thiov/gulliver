@@ -23,6 +23,7 @@
     "MixinLivingEntityMovement",
     "MixinLivingEntityRaft",
     "MixinLivingEntitySizeTween",
+    "MixinLivingEntityStep",
     "MixinLivingEntityTinyClimb",
     "MixinLivingEntityTinyEffects",
     "MixinPlayer",

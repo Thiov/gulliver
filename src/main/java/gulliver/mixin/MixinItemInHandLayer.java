@@ -45,22 +45,20 @@ public abstract class MixinItemInHandLayer {
                                       ItemStack stack, HumanoidArm arm, PoseStack pose,
                                       SubmitNodeCollector buf, int light, CallbackInfo ci) {
         if (!(state instanceof IGlideRenderState g)) return;
-        // Glide pose centering: the right arm is at body-x=-5 with both
-        // arms pointing UP. After all translateToHand transforms + the
-        // sub-bone translate, the item is at the right-finger position.
-        // Translate +0.3125 in arm-local +X (post-rotation: this is the
-        // direction from right-arm toward body center) + lay it FLAT on
-        // top of the head by rotating 90° around the local Z axis.
+        // Glide pose centering. After translateToHand + the sub-bone
+        // translate, pose is at the FINGER position with arm-local frame.
+        // For arm pointing UP, the local +Y direction (arm extension) is
+        // already past the fingertip — moving in -Y goes back toward
+        // shoulder, +Z goes "above the held item". We want item to sit
+        // ABOVE the held finger (so hands grip it by the edges).
         if (g.gulliver$isGliding() && arm == HumanoidArm.RIGHT) {
-            pose.translate(0.3125F, 0.0F, 0.0F);
-            // Rotate to lay flat (item's natural orientation is along
-            // the arm — we want it horizontal across the top of head).
+            // Move the item +0.3125 in X (toward body center to span
+            // both hands), and -0.3 in Y (back toward shoulder so the
+            // ITEM is held BY the fingers, not at fingertip).
+            pose.translate(0.3125F, -0.3F, 0.0F);
+            // Rotate around Z 90° so paper lies horizontal across the
+            // top of head (long edge spans both hands like a banner).
             pose.mulPose(com.mojang.math.Axis.ZP.rotationDegrees(90.0F));
-        }
-        // Hide the LEFT arm's empty-hand item-rendering (irrelevant).
-        if (g.gulliver$isGliding() && arm == HumanoidArm.LEFT) {
-            // No translate — left arm has no item, but if mod adds one
-            // we don't want it interfering.
         }
         float size = g.gulliver$getSizeMultiplier();
         if (size != 1.0F) {

@@ -49,9 +49,17 @@ public abstract class MixinLivingEntityRenderer {
             g.gulliver$setRafting(sized.isRafting());
             g.gulliver$setSizeMultiplier(sized.getSizeMultiplier());
         }
-        // (Walk-frequency compensation is done in MixinHumanoidModelPose,
-        // gated on attackTime==0 to avoid composing with attack pose and
-        // making the arms cross into the body during punch.)
+        // PROPORTIONAL walk-cycle frequency: same body-stride feel at
+        // every size. walkAnimationPos increments by world-distance per
+        // tick, so a tiny walking sqrt(size)x slower (Phase 4 speed
+        // scaling) covers proportionally less world but PROPORTIONALLY
+        // SAME body-distance per tick. Divide walkAnimationPos by
+        // sqrt(size) to restore body-length-per-cycle frequency for
+        // BOTH tinies (faster than world-speed) AND hugies (slower).
+        if (m != 1.0F && m > 0.0F) {
+            float root = (float) Math.sqrt(m);
+            state.walkAnimationPos /= root;
+        }
     }
 
     /**
