@@ -7,5 +7,6 @@ public class GulliverFabricClient implements ClientModInitializer {
     public void onInitializeClient() {
         ClientPacketHandlers.register();
         KeyInputHandler.register();
+        GliderPaperWorldRenderer.register();
     }
 }
