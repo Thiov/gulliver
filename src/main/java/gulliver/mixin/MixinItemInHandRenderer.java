@@ -56,35 +56,24 @@ public abstract class MixinItemInHandRenderer {
             pose.scale(invRoot, invRoot, invRoot);
             return;
         }
-        // 1st person paper: render at player world position with body
-        // yaw rotation, completely independent of camera. Reset matrix
-        // to identity (= camera-origin in camera-space, since
-        // RenderSystem.modelViewStack handles camera externally).
-        // Translate to (player_world - camera_world). Apply body yaw.
-        // Lay flat with X-rot. Render with ItemDisplayContext.NONE so
-        // the item model doesn't apply its own offset.
-        float partialTick = net.minecraft.client.Minecraft.getInstance()
-                .getDeltaTracker().getGameTimeDeltaPartialTick(false);
-        double px = net.minecraft.util.Mth.lerp(partialTick, entity.xOld, entity.getX());
-        double py = net.minecraft.util.Mth.lerp(partialTick, entity.yOld, entity.getY());
-        double pz = net.minecraft.util.Mth.lerp(partialTick, entity.zOld, entity.getZ());
+        // 1st person paper: use NATURAL pose-stack (no identity reset
+        // — that put us at world origin and broke positioning). Apply
+        // the conjugate of camera.rotation() to undo the camera's
+        // rotation -> local +Y becomes world-up. Re-apply body yaw so
+        // paper rotates with body. Translate up. Lay flat.
+        net.minecraft.client.Camera cam = net.minecraft.client.Minecraft.getInstance()
+                .gameRenderer.getMainCamera();
         pose.pushPose();
-        pose.last().pose().identity();
-        pose.last().normal().identity();
-        // Bug fix: pose.identity() puts us at WORLD origin (0,0,0), not
-        // camera origin. Subtracting camera position from player coords
-        // places paper at world (player - camera) which is far from
-        // both. Translate by RAW world coords so paper ends up at the
-        // actual player head world position.
-        pose.translate(
-                (float) px,
-                (float) (py + entity.getBbHeight() + 0.2D),
-                (float) pz);
-        // Body yaw (paper rotates with body when player turns).
-        pose.mulPose(com.mojang.math.Axis.YP.rotationDegrees(-entity.yBodyRot));
-        // Lay flat (90° around X tips item face down).
+        // Undo camera rotation -> world-axis frame at the current
+        // pose origin (which is approximately camera position).
+        pose.mulPose(new org.joml.Quaternionf(cam.rotation()).conjugate());
+        // Now move up in WORLD up direction (since +Y is world-up).
+        pose.translate(0.0F, 0.5F, 0.0F);
+        // Re-apply body yaw so paper rotates with body when player turns.
+        pose.mulPose(com.mojang.math.Axis.YP.rotationDegrees(180.0F - entity.yBodyRot));
+        // Lay flat
         pose.mulPose(com.mojang.math.Axis.XP.rotationDegrees(90.0F));
-        // Recenter (model origin is corner; -0.5 in X and +0.5 in Z post-X-rot).
+        // Recenter (corner -> center after X-rot).
         pose.translate(-0.5F, 0.0F, 0.5F);
         // Render with NONE context (no display transform offset).
         net.minecraft.client.renderer.item.ItemStackRenderState rs =

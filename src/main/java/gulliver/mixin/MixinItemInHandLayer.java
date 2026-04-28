@@ -62,7 +62,7 @@ public abstract class MixinItemInHandLayer {
             // Reversed signs from previous attempt — last build moved
             // paper DOWN. After Z-rot the local +Y now points UP (toward
             // head) and -Z points BACK. Lift +0.25 Y, push back -0.6 Z.
-            pose.translate(0.0F, 0.4F, -0.3F);
+            pose.translate(0.0F, 0.3F, -0.3F);
         }
         float size = g.gulliver$getSizeMultiplier();
         if (size != 1.0F) {
