@@ -48,4 +48,21 @@ public final class Payloads {
                 b -> new AttachEntitySpecial(b.readVarInt(), b.readVarInt(), b.readByte()));
         public Type<AttachEntitySpecial> type() { return TYPE; }
     }
+
+    /**
+     * C2S packet: client tells server "I right-clicked with a resizing
+     * item (cyan/purple dye, red/brown mushroom) in air". Vanilla item.use
+     * returns PASS for these so the client never sends the standard
+     * use-item packet — our packet bypasses that and triggers the
+     * effect application server-side.
+     *
+     * mainHand: true if the active hand is MAIN, false for OFF.
+     */
+    public record ConsumeResizingItem(boolean mainHand) implements CustomPacketPayload {
+        public static final Type<ConsumeResizingItem> TYPE = mkType("consume_resizing_item");
+        public static final StreamCodec<FriendlyByteBuf, ConsumeResizingItem> CODEC = StreamCodec.ofMember(
+                (p, b) -> b.writeBoolean(p.mainHand),
+                b -> new ConsumeResizingItem(b.readBoolean()));
+        public Type<ConsumeResizingItem> type() { return TYPE; }
+    }
 }

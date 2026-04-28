@@ -47,7 +47,8 @@
     "MixinItemInHandRenderer",
     "MixinLivingEntityRenderer",
     "MixinPlayerModelPose",
-    "MixinMinecraftAttackThrow"
+    "MixinMinecraftAttackThrow",
+    "MixinMultiPlayerGameModeUseItem"
   ],
   "injectors": {
     "defaultRequire": 1
