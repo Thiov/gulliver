@@ -1,6 +1,7 @@
 package gulliver.mixin;
 
 import gulliver.common.ShoulderHelper;
+import gulliver.mixin.iface.IGulliverShoulderInternal;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;

@@ -1,4 +1,4 @@
-package gulliver.mixin;
+package gulliver.mixin.iface;
 
 /**
  * Internal getters/setters for the @Unique size fields stored on Entity

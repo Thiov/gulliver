@@ -1,6 +1,7 @@
 package gulliver.mixin;
 
 import gulliver.effect.ResizingEffect;
+import gulliver.mixin.iface.IGulliverEntityInternal;
 import gulliver.network.SizeSync;
 import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.effect.MobEffectInstance;

@@ -1,6 +1,6 @@
 package gulliver.effect;
 
-import gulliver.mixin.IGulliverEntityInternal;
+import gulliver.mixin.iface.IGulliverEntityInternal;
 import gulliver.network.SizeSync;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.effect.MobEffect;
