@@ -56,17 +56,24 @@ public abstract class MixinItemInHandRenderer {
             pose.scale(invRoot, invRoot, invRoot);
             return;
         }
-        // Override: render paper flat overhead in CAMERA-relative
-        // space. Don't reset to identity — that snapshots a fixed
-        // world matrix and the paper stays in place when looking
-        // around. Instead apply transforms within the existing
-        // pose-stack frame (which is camera-attached + bobView), so
-        // the paper rotates with the camera.
+        // Render paper world-anchored above the player's head. In 1st
+        // person the camera IS the head, so "above head in world space"
+        // = "world-up offset from camera". The pose-stack at HEAD of
+        // renderItem is camera-rotated (looking direction); we
+        // counter-rotate by the camera's pitch and yaw so +Y becomes
+        // world-up regardless of where the player looks. Then translate
+        // +Y to lift the paper above the head.
+        net.minecraft.client.Camera cam = net.minecraft.client.Minecraft.getInstance()
+                .gameRenderer.getMainCamera();
         pose.pushPose();
-        // -0.5 X centers around camera, +0.5 Y above eye, -0.5 Z forward.
-        pose.translate(-0.5F, 0.5F, -0.5F);
-        // Lay paper flat (90° around X tips item face down).
+        // Undo camera rotation (modern MC applies pitch then yaw to view)
+        pose.mulPose(com.mojang.math.Axis.XP.rotationDegrees(cam.xRot()));
+        pose.mulPose(com.mojang.math.Axis.YP.rotationDegrees(-cam.yRot() + 180.0F));
+        // Now +Y is world-up. Move above eye, then lay paper flat.
+        pose.translate(0.0F, 0.4F, 0.0F);
         pose.mulPose(com.mojang.math.Axis.XP.rotationDegrees(90.0F));
+        // Recenter FIXED-context item (its origin is at corner).
+        pose.translate(-0.5F, 0.0F, -0.5F);
 
         net.minecraft.client.renderer.item.ItemStackRenderState rs =
                 new net.minecraft.client.renderer.item.ItemStackRenderState();
