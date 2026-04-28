@@ -34,7 +34,9 @@ public abstract class MixinPlayerShoulder {
         UUID left  = cs.gulliver$getLeftShoulder();
         if (hand == null && right == null && left == null) return;
 
-        double yaw = Math.toRadians(self.getYRot());
+        // Use BODY yaw (yBodyRot) instead of head yaw — held entities
+        // should track the body direction, not turn with head movement.
+        double yaw = Math.toRadians(self.yBodyRot);
         double sin = Math.sin(yaw);
         double cos = Math.cos(yaw);
 

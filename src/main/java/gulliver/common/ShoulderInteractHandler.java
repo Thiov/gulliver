@@ -69,20 +69,37 @@ public final class ShoulderInteractHandler {
                 }
             }
 
-            // Sneak + RMB carry-pickup
+            // Sneak + RMB pickup: ALWAYS into hand. If hand full, the
+            // helper does an in-place swap (drops prev hand-held), but
+            // shoulder slots are NEVER touched here.
             if (!player.isShiftKeyDown()) return InteractionResult.PASS;
-            IGulliverShoulderInternal cs = (IGulliverShoulderInternal) carrier;
-            // Already carrying anything -> drop ALL.
-            if (cs.gulliver$hasAnyCarry()) {
-                ShoulderHelper.drop(carrier);
-                return InteractionResult.SUCCESS;
-            }
             if (!(entity instanceof LivingEntity)) return InteractionResult.PASS;
             if (!ShoulderHelper.canCarry(carrier, entity)) return InteractionResult.PASS;
             if (ShoulderHelper.pickUp(carrier, entity)) {
                 return InteractionResult.SUCCESS;
             }
             return InteractionResult.PASS;
+        });
+
+        // RMB on a block while carrying anything in HAND: drop the
+        // hand-held in place (block-click path is what fires when the
+        // player aims at the ground).
+        UseBlockCallback.EVENT.register((player, world, hand, hitResult) -> {
+            if (hand != InteractionHand.MAIN_HAND) return InteractionResult.PASS;
+            if (world.isClientSide()) return InteractionResult.PASS;
+            if (!(player instanceof ServerPlayer carrier)) return InteractionResult.PASS;
+            IGulliverShoulderInternal cs = (IGulliverShoulderInternal) carrier;
+            java.util.UUID handId = cs.gulliver$getHandEntity();
+            if (handId == null) return InteractionResult.PASS;
+            net.minecraft.world.entity.Entity held =
+                    ((net.minecraft.server.level.ServerLevel) carrier.level()).getEntity(handId);
+            cs.gulliver$setHandEntity(null);
+            if (held != null) {
+                ((IGulliverShoulderInternal) held).gulliver$setHoldingEntity(null);
+                held.noPhysics = false;
+                ShoulderHelper.broadcastDetach(carrier, held);
+            }
+            return InteractionResult.SUCCESS;
         });
     }
 }
