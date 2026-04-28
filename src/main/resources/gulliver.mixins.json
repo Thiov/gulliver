@@ -8,6 +8,7 @@
     "MixinCactusBlock",
     "MixinCarpetBlock",
     "MixinEntity",
+    "MixinEntityPushOut",
     "MixinEntitySound",
     "MixinFarmlandBlock",
     "MixinFlowerPotBlock",
