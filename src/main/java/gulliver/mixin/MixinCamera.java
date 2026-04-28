@@ -51,7 +51,7 @@ public abstract class MixinCamera {
      * argument by sizeMultiplier to match 1.6.4's d3 *= pfactor.
      */
     @ModifyArg(
-        method = "update",
+        method = "alignWithEntity",
         at = @At(value = "INVOKE",
                  target = "Lnet/minecraft/client/Camera;move(FFF)V",
                  ordinal = 0),
