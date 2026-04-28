@@ -56,23 +56,28 @@ public abstract class MixinItemInHandRenderer {
             pose.scale(invRoot, invRoot, invRoot);
             return;
         }
-        // 1st person paper:
-        //   - Counter-PITCH only (not yaw). After this, +Y is world-up
-        //     (regardless of where player looks up/down), but the frame's
-        //     X/Z axes are still yaw-rotated -> paper rotates with body
-        //     yaw (when player turns around) but stays level on look-up
-        //     /look-down. Matches user request.
-        //   - Translate +Y for height above head.
-        //   - 90° X-rot to lay paper flat.
-        //   - Recenter the FIXED-context item: after X-rot the item's
-        //     model space is rotated, so the corner offset for centering
-        //     becomes (-0.5, 0, +0.5).
+        // 1st person paper: anchor to PLAYER world position with body
+        // yaw rotation, ignoring camera look entirely. Reset matrix to
+        // identity then translate to player world coords (camera-
+        // relative subtraction for precision), apply body yaw, lay flat.
+        // Result: paper stays directly above player's head, rotates
+        // with body when player turns, ignores head pitch.
         net.minecraft.client.Camera cam = net.minecraft.client.Minecraft.getInstance()
                 .gameRenderer.getMainCamera();
+        net.minecraft.world.phys.Vec3 camPos = cam.position();
         pose.pushPose();
-        pose.mulPose(com.mojang.math.Axis.XP.rotationDegrees(cam.xRot()));
-        pose.translate(0.0F, 0.25F, 0.0F);
+        pose.last().pose().identity();
+        pose.last().normal().identity();
+        // Player world position relative to camera origin.
+        double dx = entity.getX() - camPos.x;
+        double dy = entity.getY() + entity.getBbHeight() + 0.1D - camPos.y;
+        double dz = entity.getZ() - camPos.z;
+        pose.translate((float) dx, (float) dy, (float) dz);
+        // Body yaw — rotates the paper to face the same way as the body.
+        pose.mulPose(com.mojang.math.Axis.YP.rotationDegrees(-entity.yBodyRot));
+        // Lay flat
         pose.mulPose(com.mojang.math.Axis.XP.rotationDegrees(90.0F));
+        // Recenter FIXED-context item around its center (after X-rot).
         pose.translate(-0.5F, 0.0F, 0.5F);
 
         net.minecraft.client.renderer.item.ItemStackRenderState rs =
