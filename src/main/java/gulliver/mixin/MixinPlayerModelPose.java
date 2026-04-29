@@ -16,6 +16,10 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
  * so MixinHumanoidModelPose's hooks never fire on players. This parallel
  * mixin applies the same pose logic on the player path.
  *
+ * We only ever write .xRot/.yRot/.zRot. We do NOT touch .x/.y/.z —
+ * those are owned by vanilla setupAnim (crouch shifts body/arms/legs
+ * via .y) and stomping them would float arms above a crouched body.
+ *
  * @Shadow on inherited fields fails because Mixin requires fields to be
  * DECLARED on the target class. We instead cast `this` to HumanoidModel
  * and access rightArm/leftArm/etc. directly through the public-widened
@@ -23,13 +27,6 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
  */
 @Mixin(PlayerModel.class)
 public abstract class MixinPlayerModelPose {
-
-    @Inject(method = "setupAnim(Lnet/minecraft/client/renderer/entity/state/AvatarRenderState;)V",
-            at = @At("HEAD"))
-    private void gulliver$resetHead(AvatarRenderState state, CallbackInfo ci) {
-        HumanoidModel<?> hm = (HumanoidModel<?>) (Object) this;
-        gulliver$resetBones(hm);
-    }
 
     @Inject(method = "setupAnim(Lnet/minecraft/client/renderer/entity/state/AvatarRenderState;)V",
             at = @At("RETURN"))
@@ -79,23 +76,6 @@ public abstract class MixinPlayerModelPose {
             leftLeg.xRot  = -1.2566371F;
             rightLeg.yRot =  0.31415927F;
             leftLeg.yRot  = -0.31415927F;
-            gulliver$resetBones(hm);
-            return;
         }
-        // Walk-cycle freq normalization is done at the SOURCE in
-        // MixinLivingEntityWalkAnim — vanilla setupAnim runs with an
-        // already-normalized walkAnimationPos. No render-time recompute.
-        gulliver$resetBones(hm);
-    }
-
-    private static void gulliver$resetBones(HumanoidModel<?> hm) {
-        hm.rightArm.x = -5.0F;
-        hm.leftArm.x  =  5.0F;
-        hm.rightArm.y =  2.0F;
-        hm.leftArm.y  =  2.0F;
-        hm.rightLeg.x = -1.9F;
-        hm.leftLeg.x  =  1.9F;
-        hm.rightLeg.y = 12.0F;
-        hm.leftLeg.y  = 12.0F;
     }
 }
