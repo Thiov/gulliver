@@ -11,6 +11,7 @@
     "MixinEntity",
     "MixinEntityPushOut",
     "MixinEntitySound",
+    "MixinEntitySprintParticle",
     "MixinFarmlandBlock",
     "MixinFlowerPotBlock",
     "MixinItemEntityPickup",
