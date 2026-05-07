@@ -8,5 +8,6 @@ public class GulliverFabricClient implements ClientModInitializer {
         ClientPacketHandlers.register();
         KeyInputHandler.register();
         GliderPaperWorldRenderer.register();
+        LilyRaftWorldRenderer.register();
     }
 }
