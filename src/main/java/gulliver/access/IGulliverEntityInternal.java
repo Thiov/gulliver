@@ -18,4 +18,11 @@ public interface IGulliverEntityInternal {
     void gulliver$setSizeBaseDestMultiplier(float v);
     void gulliver$setSizePotionMultiplier(float v);
     void gulliver$setSizeItemMultiplier(float v);
+
+    // Tracks last-tick getMaxHealth() to detect changes and apply
+    // proportional HP scaling on resize. Defaults to NaN sentinel.
+    default float gulliver$getPrevMaxHealth() { return Float.NaN; }
+    default void gulliver$setPrevMaxHealth(float v) {}
+    default int gulliver$getPrevMaxAir() { return -1; }
+    default void gulliver$setPrevMaxAir(int v) {}
 }

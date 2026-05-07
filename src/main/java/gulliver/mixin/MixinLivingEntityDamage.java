@@ -1,13 +1,16 @@
 package gulliver.mixin;
 
 import gulliver.api.IResizeableEntity;
+import gulliver.common.AttackContext;
 import gulliver.common.GulliverEnvoy;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.ModifyVariable;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 /**
@@ -34,17 +37,39 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 public abstract class MixinLivingEntityDamage {
 
     /**
+     * Capture the attacker into AttackContext at HEAD of hurtServer,
+     * BEFORE the damage-arg ModifyVariable runs. (Mixin orders @Inject
+     * HEAD callbacks alphabetically by handler name; gulliver$captureAttacker
+     * sorts before gulliver$immuneAtLargeGap, but both run before the
+     * @ModifyVariable phase. So by the time scaleDamage runs, the
+     * thread-local is set.)
+     */
+    @Inject(method = "hurtServer", at = @At("HEAD"))
+    private void gulliver$captureAttacker(net.minecraft.server.level.ServerLevel level,
+                                            DamageSource source, float amount,
+                                            CallbackInfoReturnable<Boolean> cir) {
+        Entity a = source.getEntity();
+        AttackContext.set(a);
+    }
+
+    @Inject(method = "hurtServer", at = @At("RETURN"))
+    private void gulliver$clearAttacker(net.minecraft.server.level.ServerLevel level,
+                                          DamageSource source, float amount,
+                                          CallbackInfoReturnable<Boolean> cir) {
+        AttackContext.clear();
+    }
+
+    /**
      * Damage immunity gap: if attacker is way too small relative to
      * target (ratio <= 0.125, i.e. 8x size diff), short-circuit
      * hurtServer and return false so no damage / hurt-flash / KB applies.
      * Asymmetric — a giant CAN still squish a tiny (inverse ratio
      * doesn't trigger immunity).
      */
-    @org.spongepowered.asm.mixin.injection.Inject(method = "hurtServer",
-            at = @At("HEAD"), cancellable = true)
+    @Inject(method = "hurtServer", at = @At("HEAD"), cancellable = true)
     private void gulliver$immuneAtLargeGap(net.minecraft.server.level.ServerLevel level,
                                             DamageSource source, float amount,
-                                            org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable<Boolean> cir) {
+                                            CallbackInfoReturnable<Boolean> cir) {
         LivingEntity self = (LivingEntity) (Object) this;
         Entity attacker = source.getEntity();
         if (!(attacker instanceof LivingEntity) || attacker == self) return;
@@ -64,8 +89,7 @@ public abstract class MixinLivingEntityDamage {
         // Target-side: damage divided by target's size (1.6.4 line 1414).
         if (targetSize != 1.0F) result = result / targetSize;
 
-        DamageSource src = self.getLastDamageSource();
-        Entity attacker = src != null ? src.getEntity() : null;
+        Entity attacker = AttackContext.get();
         if (attacker instanceof LivingEntity attackerLiv && attacker != self) {
             float attackerSize = ((IResizeableEntity) attacker).getSizeMultiplier();
             if (attackerSize == 1.0F) return result;

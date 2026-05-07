@@ -48,21 +48,37 @@ public abstract class MixinLivingEntitySizeTween {
             self.refreshDimensions();
         }
 
-        // Clamp current HP to (now possibly-shrunken) max HP. Without
-        // this, after a /doublesize+heal+/halfsize sequence, currentHP
-        // ends up above maxHP — vanilla regen gates on `current < max`,
-        // so regen silently stops working until the player loses HP back
-        // below the new ceiling. Clamp every tick so the bar stays sane
-        // and natural regen resumes immediately after a shrink.
-        float maxHp = self.getMaxHealth();
-        if (self.getHealth() > maxHp) {
-            self.setHealth(maxHp);
+        // Proportional HP/air scaling on resize:
+        //   newCurrent = oldCurrent * newMax / oldMax
+        // Keeps the % full constant when size (and therefore maxHealth /
+        // maxAirSupply) changes. Without this, growing then shrinking
+        // either left HP above the new max (broke regen — gate is
+        // `current < max`) or, if clamped to max, dropped HP in big
+        // chunks (looked like taking damage with screen-shake / hurt
+        // flash on the client).
+        float prevMax = access.gulliver$getPrevMaxHealth();
+        float curMax = self.getMaxHealth();
+        if (Float.isNaN(prevMax)) {
+            // First tick — no scaling, just record.
+            access.gulliver$setPrevMaxHealth(curMax);
+        } else if (prevMax != curMax && prevMax > 0.0F) {
+            float ratio = curMax / prevMax;
+            float newHp = self.getHealth() * ratio;
+            // Cap at curMax to be safe against tiny float drift.
+            if (newHp > curMax) newHp = curMax;
+            self.setHealth(newHp);
+            access.gulliver$setPrevMaxHealth(curMax);
         }
-        // Same idea for air: getMaxAirSupply scales with size, so after
-        // a shrink the current air can be above max. Clamp it.
-        int maxAir = self.getMaxAirSupply();
-        if (self.getAirSupply() > maxAir) {
-            self.setAirSupply(maxAir);
+
+        int prevAir = access.gulliver$getPrevMaxAir();
+        int curMaxAir = self.getMaxAirSupply();
+        if (prevAir < 0) {
+            access.gulliver$setPrevMaxAir(curMaxAir);
+        } else if (prevAir != curMaxAir && prevAir > 0) {
+            int newAir = (int) ((long) self.getAirSupply() * curMaxAir / prevAir);
+            if (newAir > curMaxAir) newAir = curMaxAir;
+            self.setAirSupply(newAir);
+            access.gulliver$setPrevMaxAir(curMaxAir);
         }
     }
 }

@@ -32,27 +32,6 @@ import org.spongepowered.asm.mixin.injection.ModifyVariable;
 @Mixin(LivingEntity.class)
 public abstract class MixinLivingEntityKnockback {
 
-    @org.spongepowered.asm.mixin.Unique
-    private static final ThreadLocal<net.minecraft.world.entity.Entity> gulliver$attackerCtx
-            = new ThreadLocal<>();
-
-    @org.spongepowered.asm.mixin.injection.Inject(method = "hurtServer", at = @At("HEAD"))
-    private void gulliver$captureAttacker(net.minecraft.server.level.ServerLevel level,
-                                            net.minecraft.world.damagesource.DamageSource source,
-                                            float amount,
-                                            org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable<Boolean> cir) {
-        net.minecraft.world.entity.Entity a = source.getEntity();
-        if (a != null) gulliver$attackerCtx.set(a);
-    }
-
-    @org.spongepowered.asm.mixin.injection.Inject(method = "hurtServer", at = @At("RETURN"))
-    private void gulliver$clearAttacker(net.minecraft.server.level.ServerLevel level,
-                                          net.minecraft.world.damagesource.DamageSource source,
-                                          float amount,
-                                          org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable<Boolean> cir) {
-        gulliver$attackerCtx.remove();
-    }
-
     @ModifyVariable(method = "knockback(DDD)V", at = @At("HEAD"),
             argsOnly = true, ordinal = 0)
     private double gulliver$scaleKnockback(double strength) {
@@ -61,7 +40,11 @@ public abstract class MixinLivingEntityKnockback {
         float targetSize = sized.getSizeMultiplier();
         double scaled = strength;
 
-        net.minecraft.world.entity.Entity attacker = gulliver$attackerCtx.get();
+        // AttackContext is set in MixinLivingEntityDamage's HEAD inject
+        // on hurtServer, cleared at RETURN. So during a hurtServer call
+        // (when knockback is invoked at offset 460), the thread-local
+        // is populated with the current attacker.
+        net.minecraft.world.entity.Entity attacker = gulliver.common.AttackContext.get();
         if (attacker != null && attacker != self) {
             float attackerSize = ((IResizeableEntity) attacker).getSizeMultiplier();
             scaled = strength * (attackerSize / targetSize);
