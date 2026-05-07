@@ -50,6 +50,16 @@ public abstract class MixinLivingEntityDamage {
         // Attacker-side scaling: only when there is a LivingEntity attacker.
         if (attacker instanceof LivingEntity attackerLiv && attacker != self) {
             float attackerSize = ((IResizeableEntity) attacker).getSizeMultiplier();
+
+            // Damage immunity gap: if attacker is way too small relative
+            // to target (or vice versa), zero damage. Threshold 0.125 (8x
+            // ratio). Symmetric — a near-zero-size attacker can't hurt a
+            // huge target, and vice versa for "stomp from above" cases
+            // we don't want at extreme ratios. Tinies vs giants below
+            // this ratio: combat doesn't apply.
+            float ratio = attackerSize / targetSize;
+            if (ratio < 0.125F) return 0.0F;
+
             if (attackerSize == 1.0F) return result;
 
             net.minecraft.world.item.ItemStack hand = attackerLiv.getMainHandItem();
