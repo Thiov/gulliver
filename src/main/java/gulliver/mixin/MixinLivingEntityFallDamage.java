@@ -13,38 +13,38 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 /**
- * 1.6.4 fall-damage scaling. Verbatim from of.java:1879-1894 (doLivingFall)
- * combined with the receive-damage divide at of.java:1390-1395:
+ * 1.6.4 fall-damage scaling. of.java:1879-1894 (doLivingFall) computes:
  *
- *   doLivingFall:
- *     sh        = stepHeight (already size-scaled)
- *     sizeroot  = sqrt(size)
- *     threshold = sizeroot >= 1 ? 3.0 : 0.125 + 2.875 * sizeroot
- *     min       = max(sh * 1.5, threshold)
- *     f1        = jumpBoost amplifier + 1   (0 if no jump boost)
- *     damage    = (fallDist - min - f1) * sizeroot
- *     var2      = ceil(damage)
- *     attackEntityFrom(DamageSource.fall, var2)
+ *   sh        = stepHeight (already size-scaled)
+ *   sizeroot  = sqrt(size)
+ *   threshold = sizeroot >= 1 ? 3.0 : 0.125 + 2.875 * sizeroot
+ *   min       = max(sh * 1.5, threshold)
+ *   f1        = jumpBoost amplifier + 1   (0 if no jump boost)
+ *   damage    = (fallDist - min - f1) * sizeroot
+ *   var2      = ceil(damage)
+ *   attackEntityFrom(DamageSource.fall, var2)
  *
- *   damageEntity (when source is fall):
- *     par2 /= sizeroot
+ * Note: of.java:1390 has `par2 /= sizeroot` for `nb.m`/`nb.n` damage
+ * sources — but those are ANVIL and FALLING_BLOCK damage, NOT fall.
+ * Fall damage is `nb.h`, applied verbatim in doLivingFall with no
+ * further scaling on the receive side.
  *
- *   final  = ceil((fallDist - min - jb) * sizeroot) / sizeroot
+ * Net feel — TINIES TAKE LESS, GIANTS TAKE MORE (matches the original
+ * mod and real-world physics: smaller things less affected by gravity):
  *
- * Net feel:
- *   Tinies take MORE fall damage (their sizeroot < 1, so /sizeroot > 1).
- *     size 0.125, fall 5 blocks: damage_blocks=(5-1.14)*0.354=1.37,
- *     ceil=2, /0.354=5.65 hp  (vs vanilla 2 hp)
- *   Giants take LESS fall damage (sizeroot > 1).
- *     size 4, fall 10 blocks, stepH=2.4, min=3.6:
- *     damage_blocks=(10-3.6)*2=12.8, ceil=13, /2=6.5 hp (vs vanilla 7)
+ *   size 0.125, fall 10 blocks, min=1.14:
+ *     damage = (10 - 1.14) * 0.354 = 3.13 → 4 hp
+ *   vanilla, fall 10 blocks, min=3.0:
+ *     damage = 7.0 → 7 hp
+ *   size 4, fall 10 blocks, stepH=2.4, min=3.6:
+ *     damage = (10 - 3.6) * 2 = 12.8 → 13 hp
  *
  * Vanilla 26.x calculateFallDamage(D, F)I:
  *   fallPower = fallDistance + 1e-6 - SAFE_FALL_DISTANCE
  *   return floor(fallPower * multiplier * FALL_DAMAGE_MULTIPLIER)
  *
  * We override at HEAD with cancellable when size != 1, computing the
- * 1.6.4 result and multiplying by vanilla's mult / FALL_DAMAGE_MULTIPLIER
+ * 1.6.4 ceil(damage) and multiplying by vanilla's mult / FALL_DAMAGE_MULTIPLIER
  * so external resistance/perk attribute changes still apply.
  */
 @Mixin(LivingEntity.class)
@@ -76,9 +76,7 @@ public abstract class MixinLivingEntityFallDamage {
             cir.setReturnValue(0);
             return;
         }
-        double var2 = Math.ceil(damageBlocks);
-        double finalHp = var2 / sizeroot;
         double fallMult = self.getAttributeValue(Attributes.FALL_DAMAGE_MULTIPLIER);
-        cir.setReturnValue(Mth.floor(finalHp * multiplier * fallMult));
+        cir.setReturnValue(Mth.floor(Math.ceil(damageBlocks) * multiplier * fallMult));
     }
 }

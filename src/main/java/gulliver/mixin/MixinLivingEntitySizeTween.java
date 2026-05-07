@@ -34,17 +34,35 @@ public abstract class MixinLivingEntitySizeTween {
         IGulliverEntityInternal access = (IGulliverEntityInternal) self;
         float base = access.gulliver$getSizeBaseMultiplier();
         float dest = access.gulliver$getSizeBaseDestMultiplier();
-        if (base == dest) return;
 
-        float diff = dest - base;
-        float step = diff * 0.15F; // ~6-7 ticks to close 99% of distance
-        float next;
-        if (Math.abs(diff) < 0.001F) {
-            next = dest;
-        } else {
-            next = base + step;
+        if (base != dest) {
+            float diff = dest - base;
+            float step = diff * 0.15F; // ~6-7 ticks to close 99% of distance
+            float next;
+            if (Math.abs(diff) < 0.001F) {
+                next = dest;
+            } else {
+                next = base + step;
+            }
+            access.gulliver$setSizeBaseMultiplier(next);
+            self.refreshDimensions();
         }
-        access.gulliver$setSizeBaseMultiplier(next);
-        self.refreshDimensions();
+
+        // Clamp current HP to (now possibly-shrunken) max HP. Without
+        // this, after a /doublesize+heal+/halfsize sequence, currentHP
+        // ends up above maxHP — vanilla regen gates on `current < max`,
+        // so regen silently stops working until the player loses HP back
+        // below the new ceiling. Clamp every tick so the bar stays sane
+        // and natural regen resumes immediately after a shrink.
+        float maxHp = self.getMaxHealth();
+        if (self.getHealth() > maxHp) {
+            self.setHealth(maxHp);
+        }
+        // Same idea for air: getMaxAirSupply scales with size, so after
+        // a shrink the current air can be above max. Clamp it.
+        int maxAir = self.getMaxAirSupply();
+        if (self.getAirSupply() > maxAir) {
+            self.setAirSupply(maxAir);
+        }
     }
 }

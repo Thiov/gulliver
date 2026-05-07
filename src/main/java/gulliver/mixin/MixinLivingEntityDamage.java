@@ -33,52 +33,55 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 @Mixin(LivingEntity.class)
 public abstract class MixinLivingEntityDamage {
 
-    @ModifyVariable(method = "hurtServer", at = @At("HEAD"), argsOnly = true, ordinal = 0)
-    private float gulliver$scalePointyDamage(float amount, net.minecraft.server.level.ServerLevel level,
-                                              DamageSource source, float orig) {
+    /**
+     * Damage immunity gap: if attacker is way too small relative to
+     * target (ratio <= 0.125, i.e. 8x size diff), short-circuit
+     * hurtServer and return false so no damage / hurt-flash / KB applies.
+     * Asymmetric — a giant CAN still squish a tiny (inverse ratio
+     * doesn't trigger immunity).
+     */
+    @org.spongepowered.asm.mixin.injection.Inject(method = "hurtServer",
+            at = @At("HEAD"), cancellable = true)
+    private void gulliver$immuneAtLargeGap(net.minecraft.server.level.ServerLevel level,
+                                            DamageSource source, float amount,
+                                            org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable<Boolean> cir) {
         LivingEntity self = (LivingEntity) (Object) this;
         Entity attacker = source.getEntity();
+        if (!(attacker instanceof LivingEntity) || attacker == self) return;
+        float attackerSize = ((IResizeableEntity) attacker).getSizeMultiplier();
+        float targetSize = ((IResizeableEntity) self).getSizeMultiplier();
+        if (attackerSize / targetSize <= 0.125F) {
+            cir.setReturnValue(false);
+        }
+    }
 
-        // Target-side scaling: damage divided by target's size (bigger
-        // targets soak more, tinies take more). 1.6.4 line 1414.
+    @ModifyVariable(method = "hurtServer", at = @At("HEAD"), argsOnly = true, ordinal = 0)
+    private float gulliver$scaleDamage(float amount) {
+        LivingEntity self = (LivingEntity) (Object) this;
+
         float targetSize = ((IResizeableEntity) self).getSizeMultiplier();
         float result = amount;
-        if (targetSize != 1.0F) {
-            result = result / targetSize;
-        }
+        // Target-side: damage divided by target's size (1.6.4 line 1414).
+        if (targetSize != 1.0F) result = result / targetSize;
 
-        // Attacker-side scaling: only when there is a LivingEntity attacker.
+        DamageSource src = self.getLastDamageSource();
+        Entity attacker = src != null ? src.getEntity() : null;
         if (attacker instanceof LivingEntity attackerLiv && attacker != self) {
             float attackerSize = ((IResizeableEntity) attacker).getSizeMultiplier();
-
-            // Damage immunity gap: if attacker is way too small relative
-            // to target (or vice versa), zero damage. Threshold 0.125 (8x
-            // ratio). Symmetric — a near-zero-size attacker can't hurt a
-            // huge target, and vice versa for "stomp from above" cases
-            // we don't want at extreme ratios. Tinies vs giants below
-            // this ratio: combat doesn't apply.
-            float ratio = attackerSize / targetSize;
-            if (ratio < 0.125F) return 0.0F;
-
             if (attackerSize == 1.0F) return result;
 
             net.minecraft.world.item.ItemStack hand = attackerLiv.getMainHandItem();
             boolean hasItem = hand != null && !hand.isEmpty();
-
             if (hasItem) {
                 if (attackerSize < 1.0F && GulliverEnvoy.isItemPointy(hand)) {
-                    // Tiny attacker with pointy item: cbrt scale (softer).
                     result *= (float) Math.cbrt(attackerSize);
                 } else {
-                    // sqrt scale for melee with any held item.
                     result *= (float) Math.sqrt(attackerSize);
                 }
             } else {
-                // Bare-handed: linear with size (1.6.4 line 1432).
                 result *= attackerSize;
             }
         }
-
         return result;
     }
 }
