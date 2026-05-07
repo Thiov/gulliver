@@ -19,6 +19,7 @@
     "MixinLivingEntityClimbRope",
     "MixinLivingEntityDamage",
     "MixinLivingEntityEffects",
+    "MixinLivingEntityFallDamage",
     "MixinLivingEntityGlide",
     "MixinLivingEntityHugeEffects",
     "MixinLivingEntityHugeFall",
