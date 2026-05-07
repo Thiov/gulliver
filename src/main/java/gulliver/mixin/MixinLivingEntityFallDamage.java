@@ -71,7 +71,17 @@ public abstract class MixinLivingEntityFallDamage {
         MobEffectInstance jb = self.getEffect(MobEffects.JUMP_BOOST);
         float f1 = jb != null ? jb.getAmplifier() + 1 : 0.0F;
 
-        double damageBlocks = (fallDistance - min - f1) * sizeroot;
+        // 1.6.4 used sizeroot here, but user feedback wanted MORE
+        // aggressive scaling: tinies should take basically no fall
+        // damage at the smallest sizes, giants should take much more.
+        // Use linear `size` instead of `sizeroot`:
+        //   size 0.125, fall 10, min=1.14 → (10-1.14)*0.125 = 1.1 → 1 hp
+        //   size 0.5,  fall 10, min=2.5  → (10-2.5)*0.5 = 3.75 → 4 hp
+        //   vanilla,   fall 10           → 7 hp
+        //   size 4,    fall 10, min=3.6  → (10-3.6)*4 = 25.6 → 26 hp
+        //   size 8,    fall 10, min=7.2  → (10-7.2)*8 = 22.4 → 23 hp
+        // Extra-tinies (<0.05) effectively immune to any reasonable fall.
+        double damageBlocks = (fallDistance - min - f1) * size;
         if (damageBlocks <= 0.0D) {
             cir.setReturnValue(0);
             return;
