@@ -124,9 +124,8 @@ public abstract class MixinLivingEntity implements IResizeableLiving,
     }
 
     /**
-     * 1.6.4 of.java line 2948: tiny + holding slime ball OR alongStickySurface
-     * OR overlapping a slime block. We honour the slime-ball-in-hand branch
-     * (the most common one) and the sticky-surface predicate.
+     * 1.6.4 of.java line 2948: tiny + (holding slime ball OR alongStickySurface
+     * OR bbox-overlaps a Slime entity). All three branches verbatim.
      */
     @Override
     @Unique
@@ -135,7 +134,10 @@ public abstract class MixinLivingEntity implements IResizeableLiving,
         if (!isTiny()) return false;
         net.minecraft.world.item.ItemStack hand = self.getMainHandItem();
         if (hand != null && hand.is(net.minecraft.world.item.Items.SLIME_BALL)) return true;
-        return GulliverEnvoy.alongStickySurface(self);
+        if (GulliverEnvoy.alongStickySurface(self)) return true;
+        return !self.level().getEntitiesOfClass(
+                net.minecraft.world.entity.monster.Slime.class,
+                self.getBoundingBox()).isEmpty();
     }
 
     /**

@@ -43,14 +43,14 @@ public abstract class MixinLivingEntityTinyClimb {
         float rate = gulliver$adjacentClimbRate(self);
         if (rate <= 0.0F) return;
         Vec3 dm = self.getDeltaMovement();
-        // 1.6.4 of.java:2574 verbatim: y *= ladderRate * 0.5 * sqrt(size).
-        // For dirt (rate 0.7) at size 0.125: cap = 0.5 * 0.7 * 0.354 *
-        // 0.2 = 0.0248/tick. Matches 1.6.4 "extremely slow" climb feel.
+        // 1.6.4 of.java:2574 verbatim:
+        //   y *= ladderRate * 0.5 * sqrt(size) * (isSticky ? 0.5 : 1.0)
         // Express as a CAP on upward velocity (rather than multiply, to
         // be safe against zero current velocity).
         float root = sized.getSizeMultiplierRoot();
+        float stickyFactor = sized.isSticky() ? 0.5F : 1.0F;
         if (dm.y > 0.0D) {
-            double cap = 0.2D * rate * 0.5D * root;
+            double cap = 0.2D * rate * 0.5D * root * stickyFactor;
             if (dm.y > cap) {
                 self.setDeltaMovement(dm.x, cap, dm.z);
             }
