@@ -38,7 +38,15 @@ public abstract class MixinLivingEntityRenderer {
         float m = ((IResizeableEntity) entity).getSizeMultiplier();
         if (m != 1.0F) {
             state.scale *= m;
-            state.ageScale *= m;
+            // DO NOT scale state.ageScale — vanilla setupAttackAnimation
+            // multiplies the punch arm's .x/.z offset by ageScale (5 *
+            // ageScale, see HumanoidModel.setupAttackAnimation +85/+108).
+            // The bone .x/.z is then scaled again at render time by
+            // state.scale, so multiplying ageScale double-scales the
+            // punch offset — tinies' arms compress into the body, giants'
+            // arms fly outward. Leaving ageScale at 1.0 means the punch
+            // offset stays at vanilla 5 units in bone-space, which then
+            // scales correctly with state.scale at render.
         }
         // Carry glide / umbrella flags onto the state for HumanoidModel
         // setupAnim to read (state pattern hides entity from model path).
