@@ -29,6 +29,28 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 public abstract class MixinItemInHandLayer {
 
     /**
+     * Hide the lily-pad in hand while rafting. The lily-pad becomes the
+     * raft (rendered separately by the world-anchored renderer), so it
+     * shouldn't simultaneously appear in the player's hand. Cancel the
+     * whole submitArmWithItem call when rafting + the held stack is the
+     * lily-pad.
+     */
+    @Inject(method = "submitArmWithItem(Lnet/minecraft/client/renderer/entity/state/ArmedEntityRenderState;Lnet/minecraft/client/renderer/item/ItemStackRenderState;Lnet/minecraft/world/item/ItemStack;Lnet/minecraft/world/entity/HumanoidArm;Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/SubmitNodeCollector;I)V",
+            at = @At("HEAD"),
+            cancellable = true)
+    private void gulliver$hideLilyPadWhileRafting(ArmedEntityRenderState state,
+                                                    ItemStackRenderState itemRender,
+                                                    ItemStack stack, HumanoidArm arm, PoseStack pose,
+                                                    SubmitNodeCollector buf, int light,
+                                                    CallbackInfo ci) {
+        if (!(state instanceof IGlideRenderState g)) return;
+        if (!g.gulliver$isRafting()) return;
+        if (stack != null && stack.is(net.minecraft.world.item.Items.LILY_PAD)) {
+            ci.cancel();
+        }
+    }
+
+    /**
      * Inject AFTER the sub-bone translate (the (±arm-x/16, hand-y/16,
      * hand-z/16) call inside submitArmWithItem that positions the item
      * at the FINGER tip, not the bone origin). After this point, all

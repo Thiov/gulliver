@@ -41,6 +41,19 @@ public final class LilyRaftWorldRenderer {
         IResizeableLiving sized = (IResizeableLiving) player;
         if (!sized.isRafting()) return;
 
+        renderRaft(ctx, player, sized);
+    }
+
+    /**
+     * Public so the 3rd-person path (MixinLivingEntityRenderer) can also
+     * call into it — same world-anchor render, used in BOTH camera modes.
+     * In 3rd person we run from the entity submit hook, but the entity
+     * pose-stack is at entity-origin, not world-origin; we want a unified
+     * world-space render so geometry is identical regardless of view.
+     */
+    static void renderRaft(net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderContext ctx,
+                            LocalPlayer player, IResizeableLiving sized) {
+        Minecraft mc = Minecraft.getInstance();
         PoseStack pose = ctx.poseStack();
         SubmitNodeCollector buf = ctx.submitNodeCollector();
         net.minecraft.client.Camera cam = mc.gameRenderer.getMainCamera();
@@ -51,29 +64,31 @@ public final class LilyRaftWorldRenderer {
         double py = Mth.lerp(pt, player.yOld, player.getY());
         double pz = Mth.lerp(pt, player.zOld, player.getZ());
 
-        // Anchor at player feet — bbox bottom is player.getY() (no offset).
-        // Lily-pad disc is rendered as a flat horizontal slab just slightly
-        // above the feet, like 1.6.4's "sit ON TOP of a lily-pad block".
+        // Anchor at player feet — bbox bottom is player.getY().
+        // Disc sits very slightly above the feet so it reads as
+        // "platform under the player" not "embedded in feet".
         float scale = sized.getSizeMultiplier();
 
         pose.pushPose();
         pose.translate(
                 (float) (px - camPos.x),
-                (float) (py + 0.05F * scale - camPos.y),
+                (float) (py + 0.02F * scale - camPos.y),
                 (float) (pz - camPos.z));
-        // Body yaw — raft rotates with body so the disc orientation looks
-        // like the player's vehicle. 180° offset matches the 3rd-person
-        // submit (NONE-display item has its face oriented opposite).
+        // Body yaw — raft rotates with body.
         pose.mulPose(com.mojang.math.Axis.YP.rotationDegrees(180.0F - player.yBodyRot));
-        // Disc dimensions: 1.5 wide, 0.1 thick — same as the 3rd-person
-        // path in MixinLivingEntityRenderer.
-        pose.scale(1.5F * scale, 0.1F * scale, 1.5F * scale);
-        // Recenter (item models have corner at origin in NONE/GROUND).
-        pose.translate(-0.5F, 0.0F, -0.5F);
+        // Lay flat: lily-pad item is a vertical 2D quad in NONE display
+        // context. Rotate +90° around X so the quad lies horizontal.
+        pose.mulPose(com.mojang.math.Axis.XP.rotationDegrees(90.0F));
+        // Uniform 1.5× scale relative to the player's size — wide enough
+        // to read as a raft/vehicle, scales with player.
+        float disc = 1.5F * scale;
+        pose.scale(disc, disc, disc);
+        // Recenter (NONE-context model has corner at origin).
+        pose.translate(-0.5F, 0.0F, 0.5F);
 
         ItemStackRenderState rs = new ItemStackRenderState();
         mc.getItemModelResolver().updateForTopItem(rs,
-                new ItemStack(Items.LILY_PAD), ItemDisplayContext.GROUND,
+                new ItemStack(Items.LILY_PAD), ItemDisplayContext.NONE,
                 player.level(), (LivingEntity) player, 0);
         rs.submit(pose, buf, 15728880, OverlayTexture.NO_OVERLAY, 0);
         pose.popPose();

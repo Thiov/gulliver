@@ -37,6 +37,22 @@ public abstract class MixinItemInHandRenderer {
      * upright FIRST_PERSON_RIGHT_HAND display rotation that was making
      * the paper "stand up to the right" in 1st person.
      */
+    /**
+     * Hide both hands (and held items) in 1st person while the local
+     * player is rafting. The lily-pad becomes the raft, so the hands
+     * shouldn't appear cradling air or the un-rendered lily-pad.
+     */
+    @Inject(method = "renderHandsWithItems(FLcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/SubmitNodeCollector;Lnet/minecraft/client/player/LocalPlayer;I)V",
+            at = @At("HEAD"), cancellable = true)
+    private void gulliver$hideHandsWhileRafting(float partialTicks, PoseStack pose,
+                                                  SubmitNodeCollector buf,
+                                                  net.minecraft.client.player.LocalPlayer player,
+                                                  int light, CallbackInfo ci) {
+        if (((IResizeableLiving) player).isRafting()) {
+            ci.cancel();
+        }
+    }
+
     @Inject(method = "renderItem(Lnet/minecraft/world/entity/LivingEntity;Lnet/minecraft/world/item/ItemStack;Lnet/minecraft/world/item/ItemDisplayContext;Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/SubmitNodeCollector;I)V",
             at = @At("HEAD"), cancellable = true)
     private void gulliver$replaceFirstPersonGlide(LivingEntity entity, ItemStack stack,
@@ -44,6 +60,12 @@ public abstract class MixinItemInHandRenderer {
                                                     SubmitNodeCollector buf, int light, CallbackInfo ci) {
         if (!ctx.firstPerson()) return;
         IResizeableLiving sized = (IResizeableLiving) entity;
+        // Rafting: lily-pad is the raft (rendered separately) and the
+        // hand is occupied "using" it — hide both items in 1st person.
+        if (sized.isRafting()) {
+            ci.cancel();
+            return;
+        }
         boolean gliding = sized.isGliding();
         boolean umbrella = sized.doesUmbrella();
         if (!gliding && !umbrella) {

@@ -79,9 +79,16 @@ public abstract class MixinLivingEntityRenderer {
     }
 
     /**
-     * Render a lily-pad block under the player when rafting (1.6.4
-     * visual: tiny holding lily-pad in water sits ON TOP of a lily-pad
-     * block, like a tiny boat).
+     * Render a flat lily-pad raft under the player in 3rd-person view.
+     * 1st person uses LilyRaftWorldRenderer (different code path because
+     * the local player isn't passed through entity-render in 1st-person
+     * camera mode).
+     *
+     * Geometry: ItemDisplayContext.NONE strips display transforms so we
+     * get the bare 2D item quad. Rotate +90° around X to lay it flat
+     * (the item is vertical by default). Uniform 1.5× scale — no Y
+     * squish; previous 0.1 Y scale collapsed the already-flat item to
+     * a single line.
      */
     @Inject(method = "submit(Lnet/minecraft/client/renderer/entity/state/LivingEntityRenderState;Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/SubmitNodeCollector;Lnet/minecraft/client/renderer/state/level/CameraRenderState;)V",
             at = @At("RETURN"),
@@ -94,18 +101,22 @@ public abstract class MixinLivingEntityRenderer {
         if (!(state instanceof gulliver.access.IGlideRenderState g)) return;
         if (!g.gulliver$isRafting()) return;
         pose.pushPose();
-        // The pose-stack at this point is at entity origin. Translate
-        // down to feet height (state.scale * 0.0 — the entity's bbox
-        // bottom is at y=0 in entity-local space). Rotate Y 180° to match
-        // entity facing.
-        pose.translate(0.0F, 0.05F, 0.0F);
-        pose.scale(1.5F * state.scale, 0.1F * state.scale, 1.5F * state.scale);
+        // Pose at this point: entity origin (feet at y=0). Lift slightly
+        // so the disc reads as "platform under feet".
+        pose.translate(0.0F, 0.02F * state.scale, 0.0F);
+        // Lay the item quad flat (it's vertical by default in NONE).
+        pose.mulPose(com.mojang.math.Axis.XP.rotationDegrees(90.0F));
+        // Uniform 1.5× scale tracking entity scale.
+        float disc = 1.5F * state.scale;
+        pose.scale(disc, disc, disc);
+        // NONE-context corner-at-origin → recenter on player center.
+        pose.translate(-0.5F, 0.0F, 0.5F);
         net.minecraft.world.item.ItemStack stack =
                 new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.LILY_PAD);
         net.minecraft.client.renderer.item.ItemStackRenderState itemState =
                 new net.minecraft.client.renderer.item.ItemStackRenderState();
         net.minecraft.client.Minecraft.getInstance().getItemModelResolver().updateForTopItem(
-                itemState, stack, net.minecraft.world.item.ItemDisplayContext.GROUND,
+                itemState, stack, net.minecraft.world.item.ItemDisplayContext.NONE,
                 null, null, 0);
         itemState.submit(pose, buf, 15728880,
                 net.minecraft.client.renderer.texture.OverlayTexture.NO_OVERLAY, 0);
