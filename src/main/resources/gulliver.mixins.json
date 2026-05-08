@@ -16,6 +16,7 @@
     "MixinFarmlandBlock",
     "MixinFlowerPotBlock",
     "MixinItemEntityPickup",
+    "MixinItemStackUseDuration",
     "MixinLivingEntity",
     "MixinLivingEntityClimbRope",
     "MixinLivingEntityDamage",
