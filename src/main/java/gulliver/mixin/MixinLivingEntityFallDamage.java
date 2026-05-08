@@ -71,22 +71,32 @@ public abstract class MixinLivingEntityFallDamage {
         MobEffectInstance jb = self.getEffect(MobEffects.JUMP_BOOST);
         float f1 = jb != null ? jb.getAmplifier() + 1 : 0.0F;
 
-        // 1.6.4 used sizeroot here, but user feedback wanted MORE
-        // aggressive scaling: tinies should take basically no fall
-        // damage at the smallest sizes, giants should take much more.
-        // Use linear `size` instead of `sizeroot`:
-        //   size 0.125, fall 10, min=1.14 → (10-1.14)*0.125 = 1.1 → 1 hp
-        //   size 0.5,  fall 10, min=2.5  → (10-2.5)*0.5 = 3.75 → 4 hp
-        //   vanilla,   fall 10           → 7 hp
-        //   size 4,    fall 10, min=3.6  → (10-3.6)*4 = 25.6 → 26 hp
-        //   size 8,    fall 10, min=7.2  → (10-7.2)*8 = 22.4 → 23 hp
-        // Extra-tinies (<0.05) effectively immune to any reasonable fall.
-        double damageBlocks = (fallDistance - min - f1) * size;
+        // Asymmetric scaling. Vanilla had user perceive linear-size as
+        // "still way too much for tinies" because max HP also scales —
+        // 1 hp of 2.5 max is 40%, same as vanilla's 7 of 20. Tinies in
+        // reality are weightless (insects survive any fall) so we
+        // square the factor for sizes < 1:
+        //
+        //   factor = size <= 1 ? size * size : size
+        //
+        //   size 0.125, fall 10, min=1.14: (10-1.14)*0.0156 = 0.138 → 0 hp
+        //   size 0.125, fall 30:           (30-1.14)*0.0156 = 0.45  → 0 hp
+        //   size 0.125, fall 100:          (100-1.14)*0.0156 = 1.54 → 1 hp
+        //   size 0.5,   fall 10, min=2.53: (10-2.53)*0.25 = 1.87    → 1 hp
+        //   vanilla,    fall 10:           7 hp
+        //   size 4,     fall 10, min=3.6:  (10-3.6)*4 = 25.6        → 25 hp
+        //
+        // Tinies effectively immune to any reasonable fall; giants take
+        // much more than vanilla (proportional to body mass). Floor
+        // (not ceil) so sub-1-hp damage rounds DOWN — really small
+        // falls give zero damage, not 1 hp.
+        float factor = size <= 1.0F ? size * size : size;
+        double damageBlocks = (fallDistance - min - f1) * factor;
         if (damageBlocks <= 0.0D) {
             cir.setReturnValue(0);
             return;
         }
         double fallMult = self.getAttributeValue(Attributes.FALL_DAMAGE_MULTIPLIER);
-        cir.setReturnValue(Mth.floor(Math.ceil(damageBlocks) * multiplier * fallMult));
+        cir.setReturnValue(Mth.floor(damageBlocks * multiplier * fallMult));
     }
 }

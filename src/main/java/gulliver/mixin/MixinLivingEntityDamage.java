@@ -92,25 +92,14 @@ public abstract class MixinLivingEntityDamage {
             }
         }
 
-        // No LivingEntity attacker (explosions, fall, etc.). Still need
-        // to scale by target size.
-        if (targetSize != 1.0F && targetSize > 0.0F) {
-            float scaled = amount / targetSize;
-            if (scaled != amount) {
-                gulliver$inHurt.set(Boolean.TRUE);
-                try {
-                    AttackContext.set(attacker);
-                    boolean result = self.hurtServer(level, source, scaled);
-                    cir.setReturnValue(result);
-                } finally {
-                    gulliver$inHurt.set(Boolean.FALSE);
-                    AttackContext.clear();
-                }
-                return;
-            }
-        }
-        // No scaling needed. Set attacker context so the knockback that
-        // vanilla will fire (offset 460 of hurtServer) sees the attacker.
+        // No LivingEntity attacker (fall, drown, lava, cactus, etc.).
+        // 1.6.4 line 1395 gates target-side scaling on `cause != null`,
+        // so non-entity damage sources are NOT scaled by target size.
+        // Fall damage in particular is already pre-scaled inside
+        // MixinLivingEntityFallDamage's calculateFallDamage override —
+        // dividing by target size again would 8x a tiny's fall damage.
+        // No scaling here. Just set attacker context for any KB the
+        // vanilla path may fire.
         AttackContext.set(attacker);
     }
 
