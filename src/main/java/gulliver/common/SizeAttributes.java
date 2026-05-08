@@ -39,16 +39,13 @@ public final class SizeAttributes {
             Identifier.fromNamespaceAndPath("gulliver", "size_block_reach");
 
     public static void applyForSize(LivingEntity entity, float size) {
-        // Reach: 1.6.4 nn.java getRangeMultiplier — sqrt(size) for tinies,
-        // linear for giants. Linear-for-tinies gave size 0.125 a reach of
-        // 4.5 * 0.125 = 0.56 blocks (you couldn't break a block in front
-        // of you). Sqrt is the soft penalty curve: 0.125 → 0.354 → reach
-        // 1.59 / 1.06 (block / entity), usable.
-        float reachMul = size >= 1.0F ? size : (float) Math.sqrt(size);
-        applyMultiplierAmount(entity, Attributes.ENTITY_INTERACTION_RANGE,
-                ENTITY_REACH_ID, reachMul - 1.0F);
-        applyMultiplierAmount(entity, Attributes.BLOCK_INTERACTION_RANGE,
-                BLOCK_REACH_ID, reachMul - 1.0F);
+        // Reach: linear by size, both directions. The user explicitly
+        // wanted "tight" reach for tinies (matching the 4(221..222)
+        // build), even if it means barely-reaching nearby blocks.
+        // Tiny size 0.125 → entity reach 0.375, block 0.56 (just enough
+        // to break a block your face is touching).
+        applyMultiplier(entity, Attributes.ENTITY_INTERACTION_RANGE, ENTITY_REACH_ID, size);
+        applyMultiplier(entity, Attributes.BLOCK_INTERACTION_RANGE, BLOCK_REACH_ID, size);
 
         // Max HP and Armor: giants only. Tinies keep vanilla hearts and
         // armor — their "fragility" comes from the per-hit damage divide
