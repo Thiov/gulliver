@@ -1,8 +1,10 @@
 # Gulliver (Fabric)
 
-A faithful port of [Gulliver Forged 0.14.3 for Minecraft 1.6.4](https://www.curseforge.com/minecraft/mc-mods/gulliver-forged) to **Minecraft 26.1.2 / Fabric**.
+A faithful port of [Gulliver Forged 0.14.3 for Minecraft 1.6.4](https://www.curseforge.com/minecraft/mc-mods/gulliver-forged) to **Minecraft 26.1.2 / Fabric** — and, in places, an improvement on it.
 
 The original mod (UncleMion, 2013) is the only resizing mod with hand-tuned formulas for every system that touches body size — movement, jumping, fall damage, knockback, reach, climbing, gliding, container interaction, mob targeting, footstep crushing, particle scaling, and more. This port reimplements those formulas field-for-field; it is not a generic "scale attribute" wrapper.
+
+Where playtesting on modern MC exposed rough edges in the original design, this port refines them — see [Improvements over 1.6.4](#improvements-over-164) below. The mod still feels unmistakably like Gulliver, just with the corners that didn't survive 13 years of Minecraft evolution sanded down.
 
 ## What it does
 
@@ -74,15 +76,24 @@ docs/
   gulliver-survey.md    mod-survey notes from the porting work
 ```
 
+## Improvements over 1.6.4
+
+The 1.6.4 mod was excellent, but a few of its behaviors didn't survive playtesting on modern MC. This port refines them:
+
+- **Combat scaling is `sqrt`-based, not linear.** The 1.6.4 formula multiplied damage by the size ratio directly: a size-1 zombie hitting a size-0.125 tiny dealt 8× damage (instant-kill on a 10-HP target). The same applied to a size-8 attacker hitting a size-1 player. Switching to `sqrt(size)` keeps the "smaller takes more, larger hits harder" feel but compresses the 8× cases to ~2.83×.
+- **Mob blindness rule is relative, not absolute.** The 1.6.4 rule was "tinies (size < 0.3) are invisible to most mobs". This port generalises it: any target less than 0.3× the attacker's size is invisible. So a size-1 player hides from a size-8 zombie the same way a size-0.125 player hides from a size-1 zombie. Spider / cave spider / silverfish / endermite / bee always notice prey at any disparity.
+- **Spiders / insects actively pursue tinies regardless of light.** Vanilla spider light-gating kept them passive in daytime even when a tiny was nearby. A periodic server-tick scan now sets the target on idle arthropod predators when a tiny is within 16 blocks.
+- **Mob attacks miss tinies probabilistically.** Even when a hit lands, mob attackers swing at a target much smaller than themselves with `1 - (target/attacker)` miss chance (capped at 90%). Players are exempt — your aim isn't the problem.
+- **Tinies can interact with anything they're holding a tool for.** The original gated only doors / levers / buttons / gates / hatches / cabinets / safes via `canOpenSingleBlock`. This port extends the rule to ANY block with a function (chests, furnaces, crafting tables, anvils, beacons, pressure plates, jukeboxes, beds, etc.) when the tiny has no pointy item — and unlocks all of them again with a sword, stick, pickaxe, axe, hoe, shovel, or shears in hand.
+- **Tiny soft-block climbing is opt-in via shift.** 1.6.4 climbed dirt / wool / leaves / sand walls automatically — meaning a tiny walking past a wall would unintentionally start scaling it. The slime-ball climb path is unchanged (still automatic, still climbs any solid wall).
+- **Resize keybinds are creative-only.** Survival players can't bind their own size to a hotkey; the entity-target variant (feather + crosshair on entity) still works in any game mode and respects the server-side OP gate.
+- **Footstep crush damage is reduced.** 1.6.4 dealt `2 × stepperRoot / targetRoot` damage per tick — instant-kill at common disparities. Cut to 0.25× the original (~3 dmg per step at 4× vs 0.125×) so tinies have time to flee.
+- **Nameplates scale with the body.** Vanilla anchored the floating name tag to a constant world-space height, so a tiny's name floated 8× the body height above their head. The port scales the tag with the entity's render-state scale.
+- **Stick is a pointy item.** The 1.6.4 `isItemPointy` predicate inexplicably skipped vanilla sticks. Added — a tiny with a stick now gets the same interaction privileges as a tiny with a sword.
+
 ## Scope
 
-This port targets the **exact 0.14.3-MC1.6.4 behavior**. Later "Gulliver-like" reimplementations (Lilliputian, ProjectS) are explicitly out of scope — the original is the canonical reference.
-
-A handful of behaviors deviate from the literal 1.6.4 source where playtest feedback overruled it:
-
-- Damage scaling uses `sqrt(size)` instead of linear (the 1.6.4 8× multiplier at extreme size disparity was instant-kill).
-- Tiny soft-block climbing requires holding shift (1.6.4 climbed automatically — felt aggressive in modern movement).
-- Resize keybinds are creative-only for self-resize.
+This port targets the **0.14.3-MC1.6.4 behavior** as a baseline. Later "Gulliver-like" reimplementations (Lilliputian, ProjectS) are explicitly out of scope — the original is the canonical reference.
 
 Out of scope: Optifine glue, TMI, LittleBlocks, ThornyFlower (1.6.4-only block, no 26.x analog), the launch-wrapper coremod, and the AIR-HUD overlay (that was a 1.6.4 anti-Optifine workaround; modern MC renders correctly without it).
 
