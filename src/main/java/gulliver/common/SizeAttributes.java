@@ -29,14 +29,31 @@ import net.minecraft.world.entity.ai.attributes.Attributes;
 public final class SizeAttributes {
     private SizeAttributes() {}
 
+    private static final Identifier MAX_HEALTH_ID =
+            Identifier.fromNamespaceAndPath("gulliver", "size_max_health");
+    private static final Identifier ARMOR_ID =
+            Identifier.fromNamespaceAndPath("gulliver", "size_armor");
     private static final Identifier ENTITY_REACH_ID =
             Identifier.fromNamespaceAndPath("gulliver", "size_entity_reach");
     private static final Identifier BLOCK_REACH_ID =
             Identifier.fromNamespaceAndPath("gulliver", "size_block_reach");
 
     public static void applyForSize(LivingEntity entity, float size) {
+        // Reach attrs scale both directions (tinies short, giants long).
         applyMultiplier(entity, Attributes.ENTITY_INTERACTION_RANGE, ENTITY_REACH_ID, size);
         applyMultiplier(entity, Attributes.BLOCK_INTERACTION_RANGE, BLOCK_REACH_ID, size);
+
+        // Max HP and Armor: giants only. Tinies keep vanilla hearts and
+        // armor — their "fragility" comes from the per-hit damage divide
+        // in MixinLivingEntityDamage (target/size = 8x damage for tinies).
+        if (size > 1.0F) {
+            applyMultiplier(entity, Attributes.MAX_HEALTH, MAX_HEALTH_ID, size);
+            float bonus = Math.min(30.0F, (size - 1.0F) * 2.0F);
+            applyAdditive(entity, Attributes.ARMOR, ARMOR_ID, bonus);
+        } else {
+            removeModifier(entity, Attributes.MAX_HEALTH, MAX_HEALTH_ID);
+            removeModifier(entity, Attributes.ARMOR, ARMOR_ID);
+        }
     }
 
     private static void applyMultiplier(LivingEntity entity,

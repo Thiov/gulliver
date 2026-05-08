@@ -51,7 +51,6 @@
   "client": [
     "MixinCamera",
     "MixinCameraNearClip",
-    "MixinGuiHealth",
     "MixinGameRendererBob",
     "MixinHumanoidModelPose",
     "MixinHumanoidRenderState",
