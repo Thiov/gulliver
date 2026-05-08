@@ -79,21 +79,28 @@ public abstract class MixinLivingEntityDamage {
             }
 
             float scaled = amount;
-            // Target-side: divide by target size (1.6.4 line 1414).
-            if (targetSize != 1.0F) scaled = scaled / targetSize;
+            // 1.6.4 used LINEAR divide-by-targetSize (line 1414) and
+            // LINEAR multiply-by-attackerSize for bare-hands (line 1432).
+            // At an 8x size disparity (size-1 zombie vs size-0.125 tiny,
+            // or size-8 zombie vs size-1 player) that produced an 8x
+            // damage multiplier — instant-kill. User feedback 4(349):
+            // "way too much".
+            //
+            // Switch to sqrt for both directions: same direction of
+            // scaling (smaller takes more, larger hits harder) but the
+            // 8x cases compress to ~2.83x. The pointy-tiny bonus stays
+            // at cbrt — a tiny+stick already does very little damage,
+            // and weakening it further would make the immunity-bypass
+            // path useless.
+            if (targetSize != 1.0F) scaled = scaled / (float) Math.sqrt(targetSize);
 
-            // Attacker-side scaling.
             if (attackerSize != 1.0F) {
                 net.minecraft.world.item.ItemStack hand = attackerLiv.getMainHandItem();
                 boolean hasItem = hand != null && !hand.isEmpty();
-                if (hasItem) {
-                    if (attackerSize < 1.0F && GulliverEnvoy.isItemPointy(hand)) {
-                        scaled *= (float) Math.cbrt(attackerSize);
-                    } else {
-                        scaled *= (float) Math.sqrt(attackerSize);
-                    }
+                if (hasItem && attackerSize < 1.0F && GulliverEnvoy.isItemPointy(hand)) {
+                    scaled *= (float) Math.cbrt(attackerSize);
                 } else {
-                    scaled *= attackerSize;  // bare-hands linear (1.6.4 line 1432)
+                    scaled *= (float) Math.sqrt(attackerSize);
                 }
             }
 
