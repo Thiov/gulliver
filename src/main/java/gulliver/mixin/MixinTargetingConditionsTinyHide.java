@@ -38,8 +38,16 @@ public abstract class MixinTargetingConditionsTinyHide {
                                                 CallbackInfoReturnable<Boolean> cir) {
         if (target == null) return;
         if (!((IResizeableEntity) target).isTiny()) return;
-        // Spider/insect attackers still notice tinies; everyone else doesn't.
-        if (attacker == null || gulliver$isSmallCreaturePredator(attacker.getType())) return;
+        if (attacker == null) return;
+        // Spider/insect attackers still notice tinies actively (passive
+        // scanning works for them).
+        if (gulliver$isSmallCreaturePredator(attacker.getType())) return;
+        // HurtByTargetGoal context: when the attacker has been hit by
+        // this target, retaliation is allowed regardless of size. The
+        // goal calls TargetingConditions.test with HURT_BY_TARGETING and
+        // target=lastHurtByMob; without this branch the AI would be
+        // unable to fight back when a tiny hits a zombie/skeleton/etc.
+        if (attacker.getLastHurtByMob() == target) return;
         cir.setReturnValue(false);
     }
 

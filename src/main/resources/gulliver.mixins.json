@@ -40,6 +40,7 @@
     "MixinLivingEntityTinyEffects",
     "MixinPlayer",
     "MixinPlayerBreakSpeed",
+    "MixinPlayerExtraKnockbackContext",
     "MixinPlayerPointyReach",
     "MixinPlayerSaveSize",
     "MixinPlayerShoulder",

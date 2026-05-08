@@ -1008,7 +1008,15 @@ public final class GulliverEnvoy {
             if (tBox.maxY < sBottom) continue;
             if (tBox.minY > sBottom + sHeight * 0.0625F) continue;
 
-            float dmg = (float) Math.ceil(2.0F * stepperRoot / tsized.getSizeMultiplierRoot());
+            // 1.6.4 used 2 * stepperRoot / targetRoot, which for a size-4
+            // giant stepping on a size-0.125 tiny produces ceil(11.3) = 12
+            // damage per hit. Combined with vanilla's 10-tick invuln window
+            // that's 24 dmg/sec — instant kill on a normal-HP tiny. User
+            // reported this as "crazy damage" in 4(343). Cut the multiplier
+            // to 0.5 (0.25× the original): same scaling shape, but a giant
+            // step is now ~3 dmg, which the tiny can flee from.
+            float dmg = (float) Math.ceil(0.5F * stepperRoot / tsized.getSizeMultiplierRoot());
+            if (dmg < 1.0F) dmg = 1.0F;
             living.hurt(gulliver.init.GulliverDamageTypes.passive(level, stepper), dmg);
         }
     }
