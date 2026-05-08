@@ -404,6 +404,7 @@ public final class GulliverEnvoy {
         if (stack.is(Items.SHEARS)) return true;
         if (stack.is(Items.SNOWBALL)) return true;
         if (stack.is(Items.CACTUS)) return true;
+        if (stack.is(Items.STICK)) return true;
         // Thorny-flower / scissors / magma-cream had no direct 26.x
         // equivalents in the 1.6.4 vanilla set the original referenced.
         return false;

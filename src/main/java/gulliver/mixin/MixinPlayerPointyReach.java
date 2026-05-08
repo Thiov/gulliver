@@ -16,20 +16,19 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
  * {@code rmult = Math.cbrt(getSizeMultiplier())} — i.e., reach lifted
  * back up well above the linear size-scaled value.
  *
- * Per the user's stated intent, the bump should give a tiny holding
- * stick/sword "the reach of a normal size-0.5 player" — so we promote
- * the result to 0.5 * base (independent of the player's actual size,
- * as long as they're below 0.5). This matches the mental model better
- * than cbrt at very small sizes (e.g., size 0.0625 + pointy: cbrt
- * gives 0.397, the 0.5 floor gives 0.5 — the user wants the floor).
+ * After playtest feedback (4(338)): 0.5*base wasn't enough for a
+ * size-0.125 tiny to actually hit a size-1 mob standing next to them.
+ * The user's intent — "with a stick/sword, a tiny should be able to
+ * hit a normal mob, and a size-1 should be able to hit a size-8" —
+ * argues for restoring full vanilla reach when pointy. We now return
+ * the un-modified base value, ignoring the size scaling entirely.
  *
  * Applies to BOTH block and entity reach so right-clicking a chest and
  * attacking a mob both feel the same.
  *
  * Below the 0.5 threshold the player's attribute-scaled reach (linear,
  * size-driven, set in SizeAttributes) is too short to ever exceed
- * base * 0.5, so we replace the return value outright. No max() check
- * needed.
+ * base, so we replace the return value outright. No max() check needed.
  */
 @Mixin(Player.class)
 public abstract class MixinPlayerPointyReach {
@@ -42,7 +41,7 @@ public abstract class MixinPlayerPointyReach {
         if (!GulliverEnvoy.holdingPointyItem(self)) return;
         AttributeInstance attr = self.getAttribute(Attributes.BLOCK_INTERACTION_RANGE);
         double base = attr != null ? attr.getBaseValue() : 4.5D;
-        cir.setReturnValue(base * 0.5D);
+        cir.setReturnValue(base);
     }
 
     @Inject(method = "entityInteractionRange", at = @At("RETURN"), cancellable = true)
@@ -53,6 +52,6 @@ public abstract class MixinPlayerPointyReach {
         if (!GulliverEnvoy.holdingPointyItem(self)) return;
         AttributeInstance attr = self.getAttribute(Attributes.ENTITY_INTERACTION_RANGE);
         double base = attr != null ? attr.getBaseValue() : 3.0D;
-        cir.setReturnValue(base * 0.5D);
+        cir.setReturnValue(base);
     }
 }

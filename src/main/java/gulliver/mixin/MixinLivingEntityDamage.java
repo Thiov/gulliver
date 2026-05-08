@@ -47,11 +47,33 @@ public abstract class MixinLivingEntityDamage {
         if (attacker instanceof LivingEntity attackerLiv && attacker != self) {
             float attackerSize = ((IResizeableEntity) attacker).getSizeMultiplier();
 
-            // Damage immunity gap: 8x size disparity in either direction →
-            // no damage. A microscopic mob can't bite a giant; a giant
-            // doesn't get hurt by a microscopic mob's hit either. The
-            // user's case (size 0.125 hits size 1) returns false here.
-            if (attackerSize / targetSize <= 0.125F) {
+            // 4(338) miss chance: a mob attacker much larger than its
+            // target rolls a miss with probability 1 - (target/attacker),
+            // capped at 90%. Models "swing whiffs over the tiny's head" —
+            // a size-1 zombie hitting a size-0.125 player misses 87.5%
+            // of the time. Only applies to Mob attackers; Player vs Player
+            // hits always land. Skipped if attacker holds a pointy item
+            // (precision strike) — sword users always land.
+            if (attackerLiv instanceof net.minecraft.world.entity.Mob
+                    && targetSize < attackerSize
+                    && !GulliverEnvoy.holdingPointyItem(attackerLiv)) {
+                float ratio = targetSize / attackerSize;
+                float missChance = Math.min(0.9F, 1.0F - ratio);
+                if (self.level().getRandom().nextFloat() < missChance) {
+                    cir.setReturnValue(false);
+                    return;
+                }
+            }
+
+            // Damage immunity gap: 8x size disparity → no damage when
+            // ATTACKER is far smaller than target. A microscopic mob
+            // can't bite a giant. EXCEPT when the attacker is wielding a
+            // pointy item — sword/stick gives them the precision to land
+            // a (cbrt-scaled, much-reduced) hit on a vastly larger foe.
+            // The user's case (size 0.125 + stick hits size 1) goes
+            // through the cbrt branch below.
+            boolean attackerPointy = GulliverEnvoy.holdingPointyItem(attackerLiv);
+            if (!attackerPointy && attackerSize / targetSize <= 0.125F) {
                 cir.setReturnValue(false);
                 return;
             }

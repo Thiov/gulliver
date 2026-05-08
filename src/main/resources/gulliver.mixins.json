@@ -44,6 +44,7 @@
     "MixinPlayerSaveSize",
     "MixinPlayerShoulder",
     "MixinPressurePlateTinyIgnore",
+    "MixinTargetingConditionsTinyHide",
     "MixinSnowLayerBlock",
     "MixinSoulSandBlock",
     "MixinTntBlock",
@@ -60,6 +61,7 @@
     "MixinItemInHandRenderer",
     "MixinLivingEntityRenderer",
     "MixinPlayerModelPose",
+    "MixinEntityRendererNameTag",
     "MixinMinecraftAttackThrow",
     "MixinMultiPlayerGameModeUseItem"
   ],

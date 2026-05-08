@@ -12,21 +12,24 @@ import net.minecraft.world.item.Items;
 import net.minecraft.world.phys.EntityHitResult;
 
 /**
- * 1.6.4 KeyInputHandler — three keybinds:
- *   key.UPSIZE   = LWJGL2 19 (R) → /doublesize, OR /entitydoublesize <id>
- *                  if holding feather + targeting an entity
- *   key.DOWNSIZE = LWJGL2 33 (F) → /halfsize, OR /entityhalfsize <id>
- *                  if holding feather + targeting an entity
- *   key.SHOULDER = LWJGL2 47 (V) → /shoulderentity
+ * 1.6.4 KeyInputHandler — three keybinds. Defaults updated 4(338):
+ *   key.UPSIZE   = U → /doublesize, OR /entitydoublesize <id>
+ *   key.DOWNSIZE = I → /halfsize,  OR /entityhalfsize <id>
+ *   key.SHOULDER = V → /shoulderentity
+ *
+ * Self-resize (no entity target) is creative-only. The 1.6.4 keybind
+ * assumed creative-or-cheat, but Forge didn't gate it; in this port we
+ * make it explicit because survival self-resize would let players
+ * arbitrarily duck under blocks without items / costs.
+ *
+ * Feather + entity target still dispatches the entity-targeted variant
+ * (the /entitydoublesize and /entityhalfsize commands handle their own
+ * permission gating server-side via the OP-level on the command).
  *
  * GLFW key codes (used in 26.x):
- *   R → GLFW_KEY_R = 82
- *   F → GLFW_KEY_F = 70
+ *   U → GLFW_KEY_U = 85
+ *   I → GLFW_KEY_I = 73
  *   V → GLFW_KEY_V = 86
- *
- * Feather + entity target dispatches the entity-targeted variant; bare
- * (or other item) fires the self-targeted variant. Mirrors 1.6.4
- * KeyInputHandler.keyDown logic exactly.
  */
 public final class KeyInputHandler {
     private KeyInputHandler() {}
@@ -37,11 +40,12 @@ public final class KeyInputHandler {
     // worth the wiring later.
     private static final KeyMapping.Category CATEGORY = KeyMapping.Category.MISC;
     // GLFW key codes inlined to avoid pulling in the LWJGL3 GLFW class:
-    //   R = 82, F = 70, V = 86  (matches 1.6.4 LWJGL2 codes 19/33/47 by character).
+    //   U = 85, I = 73, V = 86. Defaults moved off R/F to U/I in 4(338);
+    //   R/F collide with vanilla swap-hands (F) and reload-resourcepack (F3+R).
     public static final KeyMapping UPSIZE = new KeyMapping(
-            "key.gulliver.upsize", InputConstants.Type.KEYSYM, 82, CATEGORY);
+            "key.gulliver.upsize", InputConstants.Type.KEYSYM, 85, CATEGORY);
     public static final KeyMapping DOWNSIZE = new KeyMapping(
-            "key.gulliver.downsize", InputConstants.Type.KEYSYM, 70, CATEGORY);
+            "key.gulliver.downsize", InputConstants.Type.KEYSYM, 73, CATEGORY);
     public static final KeyMapping SHOULDER = new KeyMapping(
             "key.gulliver.shoulder", InputConstants.Type.KEYSYM, 86, CATEGORY);
 
@@ -63,12 +67,16 @@ public final class KeyInputHandler {
         LocalPlayer player = client.player;
         if (player == null) return;
         ItemStack mainHand = player.getMainHandItem();
+        // Feather + targeted entity → resize the entity (op-gated server-side).
+        // Self-resize is creative-only — survival players can't bind their
+        // own size to a hotkey.
         if (mainHand.is(Items.FEATHER) && client.hitResult instanceof EntityHitResult ehr) {
             Entity target = ehr.getEntity();
             sendCommand(player, (upsize ? "entitydoublesize " : "entityhalfsize ") + target.getId());
-        } else {
-            sendCommand(player, upsize ? "doublesize" : "halfsize");
+            return;
         }
+        if (!player.getAbilities().instabuild) return;
+        sendCommand(player, upsize ? "doublesize" : "halfsize");
     }
 
     private static void sendCommand(LocalPlayer player, String cmd) {

@@ -40,7 +40,10 @@ public abstract class MixinLivingEntityTinyClimb {
         LivingEntity self = (LivingEntity) (Object) this;
         IResizeableEntity sized = (IResizeableEntity) self;
         if (!sized.isTiny()) return;
-        if (gulliver$adjacentClimbRate(self) > 0.0F) {
+        // Soft-block climb is opt-in via shift (per user 4(338)): a tiny
+        // walking past a dirt wall shouldn't pause to climb it. Slime-ball
+        // ("sticky") climb stays automatic — that's the explicit-item path.
+        if (self.isShiftKeyDown() && gulliver$adjacentClimbRate(self) > 0.0F) {
             cir.setReturnValue(true);
             return;
         }
@@ -54,7 +57,10 @@ public abstract class MixinLivingEntityTinyClimb {
         LivingEntity self = (LivingEntity) (Object) this;
         IResizeableEntity sized = (IResizeableEntity) self;
         if (!sized.isTiny()) return;
-        float rate = gulliver$adjacentClimbRate(self);
+        // Match the onClimbable gate: soft-block path requires shift,
+        // sticky-block path doesn't.
+        boolean shifted = self.isShiftKeyDown();
+        float rate = shifted ? gulliver$adjacentClimbRate(self) : 0.0F;
         boolean stickyClimb = sized.isSticky() && rate <= 0.0F
                 && gulliver$hasAdjacentSolid(self);
         if (rate <= 0.0F && !stickyClimb) return;
