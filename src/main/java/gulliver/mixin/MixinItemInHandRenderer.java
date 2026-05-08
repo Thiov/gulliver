@@ -69,20 +69,18 @@ public abstract class MixinItemInHandRenderer {
         boolean gliding = sized.isGliding();
         boolean umbrella = sized.doesUmbrella();
         if (!gliding && !umbrella) {
-            // 1st-person item scale matches 3rd-person net scale = sqrt(size).
-            // 3rd-person mixin applies 1/sqrt(size) inside the parent body
-            // scaled by `size`, so net = sqrt(size). 1st-person has no
-            // parent body scale, so apply sqrt(size) directly:
-            //   tiny  0.125 → 0.354× (smaller item, doesn't block view)
-            //   vanilla     → 1.0× (untouched)
-            //   giant 8     → 2.83× (larger item, matches huge hand)
-            // Previous attempt used 1/sqrt(size) which INVERTED the
-            // direction (tinies got 2.83× items filling the screen).
+            // 1st-person item scale: tiny → BIG, giant → small (matches
+            // 3rd-person where the item looks oversized relative to a
+            // tiny body). User wants this exact relative direction in
+            // 1st person too. Use 1/sqrt(size):
+            //   tiny  0.125 → 2.83× (item appears big in tiny POV)
+            //   vanilla     → 1.0×
+            //   giant 8     → 0.354× (item appears small in giant POV)
             float size = sized.getSizeMultiplier();
             if (size == 1.0F) return;
             pose.pushPose();
-            float root = (float) Math.sqrt(size);
-            pose.scale(root, root, root);
+            float invRoot = 1.0F / (float) Math.sqrt(size);
+            pose.scale(invRoot, invRoot, invRoot);
             return;
         }
         // 1st person paper: rendering matrix conventions in modern MC
