@@ -39,9 +39,16 @@ public final class SizeAttributes {
             Identifier.fromNamespaceAndPath("gulliver", "size_block_reach");
 
     public static void applyForSize(LivingEntity entity, float size) {
-        // Reach attrs scale both directions (tinies short, giants long).
-        applyMultiplier(entity, Attributes.ENTITY_INTERACTION_RANGE, ENTITY_REACH_ID, size);
-        applyMultiplier(entity, Attributes.BLOCK_INTERACTION_RANGE, BLOCK_REACH_ID, size);
+        // Reach: 1.6.4 nn.java getRangeMultiplier — sqrt(size) for tinies,
+        // linear for giants. Linear-for-tinies gave size 0.125 a reach of
+        // 4.5 * 0.125 = 0.56 blocks (you couldn't break a block in front
+        // of you). Sqrt is the soft penalty curve: 0.125 → 0.354 → reach
+        // 1.59 / 1.06 (block / entity), usable.
+        float reachMul = size >= 1.0F ? size : (float) Math.sqrt(size);
+        applyMultiplierAmount(entity, Attributes.ENTITY_INTERACTION_RANGE,
+                ENTITY_REACH_ID, reachMul - 1.0F);
+        applyMultiplierAmount(entity, Attributes.BLOCK_INTERACTION_RANGE,
+                BLOCK_REACH_ID, reachMul - 1.0F);
 
         // Max HP and Armor: giants only. Tinies keep vanilla hearts and
         // armor — their "fragility" comes from the per-hit damage divide
@@ -54,6 +61,21 @@ public final class SizeAttributes {
             removeModifier(entity, Attributes.MAX_HEALTH, MAX_HEALTH_ID);
             removeModifier(entity, Attributes.ARMOR, ARMOR_ID);
         }
+    }
+
+    private static void applyMultiplierAmount(LivingEntity entity,
+                                                Holder<Attribute> attr,
+                                                Identifier id,
+                                                float amount) {
+        AttributeInstance inst = entity.getAttribute(attr);
+        if (inst == null) return;
+        if (amount == 0.0F) {
+            if (inst.getModifier(id) != null) inst.removeModifier(id);
+            return;
+        }
+        AttributeModifier mod = new AttributeModifier(
+                id, amount, AttributeModifier.Operation.ADD_MULTIPLIED_BASE);
+        inst.addOrReplacePermanentModifier(mod);
     }
 
     private static void applyMultiplier(LivingEntity entity,

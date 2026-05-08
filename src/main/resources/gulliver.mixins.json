@@ -40,7 +40,6 @@
     "MixinPlayer",
     "MixinPlayerBreakSpeed",
     "MixinPlayerSaveSize",
-    "MixinPlayerReach",
     "MixinPlayerShoulder",
     "MixinSnowLayerBlock",
     "MixinSoulSandBlock",

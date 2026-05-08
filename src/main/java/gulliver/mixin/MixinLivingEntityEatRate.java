@@ -10,19 +10,22 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 /**
- * Scale eat/drink/use rate by entity size.
+ * Scale eat/drink/use rate by entity size — without breaking the
+ * eating animation or sound.
  *
- * Tinies (size < 1): @Inject HEAD on updateUsingItem skips most ticks
- * via tickCount % factor gating. Vanilla decrement and onUseTick run
- * at full vanilla cadence on the ticks we DO run, so the eat sound
- * fires at normal rate (just over more wall-time).
+ * Both branches run their OWN replacement of updateUsingItem so we
+ * have full control over what happens each tick.
  *
- * Giants (size > 1): cancel vanilla and run our own update with a
- * size-aware decrement. Calling completeUsingItem manually when the
- * counter reaches 0. Previous attempt used @Redirect on the putfield
- * — which left the stack value at vanilla -1, so the in-method
- * `ifne 48` jump skipped completeUsingItem indefinitely (the eat
- * looped forever).
+ * Tinies (size < 1): every tick fires onUseTick (animation + sound
+ * continue smoothly), but the decrement only happens every Nth tick
+ * so the total wall-time is ~1/size as long. Previous "skip the whole
+ * tick" approach made the animation freeze for factor-1 ticks at a
+ * time — felt jittery / laggy.
+ *
+ * Giants (size > 1): every tick fires onUseTick, decrement is
+ * ceil(size) per tick so the eat completes in roughly 1/size ticks.
+ *
+ * Vanilla size 1.0: pass through, no override.
  */
 @Mixin(LivingEntity.class)
 public abstract class MixinLivingEntityEatRate {
@@ -36,31 +39,35 @@ public abstract class MixinLivingEntityEatRate {
     private void gulliver$customUpdate(ItemStack stack, CallbackInfo ci) {
         LivingEntity self = (LivingEntity) (Object) this;
         float size = ((IResizeableEntity) self).getSizeMultiplier();
-        if (size == 1.0F) return;
+        if (size == 1.0F) return; // vanilla — no override
 
-        if (size < 1.0F) {
-            // Tinies: gate by tickCount; let vanilla run only on
-            // every Nth tick so the eat takes 1/size as long.
-            int factor = Math.max(2, Math.round(1.0F / size));
-            if ((self.tickCount % factor) != 0) {
-                ci.cancel();
-            }
-            // else: don't cancel, vanilla updateUsingItem runs normally.
-            return;
-        }
-
-        // Giants: cancel vanilla, run our own logic with multi-decrement.
         ci.cancel();
-        int dec = (int) Math.ceil(size); // decrement per tick
 
-        // Mimic vanilla's onUseTick call so visuals/sounds still fire.
+        // onUseTick fires every tick regardless of size — animation and
+        // particle/sound emission stay continuous. We're only changing
+        // the rate at which useItemRemaining counts down.
         stack.onUseTick(self.level(), self, useItemRemaining);
 
-        useItemRemaining -= dec;
-        if (useItemRemaining <= 0) {
-            useItemRemaining = 0;
-            if (!self.level().isClientSide() && !stack.useOnRelease()) {
-                completeUsingItem();
+        int dec;
+        if (size < 1.0F) {
+            // Tiny: decrement only on every Nth tick. tickCount mod gate
+            // keeps the animation smooth (onUseTick still runs every
+            // tick) while extending the total eat time to ~1/size as
+            // long as vanilla.
+            int factor = Math.max(2, Math.round(1.0F / size));
+            dec = (self.tickCount % factor == 0) ? 1 : 0;
+        } else {
+            // Giant: multi-decrement per tick.
+            dec = (int) Math.ceil(size);
+        }
+
+        if (dec > 0) {
+            useItemRemaining -= dec;
+            if (useItemRemaining <= 0) {
+                useItemRemaining = 0;
+                if (!self.level().isClientSide() && !stack.useOnRelease()) {
+                    completeUsingItem();
+                }
             }
         }
     }
