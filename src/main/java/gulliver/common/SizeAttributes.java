@@ -31,9 +31,22 @@ public final class SizeAttributes {
             Identifier.fromNamespaceAndPath("gulliver", "size_max_health");
     private static final Identifier ARMOR_ID =
             Identifier.fromNamespaceAndPath("gulliver", "size_armor");
+    private static final Identifier ENTITY_REACH_ID =
+            Identifier.fromNamespaceAndPath("gulliver", "size_entity_reach");
+    private static final Identifier BLOCK_REACH_ID =
+            Identifier.fromNamespaceAndPath("gulliver", "size_block_reach");
 
     public static void applyForSize(LivingEntity entity, float size) {
         applyMultiplier(entity, Attributes.MAX_HEALTH, MAX_HEALTH_ID, size);
+        // Reach attributes scale linearly with size — needed because
+        // vanilla's AttackRange.defaultFor and various range checks read
+        // these attributes DIRECTLY (bypassing Player.entityInteractionRange
+        // mixin). Without these modifiers, a size-8 player has 8x the
+        // arm length but the game still uses vanilla 4-block reach,
+        // making them unable to actually attack mobs at the foot of
+        // their giant body.
+        applyMultiplier(entity, Attributes.ENTITY_INTERACTION_RANGE, ENTITY_REACH_ID, size);
+        applyMultiplier(entity, Attributes.BLOCK_INTERACTION_RANGE, BLOCK_REACH_ID, size);
         // Armor: bonus for giants only, additive (capped). Tinies don't
         // lose armor, so for size <= 1 we remove the modifier entirely.
         if (size > 1.0F) {

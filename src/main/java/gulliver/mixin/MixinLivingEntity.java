@@ -182,21 +182,16 @@ public abstract class MixinLivingEntity implements IResizeableLiving,
         float item   = access.gulliver$getSizeItemMultiplier();
         gulliver.common.SizeAttributes.applyForSize(self, clamped * potion * item);
 
-        // Proportional HP/air rescale so % full stays constant. Single
-        // setHealth call (instead of per-tick) so the HUD only sees one
-        // jump — no perception of damage during a smooth shrink.
-        if (oldLive > 0.0F && oldLive != clamped) {
-            float ratio = clamped / oldLive;
-            float newHp = self.getHealth() * ratio;
-            float maxHp = self.getMaxHealth();
-            if (newHp > maxHp) newHp = maxHp;
-            self.setHealth(newHp);
-
-            int newAir = (int) (self.getAirSupply() * ratio);
-            int maxAir = self.getMaxAirSupply();
-            if (newAir > maxAir) newAir = maxAir;
-            self.setAirSupply(newAir);
-        }
+        // Per user request: do NOT rescale current HP / air on resize.
+        // Hearts stay full when shrinking (max scales but current stays
+        // capped to new max via vanilla setHealth clamp the next time
+        // any code path calls it). Damage-taken / damage-dealt scaling
+        // by size still applies — see MixinLivingEntityDamage.
+        // Just clamp once now so current can never exceed the new max.
+        float maxHp = self.getMaxHealth();
+        if (self.getHealth() > maxHp) self.setHealth(maxHp);
+        int maxAir = self.getMaxAirSupply();
+        if (self.getAirSupply() > maxAir) self.setAirSupply(maxAir);
 
         self.refreshDimensions();
         SizeSync.broadcast(self);

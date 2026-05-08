@@ -46,9 +46,15 @@ public abstract class MixinEntity implements IResizeableEntity, IGulliverEntityI
     @Override
     @Unique
     public float getSizeMultiplier() {
-        return gulliver$sizeBaseMultiplier
+        float composed = gulliver$sizeBaseMultiplier
                 * gulliver$sizePotionMultiplier
                 * gulliver$sizeItemMultiplier;
+        // Hard floor / ceiling regardless of which multiplier (base,
+        // potion, item) drove us out of range. /halfsize-ing on top of
+        // ensmallening II should not produce 0.0625 — clamp at 0.125.
+        if (composed < 0.125F) return 0.125F;
+        if (composed > 8.0F) return 8.0F;
+        return composed;
     }
 
     @Override

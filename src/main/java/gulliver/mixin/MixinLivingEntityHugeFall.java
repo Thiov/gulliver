@@ -45,12 +45,20 @@ public abstract class MixinLivingEntityHugeFall {
         Level level = self.level();
         if (level.isClientSide()) return;
 
+        // Gate: any fall under 3 blocks doesn't crush ground at all.
+        // 1.6.4 had `if (fallDist <= 3) lev--`, which still destroyed 2
+        // layers for size 8 from a 1-block step — too aggressive (user
+        // reported giants smashing the floor every step). Real fall
+        // damage starts at fallDistance > 3 anyway, so this is the
+        // natural cutoff.
+        if (fallDistance < 3.0) return;
+
         float size = sized.getSizeMultiplier();
         AABB bb = self.getBoundingBox();
         double width = bb.maxX - bb.minX;
         int r = (int) Math.ceil(width * 0.5);
         int lev = (int) Math.floor(Math.log(size) / Math.log(2.0));
-        if (fallDistance <= 3.0) lev--;
+        if (fallDistance <= 5.0) lev--;
         if (lev <= 0) return;
 
         int l = (int) Math.floor((bb.minX + bb.maxX) * 0.5);

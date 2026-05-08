@@ -47,6 +47,11 @@ public abstract class MixinLivingEntityDamage {
         if (attacker instanceof LivingEntity attackerLiv && attacker != self) {
             float attackerSize = ((IResizeableEntity) attacker).getSizeMultiplier();
 
+            gulliver.GulliverFabric.LOGGER.info(
+                    "[gulliver-dmg] attacker={} size={} target={} size={} amount={}",
+                    attacker.getName().getString(), attackerSize,
+                    self.getName().getString(), targetSize, amount);
+
             // Damage immunity gap: 8x size disparity in either direction →
             // no damage. A microscopic mob can't bite a giant; a giant
             // doesn't get hurt by a microscopic mob's hit either. The

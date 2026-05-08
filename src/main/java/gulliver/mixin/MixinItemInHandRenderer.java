@@ -69,13 +69,12 @@ public abstract class MixinItemInHandRenderer {
         boolean gliding = sized.isGliding();
         boolean umbrella = sized.doesUmbrella();
         if (!gliding && !umbrella) {
-            // Non-glide first-person: just apply size scale at HEAD,
-            // pop on RETURN. Vanilla rendering proceeds unchanged.
-            float size = sized.getSizeMultiplier();
-            if (size == 1.0F) return;
-            pose.pushPose();
-            float invRoot = 1.0F / (float) Math.sqrt(size);
-            pose.scale(invRoot, invRoot, invRoot);
+            // Non-glide first-person: don't apply any scaling. The
+            // previous 1/sqrt(size) for tinies inflated the held-item /
+            // hand model by 2.83× at size 0.125, filling the screen and
+            // completely blocking the player's view. In 1st person the
+            // hand IS the player's hand from their POV — vanilla scale
+            // looks correct (everything is relative). Just pass-through.
             return;
         }
         // 1st person paper: rendering matrix conventions in modern MC
@@ -88,16 +87,6 @@ public abstract class MixinItemInHandRenderer {
         ci.cancel();
     }
 
-    @Inject(method = "renderItem(Lnet/minecraft/world/entity/LivingEntity;Lnet/minecraft/world/item/ItemStack;Lnet/minecraft/world/item/ItemDisplayContext;Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/SubmitNodeCollector;I)V",
-            at = @At("RETURN"))
-    private void gulliver$popFirstPerson(LivingEntity entity, ItemStack stack,
-                                          ItemDisplayContext ctx, PoseStack pose,
-                                          SubmitNodeCollector buf, int light, CallbackInfo ci) {
-        if (!ctx.firstPerson()) return;
-        IResizeableLiving sized = (IResizeableLiving) entity;
-        if (sized.isGliding() || sized.doesUmbrella()) return; // already cancelled
-        float size = sized.getSizeMultiplier();
-        if (size == 1.0F) return;
-        pose.popPose();
-    }
+    // RETURN handler removed — HEAD branch no longer pushes the pose,
+    // so there's nothing to pop.
 }
