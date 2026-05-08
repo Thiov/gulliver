@@ -163,10 +163,42 @@ public abstract class MixinLivingEntity implements IResizeableLiving,
     public void setBaseSize(float size) {
         LivingEntity self = (LivingEntity) (Object) this;
         float clamped = gulliver$clampBase(size);
-        // Set the DESTINATION; the per-tick tween in MixinLivingEntitySizeTween
-        // animates the live base toward it. Broadcast immediately so clients
-        // receive the destination and animate locally with the same lerp.
-        ((IGulliverEntityInternal) this).gulliver$setSizeBaseDestMultiplier(clamped);
+        IGulliverEntityInternal access = (IGulliverEntityInternal) this;
+
+        // Snap LIVE base AND dest to the new value (no tween). The tween
+        // caused gradual HP drops that the HUD interpreted as damage,
+        // and the gradual eye-height shift caused camera jolt. Snapping
+        // is uglier but visually MUCH less disruptive — the entity's
+        // hearts and stats update once, and the HUD renders correctly
+        // because attribute MAX_HEALTH is updated in the same step.
+        float oldLive = access.gulliver$getSizeBaseMultiplier();
+        access.gulliver$setSizeBaseMultiplier(clamped);
+        access.gulliver$setSizeBaseDestMultiplier(clamped);
+
+        // Apply size-based attribute modifiers (MAX_HEALTH, ARMOR) so
+        // the HUD's heart count actually changes. The HUD reads MAX_HEALTH
+        // attribute directly, bypassing getMaxHealth() injects.
+        float potion = access.gulliver$getSizePotionMultiplier();
+        float item   = access.gulliver$getSizeItemMultiplier();
+        gulliver.common.SizeAttributes.applyForSize(self, clamped * potion * item);
+
+        // Proportional HP/air rescale so % full stays constant. Single
+        // setHealth call (instead of per-tick) so the HUD only sees one
+        // jump — no perception of damage during a smooth shrink.
+        if (oldLive > 0.0F && oldLive != clamped) {
+            float ratio = clamped / oldLive;
+            float newHp = self.getHealth() * ratio;
+            float maxHp = self.getMaxHealth();
+            if (newHp > maxHp) newHp = maxHp;
+            self.setHealth(newHp);
+
+            int newAir = (int) (self.getAirSupply() * ratio);
+            int maxAir = self.getMaxAirSupply();
+            if (newAir > maxAir) newAir = maxAir;
+            self.setAirSupply(newAir);
+        }
+
+        self.refreshDimensions();
         SizeSync.broadcast(self);
     }
 

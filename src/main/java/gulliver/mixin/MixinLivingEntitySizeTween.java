@@ -35,50 +35,20 @@ public abstract class MixinLivingEntitySizeTween {
         float base = access.gulliver$getSizeBaseMultiplier();
         float dest = access.gulliver$getSizeBaseDestMultiplier();
 
+        // Tween was removed — setBaseSize now snaps directly. This branch
+        // only triggers from external code paths (NBT load, COPY_FROM,
+        // potion/item resize) that may set base/dest separately. Snap
+        // base to dest in one tick so we never enter a long-tween state.
         if (base != dest) {
-            float diff = dest - base;
-            float step = diff * 0.15F; // ~6-7 ticks to close 99% of distance
-            float next;
-            if (Math.abs(diff) < 0.001F) {
-                next = dest;
-            } else {
-                next = base + step;
-            }
-            access.gulliver$setSizeBaseMultiplier(next);
+            access.gulliver$setSizeBaseMultiplier(dest);
             self.refreshDimensions();
         }
 
-        // Proportional HP/air scaling on resize:
-        //   newCurrent = oldCurrent * newMax / oldMax
-        // Keeps the % full constant when size (and therefore maxHealth /
-        // maxAirSupply) changes. Without this, growing then shrinking
-        // either left HP above the new max (broke regen — gate is
-        // `current < max`) or, if clamped to max, dropped HP in big
-        // chunks (looked like taking damage with screen-shake / hurt
-        // flash on the client).
-        float prevMax = access.gulliver$getPrevMaxHealth();
-        float curMax = self.getMaxHealth();
-        if (Float.isNaN(prevMax)) {
-            // First tick — no scaling, just record.
-            access.gulliver$setPrevMaxHealth(curMax);
-        } else if (prevMax != curMax && prevMax > 0.0F) {
-            float ratio = curMax / prevMax;
-            float newHp = self.getHealth() * ratio;
-            // Cap at curMax to be safe against tiny float drift.
-            if (newHp > curMax) newHp = curMax;
-            self.setHealth(newHp);
-            access.gulliver$setPrevMaxHealth(curMax);
-        }
-
-        int prevAir = access.gulliver$getPrevMaxAir();
-        int curMaxAir = self.getMaxAirSupply();
-        if (prevAir < 0) {
-            access.gulliver$setPrevMaxAir(curMaxAir);
-        } else if (prevAir != curMaxAir && prevAir > 0) {
-            int newAir = (int) ((long) self.getAirSupply() * curMaxAir / prevAir);
-            if (newAir > curMaxAir) newAir = curMaxAir;
-            self.setAirSupply(newAir);
-            access.gulliver$setPrevMaxAir(curMaxAir);
-        }
+        // Re-apply size-based attribute modifiers each tick. Cheap if
+        // size hasn't changed (modifier replace is a no-op if amount
+        // matches). Catches edge cases where attributes are reset
+        // mid-game (re-equip armor, dimension change, etc.).
+        float liveSize = ((gulliver.api.IResizeableEntity) self).getSizeMultiplier();
+        gulliver.common.SizeAttributes.applyForSize(self, liveSize);
     }
 }
