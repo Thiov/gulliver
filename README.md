@@ -6,6 +6,8 @@ The original mod (UncleMion, 2013) is the only resizing mod with hand-tuned form
 
 Where playtesting on modern MC exposed rough edges in the original design, this port refines them — see [Improvements over 1.6.4](#improvements-over-164) below. The mod still feels unmistakably like Gulliver, just with the corners that didn't survive 13 years of Minecraft evolution sanded down.
 
+**No third-party scaling library dependency.** Most modern resizing mods (Pehkui, Apoli, etc.) lean on a generic "scale anything by an attribute" framework. This port doesn't — the only dependency is Fabric API. Every size-coupled formula in the original (movement, jump, fall, knockback, reach, climb rates, glide, container gating, footstep crush, etc.) is reimplemented field-for-field via Mixins, exactly the way UncleMion wrote it. That's what keeps it faithful to the original instead of just "another Pehkui frontend".
+
 ## What it does
 
 Resize yourself or any entity from 0.125× to 8× normal size. Every interaction with the world scales accordingly:
