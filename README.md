@@ -101,7 +101,7 @@ Out of scope: Optifine glue, TMI, LittleBlocks, ThornyFlower (1.6.4-only block, 
 
 ## Credits
 
-- **Original mod:** [UncleMion, Gulliver Forged 0.14.3 (MC1.6.4, 2013)](https://www.curseforge.com/minecraft/mc-mods/gulliver-forged).
+- **Original mod:** [UncleMion, Gulliver Forged 0.14.3 (MC1.6.4, 2013)](https://www.minecraftforum.net/forums/mapping-and-modding-java-edition/minecraft-mods/1282337-mc-forge-1-6-4-gulliver-the-resizing-mod-v0-14-3).
 - **JDCore decompile** of the original jar — the only source-of-truth reference used for this port.
 
 ## License
