@@ -1,6 +1,6 @@
 # Gulliver (Fabric)
 
-A faithful port of [Gulliver Forged 0.14.3 for Minecraft 1.6.4](https://www.curseforge.com/minecraft/mc-mods/gulliver-forged) to **Minecraft 26.1.2 / Fabric** — and, in places, an improvement on it.
+A faithful port of [Gulliver Forged 0.14.3 for Minecraft 1.6.4]([https://www.curseforge.com/minecraft/mc-mods/gulliver-forged](https://www.minecraftforum.net/forums/mapping-and-modding-java-edition/minecraft-mods/1282337-mc-forge-1-6-4-gulliver-the-resizing-mod-v0-14-3)) to **Minecraft 26.1.2 / Fabric** — and, in places, an improvement on it.
 
 The original mod (UncleMion, 2013) is the only resizing mod with hand-tuned formulas for every system that touches body size — movement, jumping, fall damage, knockback, reach, climbing, gliding, container interaction, mob targeting, footstep crushing, particle scaling, and more. This port reimplements those formulas field-for-field; it is not a generic "scale attribute" wrapper.
 
