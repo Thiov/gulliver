@@ -27,6 +27,48 @@ Resize yourself or any entity from 0.125× to 8× normal size. Every interaction
 - **Sound volume** — entity sounds scale with `sqrt(size)`.
 - **Held items** — render at the correct relative size; nameplates above the head shrink/grow with the body.
 
+## Other behaviors
+
+**Block-specific:**
+- **Cactus** — harmless to tinies (they fit between the spines).
+- **Soul sand** — extra slow under tinies (×0.5), no slow under huge entities (×2.5).
+- **Snow layer** — collision shape adjusts per layer count and entity size.
+- **Carpet** — thinner under extra-tinies (1/32 block), no collision under huge entities.
+- **Flower pots** holding cactus / rose / wither rose / sweet berry prick tinies that walk in.
+- **Cobwebs** — break under huge entities walking through (`canSizeGrief`-gated).
+- **TNT** — huge entities prime TNT with a bare-hand right-click (no flint-and-steel required).
+- **Block-break speed** scales with size (huge breaks faster, tiny slower).
+
+**Tiny-specific environment:**
+- **Rain hurts extra-tinies** (size < 0.15) without an umbrella — paper or lily-pad in hand shelters.
+- **Hide-in-flower** — extra-tinies fully inside a flower's bounding box are invisible to other entities' renderers.
+- **String climb rope** — tinies holding string can climb any wall (regular-size players use a leash for the same effect).
+- **Heat-source updraft** — fire / lava / torches / sunny grass produce rising thermals that lift tinies.
+
+**Visuals / UX:**
+- **Glide pose** — arms-up "parachute" hold when paper is in hand.
+- **View bobbing** scales with `sqrt(size)` (giants don't sea-sick the camera).
+- **Third-person camera** distance scales with size; near-clip plane too, so giants don't clip into terrain.
+- **Held items** render at correct relative size in both 1st-person and 3rd-person.
+- **Eating animation** timing scales with size — a tiny chews through a steak; a giant inhales it.
+- **Hide-in-plant** for extra-tinies — the model isn't drawn while inside a flower's bbox.
+
+## Configuration
+
+`config/gulliver.json` (Gson, auto-generated on first run) controls:
+
+- **Per-class spawn sizes** — e.g. set zombies to spawn between 0.8 and 1.5 by default, players at 1.0.
+- **Per-class size limits** — clamp how far `/basesize` can push a given entity class.
+- **General min / max base size** — global bounds on top of per-class limits (default 0.125 – 8.0).
+- **Potion effect IDs** — for tiny / huge effects (rarely needs touching; only relevant for save-compat with worlds that loaded a different ID).
+
+The config is hot-reloadable via `/serverreloadgulliver`.
+
+## Advancements
+
+- **Drink-Me** — granted on first consumption of a tiny-effect source (cyan dye, red mushroom, or tiny potion).
+- **Eat-Me** — granted on first consumption of a huge-effect source (purple dye, brown mushroom, or huge potion).
+
 ## Resize methods
 
 - **Drink-Me potion** (cyan dye) → Tiny status effect (200 ticks).
