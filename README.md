@@ -20,7 +20,7 @@ Resize yourself or any entity from 0.125× to 8× normal size. Every interaction
 - **Combat** — damage scales as sqrt of the size ratio. A size-1 zombie still hits a tiny hard, but doesn't one-shot. Mobs swinging at a much-smaller target have a high miss chance. Knockback scales as `attackerSize / targetSize` for both bare-hand and weapon hits.
 - **Crushing** — huge entities trample crops, set off pressure plates, break brittle blocks (glass / wool) when standing only on flimsy support, and damage smaller entities at their feet. Damage is reduced (~3 dmg per step at 4× vs 0.125×) so smaller entities can flee.
 - **Gliding** — paper held in hand triggers a slow descent + heat-source updraft (lava, fire, sunny grass during day).
-- **Lily-pad raft** — holding a lily-pad lets a tiny stand on water. First-person renders the raft under you.
+- **Lily-pad raft** — holding a lily-pad lets a tiny stand on water. The raft renders as a flat disc under the player in both 1st and 3rd person, body-yaw-aligned, sized with the rider. The player snaps smoothly to the water-surface line (no oscillation, no fluctuation) and can jump off normally.
 - **Tiny climbing** — soft blocks (dirt, grass, wool, leaves, sand) are scalable by tinies while shifted. Slime-ball in hand grants automatic climbing on any solid wall.
 - **Body-shoulder passenger** — small mobs/players can ride on your shoulder via `/shoulderentity`.
 - **Sleep** — bed dimensions scale with size.
@@ -134,6 +134,7 @@ The 1.6.4 mod was excellent, but a few of its behaviors didn't survive playtesti
 - **Footstep crush damage is reduced.** 1.6.4 dealt `2 × stepperRoot / targetRoot` damage per tick — instant-kill at common disparities. Cut to 0.25× the original (~3 dmg per step at 4× vs 0.125×) so tinies have time to flee.
 - **Nameplates scale with the body.** Vanilla anchored the floating name tag to a constant world-space height, so a tiny's name floated 8× the body height above their head. The port scales the tag with the entity's render-state scale.
 - **Stick is a pointy item.** The 1.6.4 `isItemPointy` predicate inexplicably skipped vanilla sticks. Added — a tiny with a stick now gets the same interaction privileges as a tiny with a sword.
+- **Smooth lily-pad raft.** The 1.6.4 mod's raft physics sampled the bbox into 3 sub-boxes per tick and applied a corrective velocity proportional to the submerged-fraction `da` — but the discrete sampling overshoots, gravity flips it, and the player oscillates around the water line ("very wobbly, fluctuating up and down"). Replaced with a snap-to-surface model: scan the player's column for the topmost water block, set Y to `blockY + fluid.getOwnHeight() - 0.4 × size`, zero vertical velocity. No integration error, no bouncing. Gates skip the snap when the player is jumping (so jumping off the raft works), still well below the surface (no teleport-up after equipping a lily-pad mid-dive), or above the surface (no teleport-down when standing on a placed lily-pad block). The disc renders in both 1st and 3rd person at the surface line, body-yaw-aligned.
 
 ## Scope
 

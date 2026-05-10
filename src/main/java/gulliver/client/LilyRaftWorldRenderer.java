@@ -72,7 +72,7 @@ public final class LilyRaftWorldRenderer {
         pose.pushPose();
         pose.translate(
                 (float) (px - camPos.x),
-                (float) (py + 0.02F * scale - camPos.y),
+                (float) (py + 0.4F * scale - camPos.y),
                 (float) (pz - camPos.z));
         // Body yaw — raft rotates with body.
         pose.mulPose(com.mojang.math.Axis.YP.rotationDegrees(180.0F - player.yBodyRot));
@@ -83,8 +83,16 @@ public final class LilyRaftWorldRenderer {
         // to read as a raft/vehicle, scales with player.
         float disc = 1.5F * scale;
         pose.scale(disc, disc, disc);
-        // Recenter (NONE-context model has corner at origin).
-        pose.translate(-0.5F, 0.0F, 0.5F);
+        // No manual recenter. ItemTransform.apply, called from
+        // ItemStackRenderState$LayerRenderState.submit during
+        // rs.submit, hits the NO_TRANSFORM branch for
+        // ItemDisplayContext.NONE and itself applies a built-in
+        // pose.translate(-0.5, -0.5, -0.5). Stacking another -0.5
+        // here double-shifts the model by 0.5×disc per axis in
+        // body-frame, which read as both "too far front" and "too
+        // far left" in 3rd person. With no recenter, the rendered
+        // model spans [-0.5, 0.5]³ in object space and ends up
+        // centered on the world anchor after our rotations.
 
         ItemStackRenderState rs = new ItemStackRenderState();
         mc.getItemModelResolver().updateForTopItem(rs,

@@ -2,11 +2,13 @@ package gulliver.mixin;
 
 import gulliver.api.IResizeableEntity;
 import gulliver.api.IResizeableLiving;
+import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.tags.FluidTags;
+import net.minecraft.util.Mth;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.level.material.FluidState;
-import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -14,36 +16,20 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 /**
- * 1.6.4 of.java:3269-3337 raft physics — when isRafting (tiny holding
- * lily-pad above water), keep the entity at the water-air boundary by
- * sampling 3 sub-bboxes vertically and applying a y-delta proportional
- * to the water-fraction `da`.
+ * Lily-pad raft: while a tiny holding a lily-pad floats on water, snap
+ * their feet (bbox.minY) directly to the water surface and zero
+ * vertical velocity. Splash particles still fire when moving.
  *
- * Verbatim port:
+ * Earlier port was a verbatim 1.6.4 of.java:3269-3337 — sample the
+ * bbox in 3 vertical sub-boxes, compute submerged-fraction `da`,
+ * apply `+0.04 * (da*2 - 1)` velocity each tick. That bounces:
+ * gravity drops the player below surface → da rises → upward kick →
+ * overshoot above surface → da drops → downward kick → repeat. User
+ * report: "very wobbly, fluctuating up and down".
  *
- *   if (isRafting) {
- *     int i = 3; double da = 0;
- *     for (int j = 0; j < i; j++) {
- *       double y1 = bb.minY + (bb.maxY - bb.minY) * j / i + 0.23 * sizeroot;
- *       double y2 = bb.minY + (bb.maxY - bb.minY) * (j+1) / i + 0.23 * sizeroot;
- *       AABB sub = new AABB(bb.minX, y1, bb.minZ, bb.maxX, y2, bb.maxZ);
- *       if (level.containsAnyLiquid(sub) which is water) da += 1.0/i;
- *     }
- *     double horiz = sqrt(dx*dx + dz*dz);
- *     if (horiz > 0.15 * size) -> spawn splash particles
- *     if (da < 1.0) {
- *       double delta = da * 2 - 1;       // negative when mostly above water
- *       y += 0.04 * delta;
- *     } else {
- *       if (y < 0) y *= 0.4;             // dampen sinking
- *       y += 0.007;                      // slow rise to surface
- *     }
- *     if (onGround) y += 0.04;
- *     if (sneaking) y += 0.04 * sizeroot;
- *   }
- *
- * Net effect: tiny holding lily-pad in water hovers at the surface like
- * a tiny on a tiny boat.
+ * Snap-to-surface kills the oscillation — player Y matches the
+ * surface every tick exactly, no integration error to compound. The
+ * 1.6.4 behaviour is gone, but the user explicitly asked for smooth.
  */
 @Mixin(LivingEntity.class)
 public abstract class MixinLivingEntityRaft {
@@ -55,23 +41,11 @@ public abstract class MixinLivingEntityRaft {
         if (!sized.isRafting()) return;
 
         float sizemult = sized.getSizeMultiplier();
-        float sizeroot = ((IResizeableEntity) self).getSizeMultiplierRoot();
-
-        AABB bb = self.getBoundingBox();
-        double rangeY = bb.maxY - bb.minY;
-        double da = 0.0;
-        for (int j = 0; j < 3; j++) {
-            double y1 = bb.minY + rangeY * j / 3.0 + 0.23 * sizeroot;
-            double y2 = bb.minY + rangeY * (j + 1) / 3.0 + 0.23 * sizeroot;
-            if (gulliver$boxIntersectsWater(self, new AABB(bb.minX, y1, bb.minZ, bb.maxX, y2, bb.maxZ))) {
-                da += 1.0 / 3.0;
-            }
-        }
-
         Vec3 dm = self.getDeltaMovement();
-        double horiz = Math.sqrt(dm.x * dm.x + dm.z * dm.z);
 
-        // splash particles when moving horizontally enough
+        // Splash particles when moving horizontally — kept verbatim
+        // from 1.6.4. Cosmetic, doesn't affect the position.
+        double horiz = Math.sqrt(dm.x * dm.x + dm.z * dm.z);
         if (horiz > 0.15 * sizemult && self.level().isClientSide()) {
             double angRad = self.getYRot() * Math.PI / 180.0;
             double cosA = Math.cos(angRad) * sizemult;
@@ -94,34 +68,72 @@ public abstract class MixinLivingEntityRaft {
             }
         }
 
-        double y = dm.y;
-        if (da < 1.0) {
-            // Partially submerged — pull toward surface (-1 if above, +1 if at)
-            y += 0.04 * (da * 2.0 - 1.0);
-        } else {
-            // Fully submerged — dampen sink, slow rise.
-            if (y < 0.0) y *= 0.4;
-            y += 0.007;
-        }
-        if (self.onGround()) y += 0.04;
-        if (self.isShiftKeyDown()) y += 0.04 * sizeroot;
+        // Find the water surface at the player's column. If they're
+        // not over water at all, skip — let normal physics run (they
+        // walked off the lily pad).
+        double surfaceY = gulliver$findWaterSurfaceY(self);
+        if (Double.isNaN(surfaceY)) return;
 
-        self.setDeltaMovement(dm.x, y, dm.z);
-        self.fallDistance = 0.0;
+        double currentY = self.getY();
+
+        // Don't snap when the player is trying to jump off the raft:
+        // both `jumping` (input held, jump impulse just applied
+        // upstream in aiStep) and any clearly-upward velocity. Without
+        // this, the snap zeroes dm.y and the jump never gets off the
+        // ground.
+        if (self.jumping) return;
+        if (dm.y > 0.05) return;
+
+        // Don't yank the player up from far underwater. Equipping a
+        // lily-pad while submerged should let them swim up naturally;
+        // the snap only takes over when they're already at/near the
+        // surface line.
+        if (currentY < surfaceY - 0.5) return;
+
+        // Don't yank the player down from above the surface. Happens
+        // mid-jump-arc and would also fire if the player is standing
+        // on something other than the snapped surface (placed lily
+        // pad, boat, edge of land). The rafting flag in
+        // GulliverEnvoy.updateResizingFlags already excludes onGround,
+        // but this is the belt-and-suspenders fence.
+        if (currentY > surfaceY + 0.1) return;
+
+        // We're at the surface — snap. Sit into the water by
+        // `0.3 * sizemult` so the player visibly settles into the
+        // surface rather than hovering on top of it. Scaled by size
+        // so the offset is body-proportional: a 1.0× rider sinks 0.3
+        // (calf-deep), a 0.125× tiny sinks 0.038 (proportional to
+        // their tiny body so they aren't drowned). The disc lift in
+        // both renderers is set to `0.3 * scale` to match — disc
+        // center lands at the water-surface line regardless of size.
+        // Setting position re-aligns the bbox; the tick has already
+        // finished, so this is the final state.
+        self.setPos(self.getX(), surfaceY - 0.4 * sizemult, self.getZ());
+        self.setDeltaMovement(dm.x, 0.0, dm.z);
+        self.fallDistance = 0.0F;
     }
 
-    private static boolean gulliver$boxIntersectsWater(LivingEntity self, AABB sub) {
-        // Cheap surrogate for 1.6.4 `level.containsLiquid(box, Material.water)`:
-        // sample the four bottom corners + center.
-        net.minecraft.world.level.Level level = self.level();
-        double[] xs = { sub.minX, sub.maxX, (sub.minX + sub.maxX) * 0.5 };
-        double[] zs = { sub.minZ, sub.maxZ, (sub.minZ + sub.maxZ) * 0.5 };
-        double midY = (sub.minY + sub.maxY) * 0.5;
-        for (double x : xs) for (double z : zs) {
-            net.minecraft.core.BlockPos pos = net.minecraft.core.BlockPos.containing(x, midY, z);
-            FluidState fs = level.getFluidState(pos);
-            if (fs.is(FluidTags.WATER)) return true;
+    /**
+     * Scan the column at (entity X, entity Z) for the topmost water
+     * block (a water block with non-water above). Surface Y =
+     * blockY + fluid own-height. NaN if no water in the search range.
+     */
+    private static double gulliver$findWaterSurfaceY(LivingEntity self) {
+        Level level = self.level();
+        int x = Mth.floor(self.getX());
+        int z = Mth.floor(self.getZ());
+        int top = Mth.floor(self.getY()) + 4;
+        int bot = Mth.floor(self.getY()) - 4;
+        BlockPos.MutableBlockPos cur = new BlockPos.MutableBlockPos();
+        for (int y = top; y >= bot; y--) {
+            cur.set(x, y, z);
+            FluidState fs = level.getFluidState(cur);
+            if (!fs.is(FluidTags.WATER)) continue;
+            cur.set(x, y + 1, z);
+            FluidState above = level.getFluidState(cur);
+            if (above.is(FluidTags.WATER)) continue;
+            return y + fs.getOwnHeight();
         }
-        return false;
+        return Double.NaN;
     }
 }

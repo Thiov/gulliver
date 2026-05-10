@@ -97,6 +97,15 @@ public abstract class MixinLivingEntityRenderer {
      * (the item is vertical by default). Uniform 1.5× scale — no Y
      * squish; previous 0.1 Y scale collapsed the already-flat item to
      * a single line.
+     *
+     * Pose state at @RETURN: LivingEntityRenderer.submit's pushPose /
+     * popPose pair is balanced before super.submit fires, and we're
+     * after super.submit too. So the pose is at the entity's WORLD
+     * origin (set by EntityRenderDispatcher.submit's translate) with
+     * NO body rotation applied. We must apply yaw ourselves —
+     * otherwise the disc lies flat in a fixed world direction
+     * regardless of player rotation, which read as "static, only
+     * points one direction".
      */
     @Inject(method = "submit(Lnet/minecraft/client/renderer/entity/state/LivingEntityRenderState;Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/SubmitNodeCollector;Lnet/minecraft/client/renderer/state/level/CameraRenderState;)V",
             at = @At("RETURN"),
@@ -109,16 +118,28 @@ public abstract class MixinLivingEntityRenderer {
         if (!(state instanceof gulliver.access.IGlideRenderState g)) return;
         if (!g.gulliver$isRafting()) return;
         pose.pushPose();
-        // Pose at this point: entity origin (feet at y=0). Lift slightly
-        // so the disc reads as "platform under feet".
-        pose.translate(0.0F, 0.02F * state.scale, 0.0F);
+        // Pose at this point: entity world origin (feet at y=0).
+        // Player is snap-positioned 0.3×size below the water line, so
+        // lifting the disc by 0.3×size puts its center exactly at the
+        // water surface — top breaks the surface, bottom slightly
+        // below, the way a real lily-pad floats.
+        pose.translate(0.0F, 0.4F * state.scale, 0.0F);
+        // Body yaw — raft rotates with body, matching the 1st-person
+        // path's `180 - yBodyRot` convention (same one
+        // setupRotations applies to the model itself).
+        pose.mulPose(com.mojang.math.Axis.YP.rotationDegrees(180.0F - state.bodyRot));
         // Lay the item quad flat (it's vertical by default in NONE).
         pose.mulPose(com.mojang.math.Axis.XP.rotationDegrees(90.0F));
         // Uniform 1.5× scale tracking entity scale.
         float disc = 1.5F * state.scale;
         pose.scale(disc, disc, disc);
-        // NONE-context corner-at-origin → recenter on player center.
-        pose.translate(-0.5F, 0.0F, 0.5F);
+        // No manual recenter — ItemTransform.apply for the
+        // NO_TRANSFORM branch (which is what NONE display context
+        // resolves to) itself applies a pose.translate(-0.5, -0.5,
+        // -0.5) inside the item submit. Adding our own -0.5 stacks
+        // a second shift, which read in 3rd person as the disc
+        // sitting 0.5×disc body-front-left of the feet. Without it,
+        // the model is naturally centered on the pose origin.
         net.minecraft.world.item.ItemStack stack =
                 new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.LILY_PAD);
         net.minecraft.client.renderer.item.ItemStackRenderState itemState =

@@ -823,6 +823,26 @@ public final class GulliverEnvoy {
     }
 
     /**
+     * Rafting eligibility helper: true when there's a water block within
+     * ~1.2 blocks below the entity's feet. Used as a sticky check so the
+     * rafting flag doesn't flicker the moment MixinLivingEntityRaft snaps
+     * the bbox to the water surface (which makes isInWater() flip false).
+     */
+    public static boolean isOverWaterShortRange(net.minecraft.world.entity.LivingEntity entity) {
+        net.minecraft.world.level.Level level = entity.level();
+        int x = net.minecraft.util.Mth.floor(entity.getX());
+        int z = net.minecraft.util.Mth.floor(entity.getZ());
+        int feetY = net.minecraft.util.Mth.floor(entity.getY() - 0.05);
+        net.minecraft.core.BlockPos.MutableBlockPos cur = new net.minecraft.core.BlockPos.MutableBlockPos();
+        for (int dy = 0; dy <= 1; dy++) {
+            cur.set(x, feetY - dy, z);
+            net.minecraft.world.level.material.FluidState fs = level.getFluidState(cur);
+            if (fs.is(net.minecraft.tags.FluidTags.WATER)) return true;
+        }
+        return false;
+    }
+
+    /**
      * 1.6.4 uf.java updateResizingFlags (line 1820): per-tick computation of
      * the four feel-flags on a LivingEntity. Called from MixinLivingEntity's
      * baseTick inject. Writes through IGulliverEntityInternal-style accessor
@@ -846,9 +866,23 @@ public final class GulliverEnvoy {
         boolean inRain = couldBeRainedOn(entity);
         boolean inWater = entity.isInWater();
 
+        // Rafting eligibility: in water OR sitting on the water surface
+        // (which is where MixinLivingEntityRaft snaps us). Plain
+        // isInWater() flips false the moment the snap lifts the bbox
+        // out of water — that produces an on/off oscillation between
+        // rafting and free-fall as gravity drops the player back in.
+        // Accept water within ~1 block below the feet too, so the
+        // flag stays sticky once the snap takes effect.
+        // Also exclude onGround: a tiny standing on a placed lily-pad
+        // block (or boat, or any solid platform over water) has water
+        // 1 block below, but they're not rafting — they're walking on
+        // a solid surface, and forcing rafting=true here would teleport
+        // them down to the water-surface line beneath the platform.
+        boolean closeAboveOrInWater = entity.isInWater() || isOverWaterShortRange(entity);
         boolean rafting = sized.isTiny() && !onLadder && !entity.isShiftKeyDown()
+                && !entity.onGround()
                 && hand != null && hand.is(net.minecraft.world.item.Items.LILY_PAD)
-                && entity.isInWaterOrRain();
+                && closeAboveOrInWater;
         flags.gulliver$setRaftingFlag(rafting);
 
         boolean umbrella = !onLadder && !rafting
