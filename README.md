@@ -76,7 +76,7 @@ The config is hot-reloadable via `/serverreloadgulliver`.
 - **Mushroom variants** — red mushroom → Tiny, brown → Huge.
 - **Brewing** — `awkward + red mushroom` → Tiny potion (long / strong variants via redstone / glowstone).
 - **Commands** (OP-gated) — `/basesize`, `/halfsize`, `/doublesize`, `/showsize`, plus `entity*` variants targeting another entity.
-- **Keybinds** (creative only for self-resize) — `U` upsize, `I` downsize, `V` shoulder. Holding a feather + targeting an entity dispatches the entity-targeted variant in any game mode.
+- **Keybinds** (creative only) — `U` upsize, `I` downsize, `V` shoulder. Holding a stick + targeting an entity dispatches the entity-targeted variant; both self and entity-target resize are creative-only.
 - **Karma mode** — game rule that resets size on death respawn.
 - **Size-griefing gate** — `gulliver:size_griefing` game rule controls whether resized entities can break / squish / trample (defaults true).
 
@@ -130,7 +130,7 @@ The 1.6.4 mod was excellent, but a few of its behaviors didn't survive playtesti
 - **Mob attacks miss tinies probabilistically.** Even when a hit lands, mob attackers swing at a target much smaller than themselves with `1 - (target/attacker)` miss chance (capped at 90%). Players are exempt — your aim isn't the problem.
 - **Tinies can interact with anything they're holding a tool for.** The original gated only doors / levers / buttons / gates / hatches / cabinets / safes via `canOpenSingleBlock`. This port extends the rule to ANY block with a function (chests, furnaces, crafting tables, anvils, beacons, pressure plates, jukeboxes, beds, etc.) when the tiny has no pointy item — and unlocks all of them again with a sword, stick, pickaxe, axe, hoe, shovel, or shears in hand.
 - **Tiny soft-block climbing is opt-in via shift.** 1.6.4 climbed dirt / wool / leaves / sand walls automatically — meaning a tiny walking past a wall would unintentionally start scaling it. The slime-ball climb path is unchanged (still automatic, still climbs any solid wall).
-- **Resize keybinds are creative-only.** Survival players can't bind their own size to a hotkey; the entity-target variant (feather + crosshair on entity) still works in any game mode and respects the server-side OP gate.
+- **Resize keybinds are creative-only.** Survival players can't bind their own size to a hotkey, and the entity-target variant (stick + crosshair on entity) is also creative-only; the server-side OP gate on `/entitydoublesize` / `/entityhalfsize` is the second line of defense.
 - **Footstep crush damage is reduced.** 1.6.4 dealt `2 × stepperRoot / targetRoot` damage per tick — instant-kill at common disparities. Cut to 0.25× the original (~3 dmg per step at 4× vs 0.125×) so tinies have time to flee.
 - **Nameplates scale with the body.** Vanilla anchored the floating name tag to a constant world-space height, so a tiny's name floated 8× the body height above their head. The port scales the tag with the entity's render-state scale.
 - **Stick is a pointy item.** The 1.6.4 `isItemPointy` predicate inexplicably skipped vanilla sticks. Added — a tiny with a stick now gets the same interaction privileges as a tiny with a sword.

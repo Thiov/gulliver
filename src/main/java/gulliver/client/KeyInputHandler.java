@@ -17,14 +17,16 @@ import net.minecraft.world.phys.EntityHitResult;
  *   key.DOWNSIZE = I → /halfsize,  OR /entityhalfsize <id>
  *   key.SHOULDER = V → /shoulderentity
  *
- * Self-resize (no entity target) is creative-only. The 1.6.4 keybind
- * assumed creative-or-cheat, but Forge didn't gate it; in this port we
- * make it explicit because survival self-resize would let players
- * arbitrarily duck under blocks without items / costs.
+ * Both self-resize AND entity-target resize are CREATIVE-ONLY. 1.6.4
+ * assumed creative-or-cheat but Forge didn't gate either; in this port
+ * we gate both explicitly. Survival players can't hotkey their own size
+ * (would let them duck under blocks for free) and they can't hotkey-
+ * resize random mobs they're looking at (server still op-gates via the
+ * /entity*size command, but creative-only on the client side keeps
+ * the keybind from firing for survival players at all).
  *
- * Feather + entity target still dispatches the entity-targeted variant
- * (the /entitydoublesize and /entityhalfsize commands handle their own
- * permission gating server-side via the OP-level on the command).
+ * Entity-target trigger item is STICK (4(357), changed from FEATHER):
+ * stick + entity target → /entitydoublesize | /entityhalfsize.
  *
  * GLFW key codes (used in 26.x):
  *   U → GLFW_KEY_U = 85
@@ -66,16 +68,15 @@ public final class KeyInputHandler {
     private static void dispatchSize(Minecraft client, boolean upsize) {
         LocalPlayer player = client.player;
         if (player == null) return;
+        // Both self-resize and entity-target resize are creative-only.
+        if (!player.getAbilities().instabuild) return;
         ItemStack mainHand = player.getMainHandItem();
-        // Feather + targeted entity → resize the entity (op-gated server-side).
-        // Self-resize is creative-only — survival players can't bind their
-        // own size to a hotkey.
-        if (mainHand.is(Items.FEATHER) && client.hitResult instanceof EntityHitResult ehr) {
+        // Stick + targeted entity → resize the entity (op-gated server-side).
+        if (mainHand.is(Items.STICK) && client.hitResult instanceof EntityHitResult ehr) {
             Entity target = ehr.getEntity();
             sendCommand(player, (upsize ? "entitydoublesize " : "entityhalfsize ") + target.getId());
             return;
         }
-        if (!player.getAbilities().instabuild) return;
         sendCommand(player, upsize ? "doublesize" : "halfsize");
     }
 
