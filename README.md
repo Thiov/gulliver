@@ -1,89 +1,44 @@
 # Gulliver (Fabric)
 
-A faithful port of [Gulliver Forged 0.14.3 for Minecraft 1.6.4](https://www.minecraftforum.net/forums/mapping-and-modding-java-edition/minecraft-mods/1282337-mc-forge-1-6-4-gulliver-the-resizing-mod-v0-14-3) to **Minecraft 26.1.2 / Fabric** — and, in places, an improvement on it.
+A Fabric port of [Gulliver Forged 0.14.3](https://www.minecraftforum.net/forums/mapping-and-modding-java-edition/minecraft-mods/1282337-mc-forge-1-6-4-gulliver-the-resizing-mod-v0-14-3) — UncleMion's resizing mod for Minecraft 1.6.4 — brought to **Minecraft 26.1.2**.
 
-The original mod (UncleMion, 2013) is the only resizing mod with hand-tuned formulas for every system that touches body size — movement, jumping, fall damage, knockback, reach, climbing, gliding, container interaction, mob targeting, footstep crushing, particle scaling, and more. This port reimplements those formulas field-for-field; it is not a generic "scale attribute" wrapper.
+Resize yourself or other entities anywhere from **0.125× to 8×**, with movement, combat, reach, and world interaction scaling to match. The only dependency is the Fabric API — no external scaling library.
 
-Where playtesting on modern MC exposed rough edges in the original design, this port refines them — see [Improvements over 1.6.4](#improvements-over-164) below. The mod still feels unmistakably like Gulliver, just with the corners that didn't survive 13 years of Minecraft evolution sanded down.
+## Features
 
-**No third-party scaling library dependency.** Most modern resizing mods (Pehkui, Apoli, etc.) lean on a generic "scale anything by an attribute" framework. This port doesn't — the only dependency is Fabric API. Every size-coupled formula in the original (movement, jump, fall, knockback, reach, climb rates, glide, container gating, footstep crush, etc.) is reimplemented field-for-field via Mixins, exactly the way UncleMion wrote it. That's what keeps it faithful to the original instead of just "another Pehkui frontend".
+**Size-scaled mechanics**
+- **Movement** — walk speed, jump height, step height, and fall damage scale with size.
+- **Reach** — interaction range scales with size; tinies get a reach bump when holding a tool.
+- **Combat** — damage and knockback scale with the size difference, and large attackers often miss much smaller targets.
+- **Crushing** — big entities trample crops, trigger pressure plates, break fragile blocks, and hurt entities underfoot.
+- **Mob AI** — mobs ignore targets far smaller than themselves (spiders, silverfish, endermites, and bees still hunt tinies).
 
-## What it does
+**Tiny abilities**
+- Glide slowly and ride heat updrafts with paper in hand.
+- Stand on water with a lily-pad (rendered in both first and third person).
+- Climb soft blocks while sneaking; climb any wall with a slimeball or string in hand.
+- Need a pointy item (sword, tool, or stick) to use functional blocks; too light to trip pressure plates and tripwires.
+- Shelter from rain — which hurts the smallest sizes — under paper or a lily-pad, and hide inside flowers.
 
-Resize yourself or any entity from 0.125× to 8× normal size. Every interaction with the world scales accordingly:
+**Carry**
+- Sneak + right-click a smaller mob or player to pick it up into your hand.
+- Press **V** (or `/shoulderentity`) to shuffle carried entities between hand and shoulders — up to three at once.
+- Right-click to set one down, or `/shoulderentity throw` to toss it.
 
-- **Movement** — walk speed, jump power, step height, and fall damage all follow the original 1.6.4 formulas.
-- **Reach** — block / entity interaction range scales linearly with size. Tinies holding a sword, stick, pickaxe, axe, hoe, shovel, or shears get a reach bump (size-0.5 player equivalent).
-- **Container interaction** — tinies need a pointy item (sword/stick/tool) to right-click any block with a function (chests, furnaces, crafting tables, buttons, levers, doors, etc.). With one in hand, full interaction is restored.
-- **Pressure plates / tripwires** — tinies are too light to trigger them.
-- **Mob AI** — mobs ignore targets less than 0.3× their own size (a size-0.125 player hides from a size-1 zombie the same way a size-1 player hides from a size-8 zombie). Spider, cave spider, silverfish, endermite, and bee always notice tinies and actively pursue them, regardless of light level.
-- **Combat** — damage scales as sqrt of the size ratio. A size-1 zombie still hits a tiny hard, but doesn't one-shot. Mobs swinging at a much-smaller target have a high miss chance. Knockback scales as `attackerSize / targetSize` for both bare-hand and weapon hits.
-- **Crushing** — huge entities trample crops, set off pressure plates, break brittle blocks (glass / wool) when standing only on flimsy support, and damage smaller entities at their feet. Damage is reduced (~3 dmg per step at 4× vs 0.125×) so smaller entities can flee.
-- **Gliding** — paper held in hand triggers a slow descent + heat-source updraft (lava, fire, sunny grass during day).
-- **Lily-pad raft** — holding a lily-pad lets a tiny stand on water. The raft renders as a flat disc under the player in both 1st and 3rd person, body-yaw-aligned, sized with the rider. The player snaps smoothly to the water-surface line (no oscillation, no fluctuation) and can jump off normally.
-- **Tiny climbing** — soft blocks (dirt, grass, wool, leaves, sand) are scalable by tinies while shifted. Slime-ball in hand grants automatic climbing on any solid wall.
-- **Body-shoulder passenger** — small mobs/players can ride on your shoulder via `/shoulderentity`.
-- **Sleep** — bed dimensions scale with size.
-- **Sound volume** — entity sounds scale with `sqrt(size)`.
-- **Held items** — render at the correct relative size; nameplates above the head shrink/grow with the body.
+**Polish** — held items, nameplates, view-bobbing, third-person camera distance, and eating speed all scale with size.
 
-## Other behaviors
+## Resizing
 
-**Block-specific:**
-- **Cactus** — harmless to tinies (they fit between the spines).
-- **Soul sand** — extra slow under tinies (×0.5), no slow under huge entities (×2.5).
-- **Snow layer** — collision shape adjusts per layer count and entity size.
-- **Carpet** — thinner under extra-tinies (1/32 block), no collision under huge entities.
-- **Flower pots** holding cactus / rose / wither rose / sweet berry prick tinies that walk in.
-- **Cobwebs** — break under huge entities walking through (`canSizeGrief`-gated).
-- **TNT** — huge entities prime TNT with a bare-hand right-click (no flint-and-steel required).
-- **Block-break speed** scales with size (huge breaks faster, tiny slower).
+- **Potions / mushrooms** — Drink-Me (cyan dye) shrinks, Eat-Me (purple dye) grows; red and brown mushrooms do the same. Brew a Tiny potion from an awkward potion + red mushroom.
+- **Commands** (OP) — `/basesize`, `/halfsize`, `/doublesize`, `/showsize`, plus `entity…` variants that target another entity.
+- **Keybinds** (creative) — **U** grow, **I** shrink, **V** carry.
+- **Game rules** — `gulliver:size_griefing` toggles size-based griefing; karma mode resets size on respawn.
 
-**Tiny-specific environment:**
-- **Rain hurts extra-tinies** (size < 0.15) without an umbrella — paper or lily-pad in hand shelters.
-- **Hide-in-flower** — extra-tinies fully inside a flower's bounding box are invisible to other entities' renderers.
-- **String climb rope** — tinies holding string can climb any wall (regular-size players use a leash for the same effect).
-- **Heat-source updraft** — fire / lava / torches / sunny grass produce rising thermals that lift tinies.
-
-**Visuals / UX:**
-- **Glide pose** — arms-up "parachute" hold when paper is in hand.
-- **View bobbing** scales with `sqrt(size)` (giants don't sea-sick the camera).
-- **Third-person camera** distance scales with size; near-clip plane too, so giants don't clip into terrain.
-- **Held items** render at correct relative size in both 1st-person and 3rd-person.
-- **Eating animation** timing scales with size — a tiny chews through a steak; a giant inhales it.
-- **Hide-in-plant** for extra-tinies — the model isn't drawn while inside a flower's bbox.
-
-## Configuration
-
-`config/gulliver.json` (Gson, auto-generated on first run) controls:
-
-- **Per-class spawn sizes** — e.g. set zombies to spawn between 0.8 and 1.5 by default, players at 1.0.
-- **Per-class size limits** — clamp how far `/basesize` can push a given entity class.
-- **General min / max base size** — global bounds on top of per-class limits (default 0.125 – 8.0).
-- **Potion effect IDs** — for tiny / huge effects (rarely needs touching; only relevant for save-compat with worlds that loaded a different ID).
-
-The config is hot-reloadable via `/serverreloadgulliver`.
-
-## Advancements
-
-- **Drink-Me** — granted on first consumption of a tiny-effect source (cyan dye, red mushroom, or tiny potion).
-- **Eat-Me** — granted on first consumption of a huge-effect source (purple dye, brown mushroom, or huge potion).
-
-## Resize methods
-
-- **Drink-Me potion** (cyan dye) → Tiny status effect (200 ticks).
-- **Eat-Me potion** (purple dye) → Huge status effect (200 ticks).
-- **Mushroom variants** — red mushroom → Tiny, brown → Huge.
-- **Brewing** — `awkward + red mushroom` → Tiny potion (long / strong variants via redstone / glowstone).
-- **Commands** (OP-gated) — `/basesize`, `/halfsize`, `/doublesize`, `/showsize`, plus `entity*` variants targeting another entity.
-- **Keybinds** (creative only) — `U` upsize, `I` downsize, `V` shoulder. Holding a stick + targeting an entity dispatches the entity-targeted variant; both self and entity-target resize are creative-only.
-- **Karma mode** — game rule that resets size on death respawn.
-- **Size-griefing gate** — `gulliver:size_griefing` game rule controls whether resized entities can break / squish / trample (defaults true).
+Per-entity spawn sizes and limits live in `config/gulliver.json` (reload with `/reloadgullivercfg`).
 
 ## Install
 
-1. Drop the jar into `mods/`.
-2. Requires **Fabric Loader 0.19.2+**, **Fabric API 0.146.1+**, **Minecraft 26.1.2**, **Java 25**.
+Requires **Minecraft 26.1.2**, **Fabric Loader 0.19.2+**, **Fabric API**, and **Java 25**. Drop the jar into `mods/`.
 
 ## Build
 
@@ -91,62 +46,8 @@ The config is hot-reloadable via `/serverreloadgulliver`.
 ./build.sh
 ```
 
-The build script invokes `javac --release 25` directly against a widened-public Minecraft jar — there is no Loom step (26.1.2 has no Loom named namespace yet). Output: `build/libs/gulliver-0.14.3-fabric.jar`.
+There is no Loom step — 26.1.2 ships unobfuscated, so the script compiles the sources directly with `javac --release 25` against an access-widened Minecraft jar. Output lands in `build/libs/`. Adjust the JDK and library paths at the top of the script for your machine.
 
-Required local paths (configurable in `build.sh`):
-- JDK 25 at `${JAVA_HOME}`
-- Widened-public MC jar at `${MC_JAR}`
-- Fabric Loader / API libs at `${LIBS}`
+## Credits & license
 
-## Source layout
-
-```
-src/main/java/gulliver/
-  api/          IResizeable{Entity,Living,Player} interfaces (1.6.4 verbatim)
-  client/       Keybinds, client packet receivers, lily-pad world renderer
-  command/      14 Brigadier commands (1.6.4 names + permission levels preserved)
-  common/       GulliverEnvoy (the bulk of the size math), config, event handlers
-  init/         Damage types, effects, game rules, potions
-  mixin/        ~50 Mixins for entity/block/render hooks
-  network/      EntitySize + AttachEntitySpecial CustomPacketPayload records
-src/main/resources/
-  data/gulliver/        advancements, damage_type/passive
-  assets/gulliver/      lang
-  gulliver.mixins.json  mixin manifest
-  fabric.mod.json       loader manifest
-reference/
-  gulliver_jdcore/      JDCore decompile of the 1.6.4 jar — the only reference
-docs/
-  gulliver-survey.md    mod-survey notes from the porting work
-```
-
-## Improvements over 1.6.4
-
-The 1.6.4 mod was excellent, but a few of its behaviors didn't survive playtesting on modern MC. This port refines them:
-
-- **Combat scaling is `sqrt`-based, not linear.** The 1.6.4 formula multiplied damage by the size ratio directly: a size-1 zombie hitting a size-0.125 tiny dealt 8× damage (instant-kill on a 10-HP target). The same applied to a size-8 attacker hitting a size-1 player. Switching to `sqrt(size)` keeps the "smaller takes more, larger hits harder" feel but compresses the 8× cases to ~2.83×.
-- **Mob blindness rule is relative, not absolute.** The 1.6.4 rule was "tinies (size < 0.3) are invisible to most mobs". This port generalises it: any target less than 0.3× the attacker's size is invisible. So a size-1 player hides from a size-8 zombie the same way a size-0.125 player hides from a size-1 zombie. Spider / cave spider / silverfish / endermite / bee always notice prey at any disparity.
-- **Spiders / insects actively pursue tinies regardless of light.** Vanilla spider light-gating kept them passive in daytime even when a tiny was nearby. A periodic server-tick scan now sets the target on idle arthropod predators when a tiny is within 16 blocks.
-- **Mob attacks miss tinies probabilistically.** Even when a hit lands, mob attackers swing at a target much smaller than themselves with `1 - (target/attacker)` miss chance (capped at 90%). Players are exempt — your aim isn't the problem.
-- **Tinies can interact with anything they're holding a tool for.** The original gated only doors / levers / buttons / gates / hatches / cabinets / safes via `canOpenSingleBlock`. This port extends the rule to ANY block with a function (chests, furnaces, crafting tables, anvils, beacons, pressure plates, jukeboxes, beds, etc.) when the tiny has no pointy item — and unlocks all of them again with a sword, stick, pickaxe, axe, hoe, shovel, or shears in hand.
-- **Tiny soft-block climbing is opt-in via shift.** 1.6.4 climbed dirt / wool / leaves / sand walls automatically — meaning a tiny walking past a wall would unintentionally start scaling it. The slime-ball climb path is unchanged (still automatic, still climbs any solid wall).
-- **Resize keybinds are creative-only.** Survival players can't bind their own size to a hotkey, and the entity-target variant (stick + crosshair on entity) is also creative-only; the server-side OP gate on `/entitydoublesize` / `/entityhalfsize` is the second line of defense.
-- **Footstep crush damage is reduced.** 1.6.4 dealt `2 × stepperRoot / targetRoot` damage per tick — instant-kill at common disparities. Cut to 0.25× the original (~3 dmg per step at 4× vs 0.125×) so tinies have time to flee.
-- **Nameplates scale with the body.** Vanilla anchored the floating name tag to a constant world-space height, so a tiny's name floated 8× the body height above their head. The port scales the tag with the entity's render-state scale.
-- **Stick is a pointy item.** The 1.6.4 `isItemPointy` predicate inexplicably skipped vanilla sticks. Added — a tiny with a stick now gets the same interaction privileges as a tiny with a sword.
-- **Smooth lily-pad raft.** The 1.6.4 mod's raft physics sampled the bbox into 3 sub-boxes per tick and applied a corrective velocity proportional to the submerged-fraction `da` — but the discrete sampling overshoots, gravity flips it, and the player oscillates around the water line ("very wobbly, fluctuating up and down"). Replaced with a snap-to-surface model: scan the player's column for the topmost water block, set Y to `blockY + fluid.getOwnHeight() - 0.4 × size`, zero vertical velocity. No integration error, no bouncing. Gates skip the snap when the player is jumping (so jumping off the raft works), still well below the surface (no teleport-up after equipping a lily-pad mid-dive), or above the surface (no teleport-down when standing on a placed lily-pad block). The disc renders in both 1st and 3rd person at the surface line, body-yaw-aligned.
-
-## Scope
-
-This port targets the **0.14.3-MC1.6.4 behavior** as a baseline. Later "Gulliver-like" reimplementations (Lilliputian, ProjectS) are explicitly out of scope — the original is the canonical reference.
-
-Out of scope: Optifine glue, TMI, LittleBlocks, ThornyFlower (1.6.4-only block, no 26.x analog), the launch-wrapper coremod, and the AIR-HUD overlay (that was a 1.6.4 anti-Optifine workaround; modern MC renders correctly without it).
-
-## Credits
-
-- **Original mod:** [UncleMion, Gulliver Forged 0.14.3 (MC1.6.4, 2013)](https://www.minecraftforum.net/forums/mapping-and-modding-java-edition/minecraft-mods/1282337-mc-forge-1-6-4-gulliver-the-resizing-mod-v0-14-3).
-- **JDCore decompile** of the original jar — the only source-of-truth reference used for this port.
-
-## License
-
-All rights reserved (matches the upstream license).
+Original mod by [UncleMion — Gulliver Forged 0.14.3 (2013)](https://www.minecraftforum.net/forums/mapping-and-modding-java-edition/minecraft-mods/1282337-mc-forge-1-6-4-gulliver-the-resizing-mod-v0-14-3). All rights reserved, matching the upstream license.
