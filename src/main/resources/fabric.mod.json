@@ -4,6 +4,7 @@
   "version": "${version}",
   "name": "Gulliver",
   "description": "Fabric port of Gulliver Forged 0.14.3-MC1.6.4 (the original resizing mod). Translates the exact 1.6.4 behavior to Minecraft 26.1.2.",
+  "icon": "assets/gulliver/icon.png",
   "authors": ["UncleMion (original)", "Fabric port"],
   "contact": {},
   "license": "All-Rights-Reserved",
