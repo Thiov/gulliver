@@ -95,7 +95,27 @@ public abstract class MixinPlayerShoulder {
     }
 
     private static void placePassenger(Entity p, double x, double y, double z) {
+        // Interpolation origin for smooth rendering. The entity renderer
+        // draws a carried entity at lerp(partialTick, {xOld,yOld,zOld},
+        // {x,y,z}). The carrier is ITSELF drawn at an interpolated position
+        // (carrier.xOld -> carrier.getX()). For the passenger to sit
+        // perfectly in the hand while the carrier walks, its old position
+        // must be LAST tick's hand position — i.e. exactly where it sits
+        // right now, before we snap it to the new hand spot. Snapshot that,
+        // snap, then restore the old fields.
+        //
+        // This only holds because MixinEntity freezes a carried entity's
+        // move() and setOldPosAndRot(): nothing else perturbs these fields
+        // between here and the frame, so the passenger's lerp lines up
+        // exactly with the carrier's own motion + the (smoothly varying)
+        // hand offset. Without the freeze, the entity's own gravity droops
+        // it between snaps and setOldPosAndRot() resets the origin
+        // depending on tick order — both read as jitter.
+        double ox = p.getX(), oy = p.getY(), oz = p.getZ();
         p.setPos(x, y, z);
+        p.xOld = ox;
+        p.yOld = oy;
+        p.zOld = oz;
         p.setDeltaMovement(0.0D, 0.0D, 0.0D);
         p.fallDistance = 0.0F;
         p.noPhysics = true; // disable block + entity collision while carried

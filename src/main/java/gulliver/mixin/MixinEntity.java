@@ -11,6 +11,7 @@ import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.ModifyVariable;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 /**
@@ -241,5 +242,44 @@ public abstract class MixinEntity implements IResizeableEntity, IGulliverEntityI
         float m = getSizeMultiplier();
         if (m == 1.0F) return amount;
         return amount * ((IResizeableEntity) this).getSizeMovementMultiplier();
+    }
+
+    /**
+     * Freeze a carried entity's self-driven motion. While something is
+     * holding this entity (hand / shoulder carry), the carrier snaps it to
+     * the hand/shoulder every tick via setPos (MixinPlayerShoulder). If the
+     * entity is ALSO allowed to move under its own gravity / AI / knockback
+     * it droops between those snaps, which reads as jitter when the carrier
+     * walks. Cancelling move() leaves the carrier's setPos as the ONLY
+     * thing that repositions it — on both client and server, so the
+     * server-broadcast position and the locally-computed hand position
+     * agree exactly (no interpolation tug-of-war). Cleared automatically on
+     * drop/throw when gulliver$holdingEntity goes null.
+     */
+    @Inject(method = "move", at = @At("HEAD"), cancellable = true)
+    private void gulliver$freezeCarriedMove(net.minecraft.world.entity.MoverType type,
+                                            net.minecraft.world.phys.Vec3 movement,
+                                            CallbackInfo ci) {
+        if (gulliver$holdingEntity != null) {
+            ((Entity) (Object) this).setDeltaMovement(net.minecraft.world.phys.Vec3.ZERO);
+            ci.cancel();
+        }
+    }
+
+    /**
+     * Preserve a carried entity's interpolation origin. The level calls
+     * setOldPosAndRot() at the START of every entity tick (xOld = x, ...).
+     * For a carried entity that would clobber the last-tick hand position
+     * stored in MixinPlayerShoulder.placePassenger whenever the carried
+     * entity happens to tick AFTER its carrier — snapping the render lerp
+     * origin and causing jitter that flips with tick order. While carried,
+     * the carrier owns both old and new position, so skip vanilla's update
+     * entirely and let placePassenger drive the interpolation.
+     */
+    @Inject(method = "setOldPosAndRot()V", at = @At("HEAD"), cancellable = true)
+    private void gulliver$freezeCarriedOldPos(CallbackInfo ci) {
+        if (gulliver$holdingEntity != null) {
+            ci.cancel();
+        }
     }
 }
