@@ -3,7 +3,7 @@
   "id": "gulliver",
   "version": "${version}",
   "name": "Gulliver",
-  "description": "Fabric port of Gulliver Forged 0.14.3-MC1.6.4 (the original resizing mod). Translates the exact 1.6.4 behavior to Minecraft 26.1.2.",
+  "description": "Fabric port of UncleMion's Gulliver resizing mod (0.14.3) for Minecraft 26.1.2. Resize yourself or other entities from 0.125x to 8x.",
   "icon": "assets/gulliver/icon.png",
   "authors": ["UncleMion (original)", "Fabric port"],
   "contact": {},
