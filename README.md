@@ -13,6 +13,7 @@ Resize yourself or other entities anywhere from **0.125× to 8×**, with movemen
 - **Reach** — interaction range scales with size; tinies get a reach bump when holding a tool.
 - **Combat** — damage and knockback scale with the size difference, and large attackers often miss much smaller targets. Drawing a bow, loading a crossbow, or winding up a trident takes longer the smaller you are — and is near-instant for giants.
 - **Crushing** — big entities trample crops, trigger pressure plates, break fragile blocks, and hurt entities underfoot.
+- **Giant fists** — a huge player's punch is an area of effect. Breaking a block shatters a fist-shaped crater around it (3×3 at the huge threshold, up to a 7×7 disc at size 8; harder neighbors, containers, and unbreakables survive), and melee hits splash reduced damage to creatures around the target. Hold **sneak** for precision: one block, one target.
 - **Mob AI** — mobs ignore targets far smaller than themselves (spiders, silverfish, endermites, and bees still hunt tinies).
 
 **Tiny abilities**

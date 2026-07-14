@@ -42,6 +42,7 @@ public class GulliverFabric implements ModInitializer {
         KarmaMode.registerCommon();
         ShoulderInteractHandler.registerCommon();
         SpiderTinyAggro.registerCommon();
+        gulliver.common.GiantAoe.registerCommon();
         CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) ->
                 GulliverCommands.register(dispatcher));
     }
