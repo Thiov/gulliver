@@ -55,15 +55,43 @@ import net.minecraft.world.phys.EntityHitResult;
 public final class GiantAoe {
     private GiantAoe() {}
 
+    /**
+     * Hit face of the block about to break, captured in the BEFORE
+     * event (while the block still exists to be ray-traced) and
+     * consumed by AFTER in the same call stack. Deriving the plane
+     * from the look axis alone broke down at range: aiming at a floor
+     * far away makes the look vector near-horizontal, so the disc
+     * stood vertically and carved a 1-wide trench ("breaks blocks in
+     * a line") instead of a flat crater.
+     */
+    private static final ThreadLocal<Direction> PUNCH_FACE = new ThreadLocal<>();
+
     public static void registerCommon() {
+        PlayerBlockBreakEvents.BEFORE.register(GiantAoe::beforeBreak);
         PlayerBlockBreakEvents.AFTER.register(GiantAoe::afterBreak);
         AttackEntityCallback.EVENT.register(GiantAoe::onAttack);
     }
 
     // ---- fist-crater mining ----
 
+    private static boolean beforeBreak(Level level, Player player, BlockPos pos,
+                                        BlockState state, BlockEntity blockEntity) {
+        PUNCH_FACE.remove();
+        if (((IResizeableEntity) player).isHuge()) {
+            double reach = player.blockInteractionRange() + 1.0D;
+            if (player.pick(reach, 1.0F, false)
+                    instanceof net.minecraft.world.phys.BlockHitResult bhr
+                    && bhr.getBlockPos().equals(pos)) {
+                PUNCH_FACE.set(bhr.getDirection());
+            }
+        }
+        return true; // never cancels the break
+    }
+
     private static void afterBreak(Level level, Player player, BlockPos pos,
                                     BlockState state, BlockEntity blockEntity) {
+        Direction face = PUNCH_FACE.get();
+        PUNCH_FACE.remove();
         if (level.isClientSide()) return;
         IResizeableEntity sized = (IResizeableEntity) player;
         if (!sized.isHuge()) return;
@@ -74,8 +102,12 @@ public final class GiantAoe {
         int r = Math.min(3, 1 + (int) ((size - 2.4F) / 2.6F));
         if (r <= 0) return;
 
-        // Spread on the plane perpendicular to the punch direction.
-        Direction face = Direction.getApproximateNearest(player.getLookAngle());
+        // Spread on the plane of the struck FACE (from the BEFORE
+        // raytrace): breaking a floor spreads flat, breaking a wall
+        // spreads vertically — regardless of distance or view angle.
+        // Look-axis fallback only if the raytrace missed (e.g. the
+        // block broke through a gap the ray can't thread).
+        if (face == null) face = Direction.getApproximateNearest(player.getLookAngle());
         Direction.Axis axis = face.getAxis();
 
         float centerHardness = Math.max(0.0F, state.getDestroySpeed(level, pos));
