@@ -164,6 +164,9 @@ public abstract class MixinLivingEntity implements IResizeableLiving,
         LivingEntity self = (LivingEntity) (Object) this;
         float clamped = gulliver$clampBase(size);
         IGulliverEntityInternal access = (IGulliverEntityInternal) this;
+        // Bbox BEFORE the resize — breakBlocksViaGrowth needs it to
+        // know which blocks are newly swept by the grown body.
+        net.minecraft.world.phys.AABB oldBox = self.getBoundingBox();
 
         // Snap LIVE base AND dest to the new value (no tween). The tween
         // caused gradual HP drops that the HUD interpreted as damage,
@@ -194,6 +197,12 @@ public abstract class MixinLivingEntity implements IResizeableLiving,
         if (self.getAirSupply() > maxAir) self.setAirSupply(maxAir);
 
         self.refreshDimensions();
+        // Growing bodies burst through weak blocks newly inside their
+        // bounds (1.6.4 breakBlocksViaGrowth) — ceiling planks splinter
+        // as the giant stands up. Shrinking never breaks anything.
+        if (clamped * potion * item > oldLive * potion * item) {
+            GulliverEnvoy.breakBlocksViaGrowth(self, oldBox);
+        }
         SizeSync.broadcast(self);
     }
 

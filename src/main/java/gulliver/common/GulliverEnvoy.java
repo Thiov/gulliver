@@ -947,6 +947,63 @@ public final class GulliverEnvoy {
     }
 
     /**
+     * 1.6.4 breakBlocksViaGrowth: when an entity GROWS, blocks newly
+     * swept by its expanding bounding box shatter if the body's new
+     * mass exceeds their hardness — you burst through the ceiling as
+     * you grow, Alice-style. Blocks the old box already overlapped are
+     * untouched (you were coexisting with that tall grass), as are
+     * fluids, block entities (growing through your own storage room
+     * doesn't shred the chests), and unbreakables.
+     *
+     * Burst rule (1.6.4 verbatim): hardness < newSizeMultiplier, plus
+     * the cobweb special-case for huge bodies. So a mild growth (1.5×)
+     * pops glass, leaves, and dirt overhead; a size-4 giant bursts
+     * stone and planks; obsidian stops anyone. The bigger you get,
+     * the stronger the material you can grow through — and solid rock
+     * simply cramps you instead (vanilla suffocation handles that
+     * pressure, exactly like the original).
+     *
+     * Call AFTER refreshDimensions with the bbox captured BEFORE the
+     * size change. Server-side + size_griefing-gated.
+     */
+    public static void breakBlocksViaGrowth(net.minecraft.world.entity.LivingEntity entity,
+                                             net.minecraft.world.phys.AABB oldBox) {
+        net.minecraft.world.level.Level level = entity.level();
+        if (level.isClientSide()) return;
+        if (!canSizeGrief(entity)) return;
+        net.minecraft.world.phys.AABB newBox = entity.getBoundingBox();
+        float sizeMult = ((IResizeableEntity) entity).getSizeMultiplier();
+        boolean huge = ((IResizeableEntity) entity).isHuge();
+
+        int x1 = net.minecraft.util.Mth.floor(newBox.minX);
+        int y1 = net.minecraft.util.Mth.floor(newBox.minY);
+        int z1 = net.minecraft.util.Mth.floor(newBox.minZ);
+        int x2 = net.minecraft.util.Mth.floor(newBox.maxX - 1.0E-7D);
+        int y2 = net.minecraft.util.Mth.floor(newBox.maxY - 1.0E-7D);
+        int z2 = net.minecraft.util.Mth.floor(newBox.maxZ - 1.0E-7D);
+        for (int x = x1; x <= x2; x++) {
+            for (int y = y1; y <= y2 && y > level.getMinY(); y++) {
+                for (int z = z1; z <= z2; z++) {
+                    net.minecraft.core.BlockPos pos = new net.minecraft.core.BlockPos(x, y, z);
+                    // Only the newly-swept shell: skip cubes the old
+                    // body already overlapped.
+                    if (oldBox.intersects(new net.minecraft.world.phys.AABB(pos))) continue;
+                    net.minecraft.world.level.block.state.BlockState st = level.getBlockState(pos);
+                    if (st.isAir()) continue;
+                    if (!st.getFluidState().isEmpty()) continue;
+                    if (level.getBlockEntity(pos) != null) continue;
+                    float h = st.getDestroySpeed(level, pos);
+                    if (h < 0.0F) continue;
+                    boolean burst = h < sizeMult
+                            || (huge && st.getBlock() instanceof net.minecraft.world.level.block.WebBlock);
+                    if (!burst) continue;
+                    level.destroyBlock(pos, true, entity);
+                }
+            }
+        }
+    }
+
+    /**
      * 1.6.4 resizeCollision: when an entity's width changes, push it
      * outwards from any blocks it now overlaps. Returns true if a push
      * was applied.

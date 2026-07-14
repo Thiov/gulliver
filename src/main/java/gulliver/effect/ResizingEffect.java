@@ -43,8 +43,16 @@ public abstract class ResizingEffect extends MobEffect {
 
         IGulliverEntityInternal sized = (IGulliverEntityInternal) entity;
         if (sized.gulliver$getSizePotionMultiplier() != mult) {
+            boolean growing = mult > sized.gulliver$getSizePotionMultiplier();
+            net.minecraft.world.phys.AABB oldBox = entity.getBoundingBox();
             sized.gulliver$setSizePotionMultiplier(mult);
             entity.refreshDimensions();
+            // The Alice moment: drinking an Embiggening potion indoors
+            // bursts the growing body through weak ceilings (1.6.4
+            // breakBlocksViaGrowth). Shrinking never breaks anything.
+            if (growing) {
+                gulliver.common.GulliverEnvoy.breakBlocksViaGrowth(entity, oldBox);
+            }
             SizeSync.broadcast(entity);
         }
         return true;

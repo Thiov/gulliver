@@ -14,6 +14,7 @@ Resize yourself or other entities anywhere from **0.125× to 8×**, with movemen
 - **Combat** — damage and knockback scale with the size difference, and large attackers often miss much smaller targets. Drawing a bow, loading a crossbow, or winding up a trident takes longer the smaller you are — and is near-instant for giants.
 - **Crushing** — big entities trample crops, trigger pressure plates, break fragile blocks, and hurt entities underfoot.
 - **Giant fists** — a huge player's punch is an area of effect. Breaking a block shatters a fist-shaped crater around it (3×3 at the huge threshold, up to a 7×7 disc at size 8; harder neighbors, containers, and unbreakables survive), and melee hits splash reduced damage to creatures around the target. Hold **sneak** for precision: one block, one target.
+- **Growing pains** — grow indoors and your expanding body bursts through the blocks above you, if your new bulk beats their hardness: a mild growth pops glass and dirt, a size-4 giant splinters stone ceilings, obsidian stops anyone (you just get cramped). Shrinking never breaks anything.
 - **Mob AI** — mobs ignore targets far smaller than themselves (spiders, silverfish, endermites, and bees still hunt tinies).
 
 **Tiny abilities**
