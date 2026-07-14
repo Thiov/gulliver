@@ -109,12 +109,31 @@ public abstract class MixinLivingEntityHugeFall {
         double x = self.getX();
         double y = self.getY();
         double z = self.getZ();
+        // Impact punch shared by the entity fling and the screen quake.
+        double punch = Math.min(1.6D, 0.3D + fallDistance * 0.06D);
 
         // Deep smash boom — louder and lower the bigger the body.
-        float volume = Math.min(2.0F, 0.6F + size * 0.15F);
+        // Volume above 1.0 extends the audible radius (16 × volume
+        // blocks), so a size-8 slam carries ~56 blocks — you hear the
+        // titan land long before you see it. Footsteps and other body
+        // sounds already carry further via MixinEntitySound's
+        // sizeMultiplierRoot volume scaling.
+        float volume = Math.min(3.5F, 0.8F + size * 0.35F);
         float pitch = Math.max(0.4F, 1.0F / sized.getSizeMultiplierRoot());
         sl.playSound(null, x, y, z, SoundEvents.MACE_SMASH_GROUND_HEAVY,
                 self.getSoundSource(), volume, pitch);
+
+        // Screen quake for much-smaller viewers nearby (client-side
+        // falloff + size gating in TremorHandler.groundShock).
+        gulliver.network.Payloads.GroundShock shock =
+                new gulliver.network.Payloads.GroundShock(x, y, z, size, (float) punch);
+        for (net.minecraft.server.level.ServerPlayer viewer :
+                net.fabricmc.fabric.api.networking.v1.PlayerLookup.tracking(self)) {
+            net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking.send(viewer, shock);
+        }
+        if (self instanceof net.minecraft.server.level.ServerPlayer sp) {
+            net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking.send(sp, shock);
+        }
 
         // Dust ring: kick up particles of the block actually landed on.
         BlockPos below = BlockPos.containing(x, y - 0.5D, z);
@@ -133,7 +152,6 @@ public abstract class MixinLivingEntityHugeFall {
 
         // Knock much-smaller creatures off their feet — up and away,
         // stronger for harder landings and closer bystanders.
-        double punch = Math.min(1.6D, 0.3D + fallDistance * 0.06D);
         AABB zone = self.getBoundingBox().inflate(radius, 1.0D, radius);
         for (Entity target : sl.getEntities(self, zone)) {
             if (!(target instanceof LivingEntity)) continue;

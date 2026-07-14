@@ -54,6 +54,25 @@ public final class Payloads {
     }
 
     /**
+     * S2C: a huge entity landed hard at (x, y, z). Clients that are
+     * much smaller than sourceSize convert this into a screen quake
+     * with distance falloff (TremorHandler.groundShock); strength is
+     * the server's shockwave punch (0.3..1.6, from fall distance).
+     */
+    public record GroundShock(double x, double y, double z, float sourceSize, float strength)
+            implements CustomPacketPayload {
+        public static final Type<GroundShock> TYPE = mkType("ground_shock");
+        public static final StreamCodec<FriendlyByteBuf, GroundShock> CODEC = StreamCodec.ofMember(
+                (p, b) -> {
+                    b.writeDouble(p.x); b.writeDouble(p.y); b.writeDouble(p.z);
+                    b.writeFloat(p.sourceSize); b.writeFloat(p.strength);
+                },
+                b -> new GroundShock(b.readDouble(), b.readDouble(), b.readDouble(),
+                        b.readFloat(), b.readFloat()));
+        public Type<GroundShock> type() { return TYPE; }
+    }
+
+    /**
      * C2S packet: client tells server "I right-clicked with a resizing
      * item (cyan/purple dye, red/brown mushroom) in air". Vanilla item.use
      * returns PASS for these so the client never sends the standard

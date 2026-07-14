@@ -33,6 +33,11 @@ public final class ClientPacketHandlers {
             });
         });
 
+        ClientPlayNetworking.registerGlobalReceiver(Payloads.GroundShock.TYPE, (payload, ctx) ->
+                ctx.client().execute(() -> TremorHandler.groundShock(
+                        payload.x(), payload.y(), payload.z(),
+                        payload.sourceSize(), payload.strength())));
+
         ClientPlayNetworking.registerGlobalReceiver(Payloads.AttachEntitySpecial.TYPE, (payload, ctx) -> {
             ctx.client().execute(() -> {
                 Entity carrier = entityById(payload.vehicleEntityId());

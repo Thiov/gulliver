@@ -58,6 +58,7 @@
   "client": [
     "MixinCamera",
     "MixinCameraNearClip",
+    "MixinCameraShake",
     "MixinGameRendererBob",
     "MixinHumanoidModelPose",
     "MixinHumanoidRenderState",

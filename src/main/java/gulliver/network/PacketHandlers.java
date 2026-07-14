@@ -17,6 +17,7 @@ public final class PacketHandlers {
         var s2c = PayloadTypeRegistry.clientboundPlay();
         s2c.register(Payloads.EntitySize.TYPE, Payloads.EntitySize.CODEC.cast());
         s2c.register(Payloads.AttachEntitySpecial.TYPE, Payloads.AttachEntitySpecial.CODEC.cast());
+        s2c.register(Payloads.GroundShock.TYPE, Payloads.GroundShock.CODEC.cast());
 
         var c2s = PayloadTypeRegistry.serverboundPlay();
         c2s.register(Payloads.ConsumeResizingItem.TYPE, Payloads.ConsumeResizingItem.CODEC.cast());

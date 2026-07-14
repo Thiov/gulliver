@@ -125,9 +125,9 @@ public abstract class MixinLivingEntityRenderer {
         // line, so lifting the disc by 0.4×size puts its center exactly
         // at the water surface — top breaks the surface the way a real
         // lily-pad floats.
-        // Umbrella: disc held just above the raised fist (head top is
-        // 1.8×scale, raised hand ~2.2×scale).
-        pose.translate(0.0F, (raft ? 0.4F : 2.2F) * state.scale, 0.0F);
+        // Umbrella: disc hugs the top of the head (head top is
+        // 1.8×scale) — user-tuned: 2.2 floated too high.
+        pose.translate(0.0F, (raft ? 0.4F : 2.0F) * state.scale, 0.0F);
         // Body yaw — disc rotates with body, matching the 1st-person
         // path's `180 - yBodyRot` convention (same one
         // setupRotations applies to the model itself).

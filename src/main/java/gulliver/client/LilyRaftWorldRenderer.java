@@ -27,7 +27,7 @@ import net.minecraft.world.phys.Vec3;
  * player isn't passed through the entity-render pipeline, so we draw
  * the flat lily-pad relative to the camera anchor in world coords.
  * Offsets/scales match the 3rd-person path exactly (raft: 0.4×size
- * lift, 1.5×size disc; umbrella: 2.2×size lift, 1.1×size disc) so the
+ * lift, 1.5×size disc; umbrella: 2.0×size lift, 1.1×size disc) so the
  * visual is identical across camera modes.
  */
 public final class LilyRaftWorldRenderer {
@@ -65,9 +65,10 @@ public final class LilyRaftWorldRenderer {
 
         // Anchor at player feet — bbox bottom is player.getY(). Raft
         // disc sits at the waterline (player is snapped 0.4×size below
-        // it); umbrella disc floats just above the raised fist.
+        // it); umbrella disc hugs the top of the head (user-tuned:
+        // 2.2 floated too high; keep in sync with the 3rd-person path).
         float scale = sized.getSizeMultiplier();
-        float lift = (raft ? 0.4F : 2.2F) * scale;
+        float lift = (raft ? 0.4F : 2.0F) * scale;
 
         pose.pushPose();
         pose.translate(
