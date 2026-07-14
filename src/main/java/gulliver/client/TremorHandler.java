@@ -22,7 +22,7 @@ import java.util.Map;
  *     accumulated from its actual horizontal motion (one footfall per
  *     ~0.45 body-lengths — two steps per stride cycle). Each footfall
  *     lands a discrete THUMP whose strength scales with the size ratio
- *     and falls off with distance². The result is rhythmic — you feel
+ *     and falls off with distance^1.5. The result is rhythmic — you feel
  *     the giant's steps approaching, not a constant jitter. A size-1
  *     player walking past a 0.125 tiny registers; a size-8 titan
  *     shakes a size-1 player's screen; a 0.25 mob near that same tiny
@@ -109,11 +109,14 @@ public final class TremorHandler {
         // size 1 → ~14 blocks, size 8 → ~29 blocks.
         double reach = Math.min(40.0D, 6.0D + 8.0D * Math.sqrt(walkerSize));
         if (dist >= reach) return;
-        float falloff = (float) Math.pow(1.0D - dist / reach, 2.0D);
-        // Severity ramps from the threshold: ratio 6 → faint, 8 →
-        // clearly felt, 16+ → full weight.
-        float severity = Mth.clamp((ratio - 4.0F) / 12.0F, 0.0F, 1.0F);
-        float impulse = 0.9F * severity * falloff;
+        float falloff = (float) Math.pow(1.0D - dist / reach, 1.5D);
+        // Severity ramps from the threshold: ratio 6 → faint entry,
+        // 8 → unmistakable (the size-1-vs-8 case), 11+ → full weight.
+        // User-tuned: the previous (ratio-4)/12 curve left ratio 8 at
+        // 0.33 which — combined with quadratic falloff — was barely
+        // perceptible outside point-blank range.
+        float severity = Mth.clamp((ratio - 5.0F) / 6.0F, 0.0F, 1.0F);
+        float impulse = severity * falloff;
         // Riding/carried by the walker: rock with the gait, gently.
         if (walker.getUUID().equals(((gulliver.access.IGulliverShoulderInternal) viewer)
                 .gulliver$getHoldingEntity())) {

@@ -68,7 +68,8 @@
     "MixinPlayerModelPose",
     "MixinEntityRendererNameTag",
     "MixinMinecraftAttackThrow",
-    "MixinMultiPlayerGameModeUseItem"
+    "MixinMultiPlayerGameModeUseItem",
+    "MixinSoundEnginePitch"
   ],
   "injectors": {
     "defaultRequire": 1
