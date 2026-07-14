@@ -63,7 +63,8 @@ public final class SpiderTinyAggro {
     private static LivingEntity findNearestTiny(ServerLevel level, Mob mob) {
         AABB scan = mob.getBoundingBox().inflate(SCAN_RADIUS);
         List<LivingEntity> nearby = level.getEntitiesOfClass(LivingEntity.class, scan,
-                e -> e != mob && e.isAlive() && ((IResizeableEntity) e).isTiny());
+                e -> e != mob && e.isAlive() && ((IResizeableEntity) e).isTiny()
+                        && !isUntargetablePlayer(e));
         LivingEntity best = null;
         double bestSq = SCAN_RADIUS_SQ;
         for (LivingEntity cand : nearby) {
@@ -74,6 +75,16 @@ public final class SpiderTinyAggro {
             }
         }
         return best;
+    }
+
+    /**
+     * Creative and spectator players are outside survival rules — vanilla
+     * targeting skips them, and force-feeding them to setTarget would have
+     * mobs path after players they can never hurt.
+     */
+    private static boolean isUntargetablePlayer(LivingEntity e) {
+        return e instanceof net.minecraft.world.entity.player.Player p
+                && (p.isCreative() || p.isSpectator());
     }
 
     private static boolean isSmallCreaturePredator(EntityType<?> type) {

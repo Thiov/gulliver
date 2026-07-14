@@ -11,7 +11,6 @@ import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.monster.Monster;
-import net.minecraft.world.entity.npc.villager.Villager;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -52,7 +51,12 @@ public final class GulliverEnvoy {
     // ---- entity classification (1.6.4 isNPC/isMonster/isAnimal/isArthropod) ----
 
     public static boolean isNPC(Entity entity) {
-        return entity instanceof Villager;
+        // 1.6.4 checked instanceof EntityVillager — the only trader NPC
+        // that existed. AbstractVillager covers its two modern
+        // descendants (Villager + WanderingTrader) so both use the NPC
+        // config bracket instead of the wandering trader silently
+        // falling into "animal".
+        return entity instanceof net.minecraft.world.entity.npc.villager.AbstractVillager;
     }
 
     public static boolean isMonster(Entity entity) {
@@ -188,8 +192,26 @@ public final class GulliverEnvoy {
      *   - "a-b" range: f1 + (f2-f1) * random(0..8)/8  (9-step uniform quantization)
      *   - single value: parse directly
      *   - if allowHeights, parsePlayerHeight is used for parsing
+     *
+     * Lenient on malformed input (falls back to 1.0 / the first value),
+     * matching the 1.6.4 config-read behavior. Command input should use
+     * {@link #getSizeFromRangeStringStrict} instead so typos error out.
      */
     public static float getSizeFromRangeString(String sizes, boolean allowHeights) {
+        return getSizeFromRangeString(sizes, allowHeights, false);
+    }
+
+    /**
+     * Strict variant for command input: same grammar, but malformed
+     * input returns NaN (flagged by isInvalidSize) instead of silently
+     * falling back — so "/basesize garbage" reports an error rather
+     * than quietly resetting the player to 1.0.
+     */
+    public static float getSizeFromRangeStringStrict(String sizes, boolean allowHeights) {
+        return getSizeFromRangeString(sizes, allowHeights, true);
+    }
+
+    private static float getSizeFromRangeString(String sizes, boolean allowHeights, boolean strict) {
         float f1;
         float f2 = 1.0F;
         String[] sets = sizes.split(",");
@@ -201,13 +223,13 @@ public final class GulliverEnvoy {
         try {
             f1 = allowHeights ? parsePlayerHeight(s1) : Float.parseFloat(s1);
         } catch (NumberFormatException ex) {
-            return 1.0F;
+            return strict ? Float.NaN : 1.0F;
         }
         if (range.length == 1) return f1;
         try {
             f2 = allowHeights ? parsePlayerHeight(s2) : Float.parseFloat(s2);
         } catch (NumberFormatException ex) {
-            return f1;
+            return strict ? Float.NaN : f1;
         }
         if (f1 > f2) return f1;
 
@@ -420,10 +442,10 @@ public final class GulliverEnvoy {
      * 'sizeGriefing' gamerule (defaulting on if unset). Mobs are also
      * gated by mobGriefing.
      *
-     * Modern translation: the 1.6.4 mod registered 'sizeGriefing' as a
-     * world gamerule on server start. We don't replicate that custom
-     * gamerule here yet (Phase 19 / config polish), so this falls back
-     * to: players → always allowed; mobs → mobGriefing gamerule.
+     * Modern translation: GulliverGameRules registers the
+     * gulliver:size_griefing boolean gamerule (default true); players
+     * are gated by it alone, mobs by it AND vanilla mobGriefing (the
+     * same layering as 1.6.4).
      */
     public static boolean canSizeGrief(Entity entity) {
         if (!(entity.level() instanceof ServerLevel sl)) {
@@ -1033,6 +1055,13 @@ public final class GulliverEnvoy {
             if (!(target instanceof net.minecraft.world.entity.LivingEntity living)) continue;
             if (target == stepper || target.getVehicle() == stepper) continue;
             if (isDragonEntity(target)) continue;
+            // Never crush what you're carrying — a hand/shoulder passenger
+            // is snapped to the carrier every tick and can intersect the
+            // foot zone while the carrier walks downhill.
+            if (stepper.getUUID().equals(
+                    ((gulliver.access.IGulliverShoulderInternal) target).gulliver$getHoldingEntity())) {
+                continue;
+            }
 
             IResizeableEntity tsized = (IResizeableEntity) target;
             if (tsized.getSizeMultiplier() >= stepperMult * 0.5F) continue;

@@ -50,8 +50,6 @@ public final class GliderPaperWorldRenderer {
 
         PoseStack pose = ctx.poseStack();
         SubmitNodeCollector buf = ctx.submitNodeCollector();
-        net.minecraft.client.renderer.state.level.CameraRenderState camState = ctx.levelState().cameraRenderState;
-        // CameraRenderState has the camera's world position via its underlying camera. Use the actual Camera object.
         net.minecraft.client.Camera cam = mc.gameRenderer.getMainCamera();
         Vec3 camPos = cam.position();
         float pt = mc.getDeltaTracker().getGameTimeDeltaPartialTick(false);

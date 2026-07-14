@@ -38,9 +38,8 @@ public final class KarmaMode {
             gulliver.common.SizeAttributes.applyForSize(newPlayer, liveSize);
             newPlayer.refreshDimensions();
             gulliver.network.SizeSync.broadcast(newPlayer);
-            gulliver.GulliverFabric.LOGGER.info(
-                    "[gulliver] COPY_FROM respawn: size {} preserved (alive={})",
-                    oldBase, alive);
+            gulliver.GulliverFabric.LOGGER.debug(
+                    "COPY_FROM respawn: size {} preserved (alive={})", oldBase, alive);
         });
 
         ServerPlayerEvents.AFTER_RESPAWN.register((oldPlayer, newPlayer, alive) -> {
@@ -57,9 +56,14 @@ public final class KarmaMode {
             newPlayer.refreshDimensions();
             // Vanilla respawn sets HP to default 20 BEFORE attributes are
             // applied — overwrite to scaled max so giants don't respawn
-            // with 20 of 80 hp showing 1/4 hearts filled.
-            newPlayer.setHealth(newPlayer.getMaxHealth());
-            newPlayer.setAirSupply(newPlayer.getMaxAirSupply());
+            // with 20 of 80 hp showing 1/4 hearts filled. Death respawns
+            // only: AFTER_RESPAWN also fires on dimension change
+            // (alive=true, e.g. returning from the End), where forcing
+            // full HP/air would hand out a free heal.
+            if (!alive) {
+                newPlayer.setHealth(newPlayer.getMaxHealth());
+                newPlayer.setAirSupply(newPlayer.getMaxAirSupply());
+            }
             gulliver.network.SizeSync.broadcast(newPlayer);
 
             // Karma mode: if enabled AND this is a real death (not

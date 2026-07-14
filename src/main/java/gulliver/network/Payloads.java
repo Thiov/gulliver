@@ -38,7 +38,11 @@ public final class Payloads {
 
     /**
      * Packet172AttachEntitySpecial equivalent: shoulder-attach (or detach) an
-     * entity onto another. attachmentType: 0 = drop / detach, 1 = attach.
+     * entity onto another. attachmentType is a ShoulderHelper.SLOT_*
+     * constant: 0 = detach, 1 = hand, 2 = right shoulder, 3 = left
+     * shoulder. entityId may be -1 on a detach whose passenger could
+     * not be resolved (stale slot) — receivers must handle both ids
+     * failing to resolve.
      * Used by the shoulder-entity feature.
      */
     public record AttachEntitySpecial(int entityId, int vehicleEntityId, byte attachmentType) implements CustomPacketPayload {

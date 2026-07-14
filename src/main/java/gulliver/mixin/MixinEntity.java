@@ -19,11 +19,10 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
  * (base, potion, item) compose into getSizeMultiplier() exactly as in
  * the 1.6.4 mod's ASM-injected fields. No vanilla Attributes.SCALE.
  *
- * Thresholds:
- *   isTiny   : sizeMultiplier < 1.0  (matches 1.6.4 isHoldingStringOrLeash use)
- *   isHuge   : sizeMultiplier > 1.0
- *   isExtraTiny : sizeMultiplier < 0.25  (matches the 1.6.4 client-side
- *                push-out threshold in EntityResizeableClientPlayerMP.i)
+ * Thresholds (1.6.4 nn.java lines 352/357/362):
+ *   isTiny      : sizeMultiplier <  0.3
+ *   isExtraTiny : sizeMultiplier <  0.15
+ *   isHuge      : sizeMultiplier >= 2.4
  */
 @Mixin(Entity.class)
 public abstract class MixinEntity implements IResizeableEntity, IGulliverEntityInternal, IGulliverShoulderInternal {
@@ -261,7 +260,16 @@ public abstract class MixinEntity implements IResizeableEntity, IGulliverEntityI
                                             net.minecraft.world.phys.Vec3 movement,
                                             CallbackInfo ci) {
         if (gulliver$holdingEntity != null) {
-            ((Entity) (Object) this).setDeltaMovement(net.minecraft.world.phys.Vec3.ZERO);
+            Entity self = (Entity) (Object) this;
+            // Orphan self-heal (server, throttled): if the carrier is
+            // gone — disconnected, changed dimension, killed without the
+            // drop hook firing — release the carry instead of freezing
+            // this entity in place forever.
+            if ((self.tickCount & 15) == 0 && !self.level().isClientSide()) {
+                gulliver.common.ShoulderHelper.validateCarried(self);
+                if (gulliver$holdingEntity == null) return; // released — move normally
+            }
+            self.setDeltaMovement(net.minecraft.world.phys.Vec3.ZERO);
             ci.cancel();
         }
     }

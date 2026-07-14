@@ -11,8 +11,10 @@
     "MixinEntityAir",
     "MixinFoodDataEat",
     "MixinItemStackUseDuration",
+    "MixinBowItem",
     "MixinCactusBlock",
     "MixinCarpetBlock",
+    "MixinCrossbowItem",
     "MixinEntity",
     "MixinEntityPushOut",
     "MixinEntitySound",
@@ -49,6 +51,7 @@
     "MixinSnowLayerBlock",
     "MixinSoulSandBlock",
     "MixinTntBlock",
+    "MixinTridentItem",
     "MixinTripWireBlock",
     "MixinWebBlock"
   ],

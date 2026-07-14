@@ -10,21 +10,32 @@ import net.minecraft.world.entity.ai.attributes.Attributes;
 
 /**
  * Apply size-based attribute modifiers for the attributes whose effect
- * SHOULD scale with body size. We deliberately do NOT scale MAX_HEALTH
- * or ARMOR — per user feedback, hearts should stay at vanilla 10
- * regardless of size; the "tiny is fragile, giant is tough" feel
- * comes purely from MixinLivingEntityDamage's per-hit damage scaling
- * (smaller target → take more damage, bigger target → take less).
+ * should scale with body size.
  *
- * What we DO scale:
+ * Always scaled (all sizes):
  *  - ENTITY_INTERACTION_RANGE: AttackRange.defaultFor reads this
  *    attribute directly (bypassing Player.entityInteractionRange()
  *    mixin), so without this modifier a size-8 player physically
- *    can't reach the mobs at their feet.
+ *    can't reach the mobs at their feet. Linear by size — the user
+ *    explicitly wanted "tight" reach for tinies (4(221..222)); at
+ *    size 0.125 that's entity reach 0.375 / block reach 0.56, just
+ *    enough to hit what your face is touching.
  *  - BLOCK_INTERACTION_RANGE: same idea for block targeting.
  *
- * Modifier IDs are stable per attribute so addOrReplacePermanentModifier
- * just updates in place — no leak across resizes.
+ * Giants only (size > 1):
+ *  - MAX_HEALTH: linear by size, so a size-8 giant has 160 hp.
+ *  - ARMOR: +2 per size step above 1, capped at +30.
+ *
+ * Tinies deliberately keep vanilla hearts and armor — their fragility
+ * comes from the per-hit damage divide in MixinLivingEntityDamage
+ * (smaller target → takes more damage per hit).
+ *
+ * Modifier IDs are stable per attribute so re-applying updates in
+ * place — no leak across resizes. This runs from the per-tick
+ * safety-net in MixinLivingEntitySizeTween, so every path SKIPS the
+ * attribute write when the already-applied amount matches: rewriting
+ * a permanent modifier dirties the instance and re-syncs it to
+ * clients, which would otherwise happen every tick for every entity.
  */
 public final class SizeAttributes {
     private SizeAttributes() {}
@@ -39,66 +50,45 @@ public final class SizeAttributes {
             Identifier.fromNamespaceAndPath("gulliver", "size_block_reach");
 
     public static void applyForSize(LivingEntity entity, float size) {
-        // Reach: linear by size, both directions. The user explicitly
-        // wanted "tight" reach for tinies (matching the 4(221..222)
-        // build), even if it means barely-reaching nearby blocks.
-        // Tiny size 0.125 → entity reach 0.375, block 0.56 (just enough
-        // to break a block your face is touching).
         applyMultiplier(entity, Attributes.ENTITY_INTERACTION_RANGE, ENTITY_REACH_ID, size);
         applyMultiplier(entity, Attributes.BLOCK_INTERACTION_RANGE, BLOCK_REACH_ID, size);
 
-        // Max HP and Armor: giants only. Tinies keep vanilla hearts and
-        // armor — their "fragility" comes from the per-hit damage divide
-        // in MixinLivingEntityDamage (target/size = 8x damage for tinies).
         if (size > 1.0F) {
             applyMultiplier(entity, Attributes.MAX_HEALTH, MAX_HEALTH_ID, size);
             float bonus = Math.min(30.0F, (size - 1.0F) * 2.0F);
-            applyAdditive(entity, Attributes.ARMOR, ARMOR_ID, bonus);
+            applyModifier(entity, Attributes.ARMOR, ARMOR_ID, bonus,
+                    AttributeModifier.Operation.ADD_VALUE);
         } else {
             removeModifier(entity, Attributes.MAX_HEALTH, MAX_HEALTH_ID);
             removeModifier(entity, Attributes.ARMOR, ARMOR_ID);
         }
     }
 
-    private static void applyMultiplierAmount(LivingEntity entity,
-                                                Holder<Attribute> attr,
-                                                Identifier id,
-                                                float amount) {
-        AttributeInstance inst = entity.getAttribute(attr);
-        if (inst == null) return;
-        if (amount == 0.0F) {
-            if (inst.getModifier(id) != null) inst.removeModifier(id);
-            return;
-        }
-        AttributeModifier mod = new AttributeModifier(
-                id, amount, AttributeModifier.Operation.ADD_MULTIPLIED_BASE);
-        inst.addOrReplacePermanentModifier(mod);
-    }
-
     private static void applyMultiplier(LivingEntity entity,
                                           Holder<Attribute> attr,
                                           Identifier id,
                                           float size) {
-        AttributeInstance inst = entity.getAttribute(attr);
-        if (inst == null) return;
         if (size == 1.0F) {
-            if (inst.getModifier(id) != null) inst.removeModifier(id);
+            removeModifier(entity, attr, id);
             return;
         }
-        AttributeModifier mod = new AttributeModifier(
-                id, size - 1.0F, AttributeModifier.Operation.ADD_MULTIPLIED_BASE);
-        inst.addOrReplacePermanentModifier(mod);
+        applyModifier(entity, attr, id, size - 1.0F,
+                AttributeModifier.Operation.ADD_MULTIPLIED_BASE);
     }
 
-    private static void applyAdditive(LivingEntity entity,
+    private static void applyModifier(LivingEntity entity,
                                         Holder<Attribute> attr,
                                         Identifier id,
-                                        float amount) {
+                                        float amount,
+                                        AttributeModifier.Operation op) {
         AttributeInstance inst = entity.getAttribute(attr);
         if (inst == null) return;
-        AttributeModifier mod = new AttributeModifier(
-                id, amount, AttributeModifier.Operation.ADD_VALUE);
-        inst.addOrReplacePermanentModifier(mod);
+        AttributeModifier existing = inst.getModifier(id);
+        if (existing != null && existing.amount() == (double) amount
+                && existing.operation() == op) {
+            return; // already applied — avoid dirtying the instance
+        }
+        inst.addOrReplacePermanentModifier(new AttributeModifier(id, amount, op));
     }
 
     private static void removeModifier(LivingEntity entity,

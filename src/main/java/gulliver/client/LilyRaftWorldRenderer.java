@@ -17,14 +17,18 @@ import net.minecraft.world.item.Items;
 import net.minecraft.world.phys.Vec3;
 
 /**
- * 1st-person world-space lily-pad raft. Mirrors GliderPaperWorldRenderer:
- * 3rd person is handled by MixinLivingEntityRenderer.gulliver$drawRaftLilypad
- * via the entity-render submit hook; 1st person can't use that path because
- * the local player isn't passed through the entity-render pipeline, so we
- * draw a flat lily-pad below the camera-anchor in world coords.
+ * 1st-person world-space lily-pad disc, in two modes:
+ *   RAFT     — under the feet while floating on water,
+ *   UMBRELLA — held above the head while sheltering from rain.
  *
- * Visual: tiny rafting on water sees a lily-pad disc just below their
- * camera, oriented to body yaw, sized 1.5x to read as a raft.
+ * Mirrors GliderPaperWorldRenderer: 3rd person is handled by
+ * MixinLivingEntityRenderer.gulliver$drawRaftLilypad via the entity-
+ * render submit hook; 1st person can't use that path because the local
+ * player isn't passed through the entity-render pipeline, so we draw
+ * the flat lily-pad relative to the camera anchor in world coords.
+ * Offsets/scales match the 3rd-person path exactly (raft: 0.4×size
+ * lift, 1.5×size disc; umbrella: 2.2×size lift, 1.1×size disc) so the
+ * visual is identical across camera modes.
  */
 public final class LilyRaftWorldRenderer {
     private LilyRaftWorldRenderer() {}
@@ -39,20 +43,15 @@ public final class LilyRaftWorldRenderer {
         LocalPlayer player = mc.player;
         if (player == null) return;
         IResizeableLiving sized = (IResizeableLiving) player;
-        if (!sized.isRafting()) return;
+        boolean raft = sized.isRafting();
+        boolean umbrella = !raft && sized.doesUmbrella();
+        if (!raft && !umbrella) return;
 
-        renderRaft(ctx, player, sized);
+        renderDisc(ctx, player, sized, raft);
     }
 
-    /**
-     * Public so the 3rd-person path (MixinLivingEntityRenderer) can also
-     * call into it — same world-anchor render, used in BOTH camera modes.
-     * In 3rd person we run from the entity submit hook, but the entity
-     * pose-stack is at entity-origin, not world-origin; we want a unified
-     * world-space render so geometry is identical regardless of view.
-     */
-    static void renderRaft(net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderContext ctx,
-                            LocalPlayer player, IResizeableLiving sized) {
+    private static void renderDisc(net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderContext ctx,
+                            LocalPlayer player, IResizeableLiving sized, boolean raft) {
         Minecraft mc = Minecraft.getInstance();
         PoseStack pose = ctx.poseStack();
         SubmitNodeCollector buf = ctx.submitNodeCollector();
@@ -64,24 +63,25 @@ public final class LilyRaftWorldRenderer {
         double py = Mth.lerp(pt, player.yOld, player.getY());
         double pz = Mth.lerp(pt, player.zOld, player.getZ());
 
-        // Anchor at player feet — bbox bottom is player.getY().
-        // Disc sits very slightly above the feet so it reads as
-        // "platform under the player" not "embedded in feet".
+        // Anchor at player feet — bbox bottom is player.getY(). Raft
+        // disc sits at the waterline (player is snapped 0.4×size below
+        // it); umbrella disc floats just above the raised fist.
         float scale = sized.getSizeMultiplier();
+        float lift = (raft ? 0.4F : 2.2F) * scale;
 
         pose.pushPose();
         pose.translate(
                 (float) (px - camPos.x),
-                (float) (py + 0.4F * scale - camPos.y),
+                (float) (py + lift - camPos.y),
                 (float) (pz - camPos.z));
-        // Body yaw — raft rotates with body.
+        // Body yaw — disc rotates with body.
         pose.mulPose(com.mojang.math.Axis.YP.rotationDegrees(180.0F - player.yBodyRot));
         // Lay flat: lily-pad item is a vertical 2D quad in NONE display
         // context. Rotate +90° around X so the quad lies horizontal.
         pose.mulPose(com.mojang.math.Axis.XP.rotationDegrees(90.0F));
-        // Uniform 1.5× scale relative to the player's size — wide enough
-        // to read as a raft/vehicle, scales with player.
-        float disc = 1.5F * scale;
+        // Raft reads as a vehicle (1.5×), umbrella as a hand-held
+        // canopy (1.1×) — both track player size.
+        float disc = (raft ? 1.5F : 1.1F) * scale;
         pose.scale(disc, disc, disc);
         // No manual recenter. ItemTransform.apply, called from
         // ItemStackRenderState$LayerRenderState.submit during

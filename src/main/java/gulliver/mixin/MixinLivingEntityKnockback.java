@@ -49,7 +49,11 @@ public abstract class MixinLivingEntityKnockback {
             float attackerSize = ((IResizeableEntity) attacker).getSizeMultiplier();
             scaled = strength * (attackerSize / targetSize);
         } else if (targetSize != 1.0F) {
-            scaled = strength / targetSize;
+            // No attacker (explosion, environment): light targets are
+            // tossed further, but CAP the factor — uncapped 1/size sent
+            // a 0.125 tiny flying 8× on any sourceless knockback, which
+            // read as "the rain flings me across the map".
+            scaled = strength * Math.min(3.0D, 1.0D / targetSize);
         }
 
         if (sized.isSticky()) scaled *= 0.25D;

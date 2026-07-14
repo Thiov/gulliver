@@ -51,7 +51,7 @@ public abstract class MixinLivingEntityRaft {
             double cosA = Math.cos(angRad) * sizemult;
             double sinA = Math.sin(angRad) * sizemult;
             int n = (int) (1.0 + horiz * 60.0 * sizemult);
-            java.util.Random rng = new java.util.Random();
+            var rng = self.getRandom();
             for (int i1 = 0; i1 < n; i1++) {
                 double r1 = rng.nextFloat() * 2.0F - 1.0F;
                 double r2 = (rng.nextInt(2) * 2 - 1) * 0.7 * sizemult;
@@ -99,12 +99,12 @@ public abstract class MixinLivingEntityRaft {
         if (currentY > surfaceY + 0.1) return;
 
         // We're at the surface — snap. Sit into the water by
-        // `0.3 * sizemult` so the player visibly settles into the
+        // `0.4 * sizemult` so the player visibly settles into the
         // surface rather than hovering on top of it. Scaled by size
-        // so the offset is body-proportional: a 1.0× rider sinks 0.3
-        // (calf-deep), a 0.125× tiny sinks 0.038 (proportional to
+        // so the offset is body-proportional: a 1.0× rider sinks 0.4
+        // (calf-deep), a 0.125× tiny sinks 0.05 (proportional to
         // their tiny body so they aren't drowned). The disc lift in
-        // both renderers is set to `0.3 * scale` to match — disc
+        // both renderers is set to `0.4 * scale` to match — disc
         // center lands at the water-surface line regardless of size.
         // Setting position re-aligns the bbox; the tick has already
         // finished, so this is the final state.

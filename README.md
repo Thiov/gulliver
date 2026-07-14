@@ -8,17 +8,18 @@ Resize yourself or other entities anywhere from **0.125× to 8×**, with movemen
 
 **Size-scaled mechanics**
 - **Movement** — walk speed, jump height, step height, and fall damage scale with size.
+- **Falling** — the square-cube law applies: the smaller you are, the lower your terminal velocity, so long falls turn into a leaf-light drift (jumps stay snappy). Giants fall at normal speed — but the *world* reacts: landing from a real fall sets off a ground-shock that booms, kicks up a ring of dust, and knocks smaller creatures off their feet.
 - **Reach** — interaction range scales with size; tinies get a reach bump when holding a tool.
-- **Combat** — damage and knockback scale with the size difference, and large attackers often miss much smaller targets.
+- **Combat** — damage and knockback scale with the size difference, and large attackers often miss much smaller targets. Drawing a bow, loading a crossbow, or winding up a trident takes longer the smaller you are — and is near-instant for giants.
 - **Crushing** — big entities trample crops, trigger pressure plates, break fragile blocks, and hurt entities underfoot.
 - **Mob AI** — mobs ignore targets far smaller than themselves (spiders, silverfish, endermites, and bees still hunt tinies).
 
 **Tiny abilities**
-- Glide slowly and ride heat updrafts with paper in hand.
+- Glide slowly and ride heat updrafts with paper in hand — wet paper doesn't fly, so no gliding in the rain.
 - Stand on water with a lily-pad (rendered in both first and third person).
 - Climb soft blocks while sneaking; climb any wall with a slimeball or string in hand.
 - Need a pointy item (sword, tool, or stick) to use functional blocks; too light to trip pressure plates and tripwires.
-- Shelter from rain — which hurts the smallest sizes — under paper or a lily-pad, and hide inside flowers.
+- Rain slowly **drowns** the smallest sizes — raindrops are body-sized water masses that drain your air. Hold a lily-pad overhead as an umbrella (it renders above your head in both views), duck under cover, or sneak to huddle through it. You can also hide inside flowers.
 
 **Carry**
 - Sneak + right-click a smaller mob or player to pick it up into your hand.

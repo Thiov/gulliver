@@ -2,9 +2,11 @@ package gulliver.common;
 
 import gulliver.access.IGulliverShoulderInternal;
 import gulliver.api.IResizeableEntity;
+import net.fabricmc.fabric.api.entity.event.v1.ServerEntityLevelChangeEvents;
 import net.fabricmc.fabric.api.event.player.UseBlockCallback;
 import net.fabricmc.fabric.api.event.player.UseEntityCallback;
 import net.fabricmc.fabric.api.event.player.UseItemCallback;
+import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
@@ -19,30 +21,30 @@ import net.minecraft.world.item.Items;
  *  - shift+RMB on carryable target  -> pick up into HAND slot
  *  - RMB while holding STRING on a sufficiently-larger target -> rider
  *    starts riding the target (vanilla startRiding)
- *  - shift+RMB while already carrying -> drop everything
+ *  - RMB in air / on a block while carrying in HAND -> set the held
+ *    entity down (on the clicked block's top face when there is one)
+ *
+ * Also owns the carry-lifecycle safety hooks: everything carried is
+ * dropped when the carrier disconnects or changes dimension, so no
+ * entity is left frozen behind (see ShoulderHelper.validateCarried for
+ * the belt-and-suspenders self-heal on the carried side).
  */
 public final class ShoulderInteractHandler {
     private ShoulderInteractHandler() {}
 
     public static void registerCommon() {
-        // Right-click in air while carrying anything in HAND -> drop the
-        // hand-held in front of the player. Only fires when the click hits
+        // Right-click in air while carrying anything in HAND -> set the
+        // hand-held down in place. Only fires when the click hits
         // nothing else (no entity / no block).
         UseItemCallback.EVENT.register((player, world, hand) -> {
             if (hand != InteractionHand.MAIN_HAND) return InteractionResult.PASS;
             if (world.isClientSide()) return InteractionResult.PASS;
             if (!(player instanceof ServerPlayer carrier)) return InteractionResult.PASS;
-            IGulliverShoulderInternal cs = (IGulliverShoulderInternal) carrier;
-            if (cs.gulliver$getHandEntity() == null) return InteractionResult.PASS;
-            // Drop only the hand-held in place (don't touch shoulder slots).
-            java.util.UUID handId = cs.gulliver$getHandEntity();
-            net.minecraft.world.entity.Entity held = ((net.minecraft.server.level.ServerLevel) carrier.level()).getEntity(handId);
-            cs.gulliver$setHandEntity(null);
-            if (held != null) {
-                ((IGulliverShoulderInternal) held).gulliver$setHoldingEntity(null);
-                held.noPhysics = false;
-                ShoulderHelper.broadcastDetach(carrier, held);
+            if (((IGulliverShoulderInternal) carrier).gulliver$getHandEntity() == null) {
+                return InteractionResult.PASS;
             }
+            // Drop only the hand-held in place (don't touch shoulder slots).
+            ShoulderHelper.detachHand(carrier);
             return InteractionResult.SUCCESS;
         });
 
@@ -87,18 +89,14 @@ public final class ShoulderInteractHandler {
             if (hand != InteractionHand.MAIN_HAND) return InteractionResult.PASS;
             if (world.isClientSide()) return InteractionResult.PASS;
             if (!(player instanceof ServerPlayer carrier)) return InteractionResult.PASS;
-            IGulliverShoulderInternal cs = (IGulliverShoulderInternal) carrier;
-            java.util.UUID handId = cs.gulliver$getHandEntity();
-            if (handId == null) return InteractionResult.PASS;
-            net.minecraft.world.entity.Entity held =
-                    ((net.minecraft.server.level.ServerLevel) carrier.level()).getEntity(handId);
-            cs.gulliver$setHandEntity(null);
+            if (((IGulliverShoulderInternal) carrier).gulliver$getHandEntity() == null) {
+                return InteractionResult.PASS;
+            }
+            Entity held = ShoulderHelper.detachHand(carrier);
             if (held != null) {
-                ((IGulliverShoulderInternal) held).gulliver$setHoldingEntity(null);
-                held.noPhysics = false;
                 // Place precisely on top of the hit block. hitResult
-                // .getLocation() gives the exact 3D point; add the entity's
-                // half-height so it stands on top of that surface.
+                // .getLocation() gives the exact 3D point; snap to the
+                // block's top surface when the top face was clicked.
                 net.minecraft.world.phys.Vec3 hit = hitResult.getLocation();
                 net.minecraft.core.BlockPos pos  = hitResult.getBlockPos();
                 double placeY = (hitResult.getDirection() == net.minecraft.core.Direction.UP)
@@ -107,9 +105,29 @@ public final class ShoulderInteractHandler {
                 held.setPos(hit.x, placeY, hit.z);
                 held.setDeltaMovement(0.0D, 0.0D, 0.0D);
                 held.fallDistance = 0.0F;
-                ShoulderHelper.broadcastDetach(carrier, held);
             }
             return InteractionResult.SUCCESS;
         });
+
+        // Carrier disconnects: drop everything so carried entities don't
+        // stay frozen (their move() is cancelled while the carry flag is
+        // set) until the throttled self-heal notices.
+        ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> {
+            ServerPlayer player = handler.getPlayer();
+            if (((IGulliverShoulderInternal) player).gulliver$hasAnyCarry()) {
+                ShoulderHelper.drop(player);
+            }
+        });
+
+        // Carrier changed dimension: carried entities stay in the origin
+        // level (they're not vanilla passengers), so clear the carrier's
+        // slots. The carried entities themselves are released by the
+        // validateCarried self-heal within a second.
+        ServerEntityLevelChangeEvents.AFTER_PLAYER_CHANGE_LEVEL.register(
+                (player, origin, destination) -> {
+                    if (((IGulliverShoulderInternal) player).gulliver$hasAnyCarry()) {
+                        ShoulderHelper.drop(player);
+                    }
+                });
     }
 }

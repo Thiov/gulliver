@@ -37,7 +37,17 @@ public final class ClientPacketHandlers {
             ctx.client().execute(() -> {
                 Entity carrier = entityById(payload.vehicleEntityId());
                 Entity passenger = entityById(payload.entityId());
-                if (carrier == null) return;
+                if (carrier == null) {
+                    // Orphan-release detach (carrier already gone, id -1):
+                    // still unfreeze the passenger's client copy so it
+                    // doesn't stay pinned to its last carried position.
+                    if (passenger != null
+                            && payload.attachmentType() == gulliver.common.ShoulderHelper.SLOT_DETACH) {
+                        ((gulliver.access.IGulliverShoulderInternal) passenger)
+                                .gulliver$setHoldingEntity(null);
+                    }
+                    return;
+                }
                 gulliver.access.IGulliverShoulderInternal cs =
                         (gulliver.access.IGulliverShoulderInternal) carrier;
                 byte slot = payload.attachmentType();

@@ -26,8 +26,11 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
  *   collision = var5 > 0 ? bbox(0..var5/32) : null;
  *
  * Modern translation: @Inject HEAD getCollisionShape — substitute empty
- * shape for normal/huge (no collision), keep vanilla SHAPE for tiny,
- * substitute thinner box for extra-tiny.
+ * shape for HUGE only (a giant doesn't even feel carpet underfoot; the
+ * 1.6.4 "no collision for normal" half is skipped because vanilla's
+ * 1/16 lip is already imperceptible at normal scale and removing it
+ * would change vanilla-size behavior for no visible gain), keep
+ * vanilla SHAPE for tiny, substitute a thinner box for extra-tiny.
  *
  * VoxelShape construction for extra-tiny uses Shapes.box(0,0,0,1,1/32,1).
  * Targets the parent CarpetBlock so WoolCarpetBlock + MossyCarpetBlock

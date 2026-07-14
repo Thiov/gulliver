@@ -71,10 +71,15 @@ public final class KeyInputHandler {
         // Both self-resize and entity-target resize are creative-only.
         if (!player.getAbilities().instabuild) return;
         ItemStack mainHand = player.getMainHandItem();
-        // Stick + targeted entity → resize the entity (op-gated server-side).
-        if (mainHand.is(Items.STICK) && client.hitResult instanceof EntityHitResult ehr) {
-            Entity target = ehr.getEntity();
-            sendCommand(player, (upsize ? "entitydoublesize " : "entityhalfsize ") + target.getId());
+        // Stick = entity-resize wand. While holding it, the keybinds
+        // ONLY target the entity under the crosshair — a missed aim
+        // does nothing instead of falling through to self-resize
+        // (accidentally shrinking yourself mid-aim was infuriating).
+        if (mainHand.is(Items.STICK)) {
+            if (client.hitResult instanceof EntityHitResult ehr) {
+                Entity target = ehr.getEntity();
+                sendCommand(player, (upsize ? "entitydoublesize " : "entityhalfsize ") + target.getId());
+            }
             return;
         }
         sendCommand(player, upsize ? "doublesize" : "halfsize");

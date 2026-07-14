@@ -30,7 +30,7 @@ public abstract class MixinPlayerSaveSize {
         out.putFloat("gulliver.sizeBaseDest", dest);
         out.putFloat("gulliver.sizePotion", i.gulliver$getSizePotionMultiplier());
         out.putFloat("gulliver.sizeItem", i.gulliver$getSizeItemMultiplier());
-        gulliver.GulliverFabric.LOGGER.info("[gulliver] SAVE size: base={} dest={}", base, dest);
+        gulliver.GulliverFabric.LOGGER.debug("SAVE size: base={} dest={}", base, dest);
     }
 
     @Inject(method = "readAdditionalSaveData(Lnet/minecraft/world/level/storage/ValueInput;)V",
@@ -50,6 +50,6 @@ public abstract class MixinPlayerSaveSize {
         i.gulliver$setSizePotionMultiplier(pot);
         i.gulliver$setSizeItemMultiplier(item);
         ((Player) (Object) this).refreshDimensions();
-        gulliver.GulliverFabric.LOGGER.info("[gulliver] LOAD size: base={} dest={}", base, dest);
+        gulliver.GulliverFabric.LOGGER.debug("LOAD size: base={} dest={}", base, dest);
     }
 }

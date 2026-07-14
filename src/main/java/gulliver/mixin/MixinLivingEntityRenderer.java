@@ -116,22 +116,27 @@ public abstract class MixinLivingEntityRenderer {
                                            net.minecraft.client.renderer.state.level.CameraRenderState cam,
                                            CallbackInfo ci) {
         if (!(state instanceof gulliver.access.IGlideRenderState g)) return;
-        if (!g.gulliver$isRafting()) return;
+        boolean raft = g.gulliver$isRafting();
+        boolean umbrella = !raft && g.gulliver$doesUmbrella();
+        if (!raft && !umbrella) return;
         pose.pushPose();
         // Pose at this point: entity world origin (feet at y=0).
-        // Player is snap-positioned 0.3×size below the water line, so
-        // lifting the disc by 0.3×size puts its center exactly at the
-        // water surface — top breaks the surface, bottom slightly
-        // below, the way a real lily-pad floats.
-        pose.translate(0.0F, 0.4F * state.scale, 0.0F);
-        // Body yaw — raft rotates with body, matching the 1st-person
+        // Raft: player is snap-positioned 0.4×size below the water
+        // line, so lifting the disc by 0.4×size puts its center exactly
+        // at the water surface — top breaks the surface the way a real
+        // lily-pad floats.
+        // Umbrella: disc held just above the raised fist (head top is
+        // 1.8×scale, raised hand ~2.2×scale).
+        pose.translate(0.0F, (raft ? 0.4F : 2.2F) * state.scale, 0.0F);
+        // Body yaw — disc rotates with body, matching the 1st-person
         // path's `180 - yBodyRot` convention (same one
         // setupRotations applies to the model itself).
         pose.mulPose(com.mojang.math.Axis.YP.rotationDegrees(180.0F - state.bodyRot));
         // Lay the item quad flat (it's vertical by default in NONE).
         pose.mulPose(com.mojang.math.Axis.XP.rotationDegrees(90.0F));
-        // Uniform 1.5× scale tracking entity scale.
-        float disc = 1.5F * state.scale;
+        // Uniform scale tracking entity scale — the raft reads as a
+        // vehicle (1.5×), the umbrella as a hand-held canopy (1.1×).
+        float disc = (raft ? 1.5F : 1.1F) * state.scale;
         pose.scale(disc, disc, disc);
         // No manual recenter — ItemTransform.apply for the
         // NO_TRANSFORM branch (which is what NONE display context

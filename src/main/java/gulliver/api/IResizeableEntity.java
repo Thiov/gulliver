@@ -18,9 +18,10 @@ public interface IResizeableEntity {
     float getStepHeight();
 
     /**
-     * 1.6.4 nn.java getRangeMultiplier:
-     *   size >= 1 -> linear size; else sqrt(size).
-     * Tinies get a softer reach penalty than full linear scaling.
+     * Reach multiplier — LINEAR in size for all brackets. (The 1.6.4
+     * source used sqrt for tinies, but playtesting showed that gave a
+     * 0.125x player ~3 blocks of reach — far too long; see
+     * MixinEntity.getRangeMultiplier.)
      */
     float getRangeMultiplier();
 

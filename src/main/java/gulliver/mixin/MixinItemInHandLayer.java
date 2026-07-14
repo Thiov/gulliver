@@ -29,10 +29,11 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 public abstract class MixinItemInHandLayer {
 
     /**
-     * Hide the lily-pad in hand while rafting. The lily-pad becomes the
-     * raft (rendered separately by the world-anchored renderer), so it
-     * shouldn't simultaneously appear in the player's hand. Cancel the
-     * whole submitArmWithItem call when rafting + the held stack is the
+     * Hide the lily-pad in hand while rafting OR while it's raised as
+     * an umbrella. In both modes the pad is rendered as a separately-
+     * anchored disc (raft under the feet, canopy above the head), so
+     * it shouldn't simultaneously appear as a hand item. Cancel the
+     * whole submitArmWithItem call when active + the held stack is the
      * lily-pad.
      */
     @Inject(method = "submitArmWithItem(Lnet/minecraft/client/renderer/entity/state/ArmedEntityRenderState;Lnet/minecraft/client/renderer/item/ItemStackRenderState;Lnet/minecraft/world/item/ItemStack;Lnet/minecraft/world/entity/HumanoidArm;Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/SubmitNodeCollector;I)V",
@@ -44,7 +45,7 @@ public abstract class MixinItemInHandLayer {
                                                     SubmitNodeCollector buf, int light,
                                                     CallbackInfo ci) {
         if (!(state instanceof IGlideRenderState g)) return;
-        if (!g.gulliver$isRafting()) return;
+        if (!g.gulliver$isRafting() && !g.gulliver$doesUmbrella()) return;
         if (stack != null && stack.is(net.minecraft.world.item.Items.LILY_PAD)) {
             ci.cancel();
         }

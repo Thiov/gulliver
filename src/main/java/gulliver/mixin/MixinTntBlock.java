@@ -50,6 +50,12 @@ public abstract class MixinTntBlock {
         // Don't override pointy-tool right-click — the player might be poking
         // at the block with intent.
         if (GulliverEnvoy.isItemPointy(stack)) return;
+        // Don't hijack block placement: a huge builder clicking TNT with a
+        // block in hand wants to build against it, not detonate it. The
+        // 1.6.4 original only primed on a truly EMPTY hand.
+        if (stack.getItem() instanceof net.minecraft.world.item.BlockItem) return;
+        // Sneak = the universal "suppress special interaction" gesture.
+        if (player.isShiftKeyDown()) return;
 
         if (!level.isClientSide()) {
             TntBlock.prime(level, pos, player);

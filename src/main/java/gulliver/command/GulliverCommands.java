@@ -158,7 +158,9 @@ public final class GulliverCommands {
 
     private static int baseSize(CommandContext<CommandSourceStack> ctx, ServerPlayer target) throws CommandSyntaxException {
         String sizeStr = StringArgumentType.getString(ctx, "size");
-        float size = GulliverEnvoy.getSizeFromRangeString(sizeStr, true);
+        // Strict parse: a typo like "/basesize abc" must error, not
+        // silently reset the target to 1.0.
+        float size = GulliverEnvoy.getSizeFromRangeStringStrict(sizeStr, true);
         if (GulliverEnvoy.isInvalidSize(size)) throw INVALID_SIZE.create();
         ((IResizeableLiving) target).setBaseSize(size);
         successSize(ctx, target);
@@ -177,21 +179,16 @@ public final class GulliverCommands {
     }
 
     private static int halfSize(CommandContext<CommandSourceStack> ctx, ServerPlayer target) {
+        // MixinLivingEntity overrides halveSize to route through
+        // setBaseSize, which already clamps, refreshes dimensions, and
+        // broadcasts the size sync — no extra plumbing needed here.
         ((IResizeableEntity) target).halveSize();
-        // halveSize on Entity bypasses the LivingEntity refresh+broadcast path,
-        // so trigger them explicitly here. Same shape as 1.6.4's CommandHalfSize
-        // which relied on the patched halveSize() method to do the dimension
-        // refresh + Packet171 broadcast inline.
-        target.refreshDimensions();
-        gulliver.network.SizeSync.broadcast(target);
         successSize(ctx, target);
         return 1;
     }
 
     private static int doubleSize(CommandContext<CommandSourceStack> ctx, ServerPlayer target) {
         ((IResizeableEntity) target).doubleSize();
-        target.refreshDimensions();
-        gulliver.network.SizeSync.broadcast(target);
         successSize(ctx, target);
         return 1;
     }
@@ -203,10 +200,10 @@ public final class GulliverCommands {
         String hs = GulliverEnvoy.getPlayerHeightStringFromSizeMult(full);
         if (!hs.isEmpty()) {
             ctx.getSource().sendSuccess(() -> Component.literal(
-                    target.getName().getString() + " base " + base + " current " + full + " (" + hs + ")"), false);
+                    target.getName().getString() + " base " + fmt(base) + " current " + fmt(full) + " (" + hs + ")"), false);
         } else {
             ctx.getSource().sendSuccess(() -> Component.literal(
-                    target.getName().getString() + " base " + base + " current " + full), false);
+                    target.getName().getString() + " base " + fmt(base) + " current " + fmt(full)), false);
         }
         return 1;
     }
@@ -276,7 +273,7 @@ public final class GulliverCommands {
             return 0;
         }
         String sizeStr = StringArgumentType.getString(ctx, "size");
-        float size = GulliverEnvoy.getSizeFromRangeString(sizeStr, false);
+        float size = GulliverEnvoy.getSizeFromRangeStringStrict(sizeStr, false);
         if (GulliverEnvoy.isInvalidSize(size)) throw INVALID_SIZE.create();
         ((IResizeableLiving) living).setBaseSize(size);
         successEntity(ctx, living);
@@ -315,10 +312,10 @@ public final class GulliverCommands {
             ctx.getSource().sendFailure(Component.literal("Cannot resize dragon entities"));
             return 0;
         }
+        // LivingEntity's halveSize/doubleSize route through setBaseSize
+        // (clamp + refresh + broadcast) — see MixinLivingEntity.
         if (halve) ((IResizeableEntity) living).halveSize();
         else ((IResizeableEntity) living).doubleSize();
-        living.refreshDimensions();
-        gulliver.network.SizeSync.broadcast(living);
         successEntity(ctx, living);
         return 1;
     }
@@ -328,11 +325,24 @@ public final class GulliverCommands {
         if (ent == null) return 0;
         float full = ((IResizeableEntity) ent).getSizeMultiplier();
         ctx.getSource().sendSuccess(() -> Component.literal(
-                "Entity " + ent.getId() + " size " + full), false);
+                "Entity " + ent.getId() + " size " + fmt(full)), false);
         return 1;
     }
 
     // ---- helpers ----
+
+    /**
+     * Human-friendly size formatting for chat feedback: max 3 decimals,
+     * trailing zeros stripped — "0.5" instead of "0.5000001".
+     */
+    private static String fmt(float v) {
+        String s = String.format(java.util.Locale.ROOT, "%.3f", v);
+        if (s.contains(".")) {
+            s = s.replaceAll("0+$", "");
+            if (s.endsWith(".")) s = s.substring(0, s.length() - 1);
+        }
+        return s;
+    }
 
     private static Entity entityById(CommandContext<CommandSourceStack> ctx) {
         int id = IntegerArgumentType.getInteger(ctx, "id");
@@ -356,7 +366,7 @@ public final class GulliverCommands {
         float full = base * access.gulliver$getSizePotionMultiplier()
                 * access.gulliver$getSizeItemMultiplier();
         ctx.getSource().sendSuccess(() -> Component.literal(
-                target.getName().getString() + " base " + base + " current " + full), true);
+                target.getName().getString() + " base " + fmt(base) + " current " + fmt(full)), true);
     }
 
     private static void successEntity(CommandContext<CommandSourceStack> ctx, LivingEntity living) {
@@ -366,6 +376,6 @@ public final class GulliverCommands {
         float full = base * access.gulliver$getSizePotionMultiplier()
                 * access.gulliver$getSizeItemMultiplier();
         ctx.getSource().sendSuccess(() -> Component.literal(
-                "Entity " + living.getId() + " base " + base + " current " + full), true);
+                "Entity " + living.getId() + " base " + fmt(base) + " current " + fmt(full)), true);
     }
 }
