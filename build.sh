@@ -6,7 +6,7 @@ JAVA_HOME=/home/biker/cave_dweller_fabric_port/work/jdk-25.0.3+9
 LIBS=/home/biker/cave_dweller_fabric_port/work/libs_compile
 MC_JAR=/home/biker/witherstormmod_fabric_port/libs/mc-merged-allpublic.jar
 
-VERSION="0.14.3-fabric"
+VERSION="1.0.0"
 MODID="gulliver"
 
 CP="$MC_JAR:$LIBS/fabric-loader.jar:$LIBS/fabric-api.jar:$LIBS/sponge-mixin.jar"
