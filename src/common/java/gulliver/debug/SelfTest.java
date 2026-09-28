@@ -100,6 +100,7 @@ public final class SelfTest {
             float potion = ((IGulliverEntityInternal) cow).gulliver$getSizePotionMultiplier();
             check(failures, Math.abs(potion - 0.25F) < 1.0E-3F, "tiny effect -> potion multiplier 0.25 (got " + potion + ")");
             cow.removeAllEffects();
+            cow.tick();
             check(failures, ((IGulliverEntityInternal) cow).gulliver$getSizePotionMultiplier() == 1.0F,
                     "effect removal resets potion multiplier");
             cow.discard();

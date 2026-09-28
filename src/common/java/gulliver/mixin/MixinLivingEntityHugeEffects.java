@@ -36,6 +36,7 @@ public abstract class MixinLivingEntityHugeEffects {
         gulliver$lastX = x;
         gulliver$lastZ = z;
 
+        GulliverEnvoy.noteBodySize(self);
         GulliverEnvoy.stepOnSmallerEntities(self, moved);
         if (((IResizeableEntity) self).isHuge()) {
             GulliverEnvoy.leaveHugeFootprints(self, moved);

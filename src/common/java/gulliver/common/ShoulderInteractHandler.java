@@ -39,7 +39,8 @@ public final class ShoulderInteractHandler {
     }
 
     public static InteractionResult onUseEntity(Player player, Level level, InteractionHand hand, Entity entity) {
-        if (hand != InteractionHand.MAIN_HAND) return InteractionResult.PASS;
+        // Fabric's UseEntityCallback fires for spectators too.
+        if (hand != InteractionHand.MAIN_HAND || player.isSpectator()) return InteractionResult.PASS;
 
         // String-ride: holding STRING (either hand), RMB a living target at
         // least twice your size -> ride it. Bosses excepted.

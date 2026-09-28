@@ -1,7 +1,9 @@
 package gulliver.mixin;
 
 import gulliver.api.IResizeableEntity;
+//#if MC >= 1.21.2
 import net.minecraft.server.level.ServerLevel;
+//#endif
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.EntityTypes;
 import net.minecraft.world.entity.LivingEntity;
@@ -43,7 +45,10 @@ public abstract class MixinTargetingConditionsTinyHide {
     @org.spongepowered.asm.mixin.Shadow @org.spongepowered.asm.mixin.Final private boolean isCombat;
 
     @Inject(method = "test", at = @At("HEAD"), cancellable = true)
-    private void gulliver$tinyInvisibleToMobs(ServerLevel level,
+    private void gulliver$tinyInvisibleToMobs(
+                                                //#if MC >= 1.21.2
+                                                ServerLevel level,
+                                                //#endif
                                                 LivingEntity attacker,
                                                 LivingEntity target,
                                                 CallbackInfoReturnable<Boolean> cir) {

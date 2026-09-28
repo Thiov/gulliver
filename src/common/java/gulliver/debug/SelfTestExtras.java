@@ -38,6 +38,7 @@ final class SelfTestExtras {
             ((IResizeableLiving) pig).setBaseSize(0.25F);
             pig.setPos(zombie.getX(), zombie.getY(), zombie.getZ());
             float before = pig.getHealth();
+            GulliverEnvoy.noteBodySize(pig); // what the pig's own tick does
             GulliverEnvoy.stepOnSmallerEntities(zombie, 0.1D);
             check(failures, pig.getHealth() < before, "size-1 zombie tramples a 0.25 pig");
             ((IResizeableLiving) pig).setBaseSize(0.5F);
@@ -77,8 +78,16 @@ final class SelfTestExtras {
             float both = ((IGulliverEntityInternal) cow).gulliver$getSizePotionMultiplier();
             check(failures, Math.abs(both - 1.0F) < 1.0E-3F, "tiny+huge cancel out (got " + both + ")");
             cow.removeEffect(GulliverEffects.tiny());
+            cow.tick();
             float huge = ((IGulliverEntityInternal) cow).gulliver$getSizePotionMultiplier();
             check(failures, Math.abs(huge - 4.0F) < 1.0E-3F, "removing tiny leaves huge (got " + huge + ")");
+            // Milk: every effect goes at once.
+            cow.addEffect(new MobEffectInstance(GulliverEffects.tiny(), 200, 0));
+            for (int i = 0; i < 3; i++) cow.tick();
+            cow.removeAllEffects();
+            cow.tick();
+            float milked = ((IGulliverEntityInternal) cow).gulliver$getSizePotionMultiplier();
+            check(failures, milked == 1.0F, "milk clears tiny+huge (got " + milked + ")");
             cow.discard();
         }
 

@@ -30,3 +30,5 @@ MobEffects.JUMP_BOOST MobEffects.JUMP
 .getMinY() .getMinBuildHeight()
 .getPotted() .getContent()
 key.identifier() key.location()
+# snow layer shapes before 1.21.2
+SHAPES SHAPE_BY_LAYER

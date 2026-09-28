@@ -383,3 +383,27 @@ tasks.withType(JavaCompile).configureEach {
 }
 
 ext.gulliverPreprocess = preprocess
+
+// Production smoke test (Fabric only): `prodServer` installs a real Fabric
+// server and runs the built jar on it with the self-test enabled, so the
+// remapped jar is exercised exactly as players get it. -PprodMc=<version>
+// runs it on another Minecraft release (e.g. 26.1 for the 26.1.2 jar) and
+// -PprodFabricApi=<version> picks the matching Fabric API.
+if (loader == 'fabric') {
+    configurations { gulliverProdMods { transitive = false } }
+    dependencies {
+        gulliverProdMods "net.fabricmc.fabric-api:fabric-api:${project.findProperty('prodFabricApi') ?: project.fabric_version}"
+    }
+    def prodTask = project.extensions.getByName('loom').getClass().classLoader
+            .loadClass('net.fabricmc.loom.task.prod.ServerProductionRunTask')
+    tasks.register('prodServer', prodTask) {
+        mods.from(tasks.findByName('remapJar') ?: tasks.named('jar'))
+        mods.from(configurations.gulliverProdMods)
+        minecraftVersion = (project.findProperty('prodMc') ?: project.minecraft_version).toString()
+        loaderVersion = project.loader_version.toString()
+        installerVersion = '1.1.2'
+        jvmArgs.add('-Dgulliver.selftest=true')
+        programArgs.add('nogui')
+        runDir = project.layout.projectDirectory.dir('run-prod')
+    }
+}

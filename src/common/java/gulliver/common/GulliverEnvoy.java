@@ -480,6 +480,14 @@ public final class GulliverEnvoy {
 
     // ---- huge-entity ground effects (1.6.4 GulliverEnvoy) ----
 
+    /** Game time a living entity smaller than normal last ticked on the server. */
+    private static long smallBodySeen = Long.MIN_VALUE / 2;
+
+    /** Called by every living entity's server tick; cheap trample gate. */
+    public static void noteBodySize(net.minecraft.world.entity.LivingEntity entity) {
+        if (((IResizeableEntity) entity).getSizeMultiplier() < 1.0F) smallBodySeen = entity.level().getGameTime();
+    }
+
     /**
      * 1.6.4 stepOnSmallerEntities verbatim. A huge entity walking in the
      * world looks for small entities at its foot level and crushes them
@@ -1154,6 +1162,10 @@ public final class GulliverEnvoy {
         double ratio = GulliverConfig.INSTANCE.general.trampleSizeRatio;
         if (ratio <= 0.0D) return;
         if (stepper.isSpectator() || stepper.isPassenger()) return;
+        // Up to about 2.5x only sub-normal bodies can be trampled: skip the
+        // entity query unless one has ticked lately (see noteBodySize).
+        if (((IResizeableEntity) stepper).getSizeMultiplier() * ratio <= 1.0D
+                && level.getGameTime() - smallBodySeen > 2L) return;
 
         // 1.6.4 canSquish gate (nn.java:1271): only crush when STEPPING.
         // The 1.6.4 mod gated this on collision-while-moving, which we

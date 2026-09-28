@@ -1,7 +1,10 @@
 package gulliver.mixin;
 
+import gulliver.access.IGulliverHookInternal;
 import gulliver.api.IResizeableEntity;
 import gulliver.common.Grapple;
+import gulliver.network.Payloads;
+import gulliver.platform.Services;
 import net.minecraft.tags.FluidTags;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
@@ -17,36 +20,50 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 /**
- * Grappling hook (see Grapple). Server-side: when a tiny angler's bobber
- * touches a block out of water it anchors there; reeling in an anchored
- * bobber pulls the angler to it. A hooked creature bigger than a tiny
- * angler pulls the angler onto it, and pullEntity is scaled by size.
+ * Grappling hook (see Grapple). When a tiny angler's bobber touches a
+ * block out of water the server anchors it there and tells the clients
+ * (HookAnchor), which pin their copy too; reeling in an anchored bobber
+ * pulls the angler to it. A hooked creature bigger than a tiny angler
+ * pulls the angler onto it, and pullEntity's tug is scaled by size.
  */
 @Mixin(FishingHook.class)
-public abstract class MixinFishingHook {
+public abstract class MixinFishingHook implements IGulliverHookInternal {
 
     @Shadow private Entity hookedIn;
 
     @Shadow public abstract Player getPlayerOwner();
 
     @Unique private Vec3 gulliver$anchor;
+    @Unique private Vec3 gulliver$prePull;
 
-    @Inject(method = "tick", at = @At("TAIL"))
+    @Override @Unique public Vec3 gulliver$getAnchor() { return gulliver$anchor; }
+    @Override @Unique public void gulliver$setAnchor(Vec3 anchor) { gulliver$anchor = anchor; }
+
+    // RETURN, not TAIL: tick returns early once something is hooked.
+    @Inject(method = "tick", at = @At("RETURN"))
     private void gulliver$anchor(CallbackInfo ci) {
         FishingHook self = (FishingHook) (Object) this;
-        if (self.level().isClientSide() || self.isRemoved()) return;
+        if (self.isRemoved()) return;
+        if (hookedIn != null) {
+            // Something walked into the pinned hook: it follows that now.
+            gulliver$anchor = null;
+            return;
+        }
         if (gulliver$anchor != null) {
             // Pinned: stay exactly where the hook bit in.
             self.setPos(gulliver$anchor.x, gulliver$anchor.y, gulliver$anchor.z);
             self.setDeltaMovement(Vec3.ZERO);
             return;
         }
+        if (self.level().isClientSide()) return;
         Player owner = getPlayerOwner();
-        if (owner == null || hookedIn != null || !Grapple.canGrapple(owner)) return;
+        if (owner == null || !Grapple.canGrapple(owner)) return;
         boolean touching = self.onGround() || self.horizontalCollision || self.verticalCollision;
         if (touching && !self.level().getFluidState(self.blockPosition()).is(FluidTags.WATER)) {
             gulliver$anchor = self.position();
             self.setDeltaMovement(Vec3.ZERO);
+            Services.platform().sendToTrackingAndSelf(self, new Payloads.HookAnchor(
+                    self.getId(), gulliver$anchor.x, gulliver$anchor.y, gulliver$anchor.z));
         }
     }
 
@@ -70,13 +87,22 @@ public abstract class MixinFishingHook {
         }
     }
 
+    @Inject(method = "pullEntity", at = @At("HEAD"))
+    private void gulliver$beforePull(Entity target, CallbackInfo ci) {
+        gulliver$prePull = target.getDeltaMovement();
+    }
+
+    /** Scale only the tug pullEntity added, not the target's own momentum. */
     @Inject(method = "pullEntity", at = @At("RETURN"))
     private void gulliver$scalePull(Entity target, CallbackInfo ci) {
+        Vec3 before = gulliver$prePull;
+        gulliver$prePull = null;
         Player owner = getPlayerOwner();
-        if (owner == null) return;
+        if (owner == null || before == null) return;
         float scale = Grapple.pullScale(owner, target);
         if (scale != 1.0F) {
-            target.setDeltaMovement(target.getDeltaMovement().scale(scale));
+            Vec3 tug = target.getDeltaMovement().subtract(before);
+            target.setDeltaMovement(before.add(tug.scale(scale)));
             target.hurtMarked = true;
         }
     }

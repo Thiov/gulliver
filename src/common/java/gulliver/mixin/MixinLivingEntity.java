@@ -232,12 +232,16 @@ public abstract class MixinLivingEntity implements IResizeableLiving,
     }
 
     /**
+     * (Before 1.20.5 LivingEntity.getDimensions still calls super, which
+     * MixinEntity already scales; see MixinLivingEntityDimensionsLegacy.)
+     *
      * LivingEntity.getDimensions(Pose) is final and computes its own
      * EntityDimensions without calling Entity.getDimensions, so MixinEntity's
      * scaling inject never fires for any living entity. Apply the same
      * scaling here so refreshDimensions() actually picks up the resized
      * dimensions for players, mobs, etc.
      */
+    //#if MC >= 1.20.5
     @Inject(method = "getDimensions", at = @At("RETURN"), cancellable = true)
     private void gulliver$scaleLivingDimensions(Pose pose,
                                                  CallbackInfoReturnable<EntityDimensions> cir) {
@@ -247,4 +251,5 @@ public abstract class MixinLivingEntity implements IResizeableLiving,
         if (base == null) return;
         cir.setReturnValue(base.scale(m));
     }
+    //#endif
 }

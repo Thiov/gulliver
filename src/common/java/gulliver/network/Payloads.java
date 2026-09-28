@@ -94,6 +94,31 @@ public final class Payloads {
     }
 
     /**
+     * S2C: a grappling hook bit into a block at (x, y, z). Clients pin
+     * their copy there too; they'd otherwise keep simulating its fall.
+     */
+    public record HookAnchor(int hookId, double x, double y, double z) implements GulliverPayload {
+        public static final Identifier ID = Gulliver.id("hook_anchor");
+
+        public static HookAnchor read(FriendlyByteBuf b) {
+            return new HookAnchor(b.readVarInt(), b.readDouble(), b.readDouble(), b.readDouble());
+        }
+
+        @Override
+        public void write(FriendlyByteBuf b) {
+            b.writeVarInt(hookId);
+            b.writeDouble(x);
+            b.writeDouble(y);
+            b.writeDouble(z);
+        }
+
+        //#if MC >= 1.20.5
+        public static final Type<HookAnchor> TYPE = new Type<>(ID);
+        @Override public Type<HookAnchor> type() { return TYPE; }
+        //#endif
+    }
+
+    /**
      * C2S: the player right-clicked the air with a resizing item (cyan or
      * purple dye, red or brown mushroom). Vanilla never sends a use packet
      * for these, so this one carries the intent to the server.

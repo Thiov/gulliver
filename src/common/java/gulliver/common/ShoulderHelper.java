@@ -37,6 +37,8 @@ public final class ShoulderHelper {
     public static final byte SLOT_HAND = 1;
     public static final byte SLOT_RIGHT = 2;
     public static final byte SLOT_LEFT = 3;
+    /** Attachment byte RELEASED + slot: that slot was emptied (entity id may be -1). */
+    public static final byte RELEASED = 4;
 
     /** 1.6.4 isQuiteSmallerThan: under 0.4x the carrier's size. */
     private static final float MAX_SIZE_RATIO = 0.4F;
@@ -55,6 +57,7 @@ public final class ShoulderHelper {
 
     public static boolean canCarry(LivingEntity carrier, Entity target) {
         if (target == null || target == carrier || !target.isAlive()) return false;
+        if (carrier.isSpectator()) return false;
         if (!(target instanceof LivingEntity)) return false;
         if (isUnholdable(target)) return false;
         if (target.isPassenger() || target.isVehicle()) return false;
@@ -100,20 +103,27 @@ public final class ShoulderHelper {
         UUID handId = cs.gulliver$getHandEntity();
         if (handId == null) return null;
         cs.gulliver$setHandEntity(null);
-        return release(carrier, handId);
+        return release(carrier, handId, SLOT_HAND);
     }
 
-    /** Release one carried entity (by id) from this carrier and tell everyone. */
-    private static Entity release(ServerPlayer carrier, UUID id) {
+    /**
+     * Release one carried entity (by id) from an already-cleared slot and
+     * tell everyone. The packet names the slot, so clients clear it even
+     * when the entity is gone (disconnected, converted, changed dimension).
+     */
+    private static Entity release(ServerPlayer carrier, UUID id, byte slot) {
         Entity held = resolve((ServerLevel) carrier.level(), id);
-        if (held == null) {
-            Services.platform().sendToPlayer(carrier,
-                    new Payloads.AttachEntitySpecial(-1, carrier.getId(), SLOT_DETACH));
-            return null;
+        if (held != null) {
+            ((IGulliverShoulderInternal) held).gulliver$setHoldingEntity(null);
+            held.noPhysics = false;
+            // Never let go inside a wall: the carrier's own spot always fits
+            // something this much smaller.
+            if (!held.level().noCollision(held, held.getBoundingBox().deflate(1.0E-4D))) {
+                held.teleportTo(carrier.getX(), carrier.getY(), carrier.getZ());
+            }
         }
-        ((IGulliverShoulderInternal) held).gulliver$setHoldingEntity(null);
-        held.noPhysics = false;
-        broadcastAttach(carrier, held, SLOT_DETACH);
+        Services.platform().sendToTrackingAndSelf(carrier, new Payloads.AttachEntitySpecial(
+                held != null ? held.getId() : -1, carrier.getId(), (byte) (RELEASED + slot)));
         return held;
     }
 
@@ -196,6 +206,7 @@ public final class ShoulderHelper {
      * never through a wall.
      */
     public static boolean cycleOrPickUp(ServerPlayer player) {
+        if (player.isSpectator()) return false;
         if (((IGulliverShoulderInternal) player).gulliver$hasAnyCarry()) {
             return toggleHandShoulder(player);
         }
@@ -228,13 +239,14 @@ public final class ShoulderHelper {
     public static boolean drop(ServerPlayer carrier) {
         IGulliverShoulderInternal cs = (IGulliverShoulderInternal) carrier;
         UUID[] ids = { cs.gulliver$getHandEntity(), cs.gulliver$getRightShoulder(), cs.gulliver$getLeftShoulder() };
+        byte[] slots = { SLOT_HAND, SLOT_RIGHT, SLOT_LEFT };
         cs.gulliver$setHandEntity(null);
         cs.gulliver$setRightShoulder(null);
         cs.gulliver$setLeftShoulder(null);
         boolean any = false;
-        for (UUID id : ids) {
-            if (id == null) continue;
-            release(carrier, id);
+        for (int i = 0; i < ids.length; i++) {
+            if (ids[i] == null) continue;
+            release(carrier, ids[i], slots[i]);
             any = true;
         }
         return any;
@@ -248,7 +260,7 @@ public final class ShoulderHelper {
      */
     public static boolean throwHeld(ServerPlayer carrier) {
         IGulliverShoulderInternal cs = (IGulliverShoulderInternal) carrier;
-        if (cs.gulliver$getHandEntity() == null) return false;
+        if (cs.gulliver$getHandEntity() == null || carrier.isSpectator()) return false;
         Entity held = detachHand(carrier);
         if (held == null) return true;
         Vec3 look = carrier.getLookAngle();
@@ -313,20 +325,34 @@ public final class ShoulderHelper {
             // Gone, dead, or a respawned twin with the same UUID: free the slot.
             if (server) {
                 clearSlot(carrier, slot);
-                release((ServerPlayer) carrier, id);
+                release((ServerPlayer) carrier, id, slot);
             }
             return;
         }
         if (server) {
             // A carried player breaks free by sneaking; anything that grew too
-            // big for the hand slips out.
-            boolean breakFree = p instanceof Player && p.isShiftKeyDown();
+            // big for the hand slips out; a carrier turned spectator lets go.
+            boolean breakFree = p instanceof Player && p.isShiftKeyDown() || carrier.isSpectator();
             boolean tooBig = ((IResizeableEntity) p).getSizeMultiplier()
                     >= ((IResizeableEntity) carrier).getSizeMultiplier() * MAX_SIZE_RATIO * 1.25F;
             if (breakFree || tooBig) {
                 clearSlot(carrier, slot);
-                release((ServerPlayer) carrier, id);
+                release((ServerPlayer) carrier, id, slot);
                 return;
+            }
+        }
+        // Keep the slot on the carrier's side of any wall it is facing.
+        Vec3 from = new Vec3(carrier.getX(), y, carrier.getZ());
+        Vec3 to = new Vec3(x, y, z);
+        HitResult wall = carrier.level().clip(new ClipContext(from, to,
+                ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, carrier));
+        if (wall.getType() != HitResult.Type.MISS) {
+            double len = from.distanceTo(to);
+            double keep = Math.max(0.0D, from.distanceTo(wall.getLocation()) - p.getBbWidth() * 0.5D - 0.05D);
+            if (len > 1.0E-6D) {
+                Vec3 at = from.add(to.subtract(from).scale(Math.min(keep, len) / len));
+                x = at.x;
+                z = at.z;
             }
         }
         // The renderer lerps from {xOld..} to {x..}; the carrier itself is

@@ -22,6 +22,10 @@ public final class SizeSync {
             Services.platform().sendToPlayer(tracker, new Payloads.EntitySize(entity.getId(), dest));
         }
         gulliver.common.ShoulderHelper.sendCarryState(entity, tracker);
+        if (entity instanceof gulliver.access.IGulliverHookInternal hook && hook.gulliver$getAnchor() != null) {
+            net.minecraft.world.phys.Vec3 a = hook.gulliver$getAnchor();
+            Services.platform().sendToPlayer(tracker, new Payloads.HookAnchor(entity.getId(), a.x, a.y, a.z));
+        }
     }
 
     /**

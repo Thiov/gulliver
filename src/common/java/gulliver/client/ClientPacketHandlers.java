@@ -22,6 +22,12 @@ public final class ClientPacketHandlers {
             TremorHandler.groundShock(p.x(), p.y(), p.z(), p.sourceSize(), p.strength());
         } else if (payload instanceof Payloads.AttachEntitySpecial p) {
             onAttach(p);
+        } else if (payload instanceof Payloads.HookAnchor p) {
+            Entity hook = entityById(p.hookId());
+            if (hook instanceof gulliver.access.IGulliverHookInternal h) {
+                h.gulliver$setAnchor(new net.minecraft.world.phys.Vec3(p.x(), p.y(), p.z()));
+                hook.setPos(p.x(), p.y(), p.z());
+            }
         }
     }
 
@@ -50,13 +56,25 @@ public final class ClientPacketHandlers {
             // Orphan-release detach (carrier already gone, id -1): still
             // unfreeze the passenger's client copy so it doesn't stay
             // pinned to its last carried position.
-            if (passenger != null && payload.attachmentType() == ShoulderHelper.SLOT_DETACH) {
+            if (passenger != null && (payload.attachmentType() == ShoulderHelper.SLOT_DETACH
+                    || payload.attachmentType() > ShoulderHelper.RELEASED)) {
                 ((IGulliverShoulderInternal) passenger).gulliver$setHoldingEntity(null);
             }
             return;
         }
         IGulliverShoulderInternal cs = (IGulliverShoulderInternal) carrier;
         byte slot = payload.attachmentType();
+        if (slot > ShoulderHelper.RELEASED) {
+            // A slot was emptied; the entity may already be gone here.
+            switch (slot - ShoulderHelper.RELEASED) {
+                case ShoulderHelper.SLOT_HAND -> cs.gulliver$setHandEntity(null);
+                case ShoulderHelper.SLOT_RIGHT -> cs.gulliver$setRightShoulder(null);
+                case ShoulderHelper.SLOT_LEFT -> cs.gulliver$setLeftShoulder(null);
+                default -> { }
+            }
+            if (passenger != null) ((IGulliverShoulderInternal) passenger).gulliver$setHoldingEntity(null);
+            return;
+        }
         UUID pid = passenger == null ? null : passenger.getUUID();
         // Remove the passenger from whatever slot it had before assigning
         // the new one, so hand <-> shoulder cycling stays consistent.

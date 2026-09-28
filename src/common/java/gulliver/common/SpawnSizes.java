@@ -26,6 +26,19 @@ public final class SpawnSizes {
                 : GulliverEnvoy.getNewBaseEntitySize(entity);
         if (GulliverEnvoy.isInvalidSize(size) || size == 1.0F) return;
         // Spawning at a size is not growing: don't burst the surroundings.
-        GulliverEnvoy.withoutGrowthBurst(() -> ((IResizeableLiving) entity).setBaseSize(size));
+        GulliverEnvoy.withoutGrowthBurst(() -> {
+            IResizeableLiving sized = (IResizeableLiving) entity;
+            sized.setBaseSize(size);
+            if (size <= 1.0F) return;
+            // Vanilla checked the spawn space at normal size: shrink back
+            // until the body fits instead of suffocating in the ceiling.
+            float fit = size;
+            while (fit > 1.0F && !entity.level().noCollision(entity, entity.getBoundingBox().deflate(1.0E-4D))) {
+                fit = Math.max(1.0F, fit * 0.75F);
+                sized.setBaseSize(fit);
+            }
+            // A giant is born with the hearts its size gives it.
+            entity.setHealth(entity.getMaxHealth());
+        });
     }
 }
