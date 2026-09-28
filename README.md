@@ -59,12 +59,12 @@ Pick the jar whose name matches your loader and Minecraft version, e.g. `gullive
 
 - **Potions**: brew Ensmallening from an awkward potion + red mushroom, Embiggening with a brown mushroom. Redstone extends, glowstone strengthens.
 - **Drink Me / Eat Me**: right-click cyan dye or a red mushroom to shrink, purple dye or a brown mushroom to grow.
-- **Commands** (operators): `/basesize`, `/halfsize`, `/doublesize`, `/showsize`, `/instantkarma`, plus `entity…` variants that take an entity id. `/showmysize` and `/shoulderentity` work for everyone.
+- **Commands** (operators): `/gulliver size <targets> <size>`, `/gulliver scale <targets> <factor>`, `/gulliver get <target>` and `/gulliver reload` take normal selectors (`@e[type=cow,distance=..10]`, player names). The classic `/basesize`, `/halfsize`, `/doublesize`, `/showsize`, `/instantkarma` and their `entity…` variants (by entity id) still work. `/showmysize` and `/shoulderentity` work for everyone.
 - **Keybinds** (creative): **U** grow, **I** shrink. Hold a **stick** and they resize the creature under your crosshair instead.
 
 ## Configuration
 
-`config/gulliver.json` (reload with `/reloadgullivercfg`):
+`config/gulliver.json` (reload with `/gulliver reload`):
 
 - `general`: size limits, `enableDyeResizing`, `enableKarmaMode` (reset size on death), `fishingRodGrapple` and `grappleMaxSize` (default 0.3, i.e. tiny), `trampleSizeRatio` (default 0.4, 0 disables trampling).
 - `spawnSize`: starting sizes for players, animals, monsters, villagers, and per-entity overrides. Accepts plain sizes (`"0.5"`), ranges (`"0.5-2"`), sets (`"0.5,1,2"`) and heights (`"5'9\""`, `"120cm"`).

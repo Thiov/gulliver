@@ -151,6 +151,33 @@ public final class GulliverCommands {
                     return gulliver.common.ShoulderHelper.drop(p) ? 1 : 0;
                 })));
 
+        // /gulliver size|scale|get <selector> — the selector-based way to
+        // resize anything (@e[type=cow,distance=..10], @a, a name...).
+        dispatcher.register(Commands.literal("gulliver")
+                .then(Commands.literal("size").requires(OP2)
+                        .then(Commands.argument("targets", EntityArgument.entities())
+                                .then(Commands.argument("size", StringArgumentType.string())
+                                        .executes(GulliverCommands::selectorSize))))
+                .then(Commands.literal("scale").requires(OP2)
+                        .then(Commands.argument("targets", EntityArgument.entities())
+                                .then(Commands.argument("factor", FloatArgumentType.floatArg(0.0F))
+                                        .executes(GulliverCommands::selectorScale))))
+                .then(Commands.literal("get")
+                        .then(Commands.argument("target", EntityArgument.entity())
+                                .executes(ctx -> {
+                                    Entity e = EntityArgument.getEntity(ctx, "target");
+                                    float full = ((IResizeableEntity) e).getSizeMultiplier();
+                                    ctx.getSource().sendSuccess(() -> Component.literal(
+                                            e.getName().getString() + " size " + fmt(full)), false);
+                                    return 1;
+                                })))
+                .then(Commands.literal("reload").requires(OP4)
+                        .executes(ctx -> {
+                            GulliverConfig.load();
+                            ctx.getSource().sendSuccess(() -> Component.literal("Reloading Gulliver configuration"), true);
+                            return 1;
+                        })));
+
         // /reloadgullivercfg  (perm 4, the 1.6.4 mod's reload)
         dispatcher.register(Commands.literal("reloadgullivercfg").requires(OP4)
                 .executes(ctx -> {
@@ -158,6 +185,38 @@ public final class GulliverCommands {
                     ctx.getSource().sendSuccess(() -> Component.literal("Reloading Gulliver configuration"), true);
                     return 1;
                 }));
+    }
+
+    // ---- selector handlers ----
+
+    private static int selectorSize(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
+        String sizeStr = StringArgumentType.getString(ctx, "size");
+        int n = 0;
+        for (Entity e : EntityArgument.getEntities(ctx, "targets")) {
+            if (!(e instanceof LivingEntity living) || GulliverEnvoy.isDragonEntity(e)) continue;
+            // Heights ("5'9\"", "120cm") are allowed for everyone; ranges roll per entity.
+            float size = GulliverEnvoy.getSizeFromRangeStringStrict(sizeStr, true);
+            if (GulliverEnvoy.isInvalidSize(size)) throw INVALID_SIZE.create();
+            ((IResizeableLiving) living).setBaseSize(size);
+            n++;
+        }
+        int count = n;
+        ctx.getSource().sendSuccess(() -> Component.literal("Resized " + count + " entit" + (count == 1 ? "y" : "ies")), true);
+        return count;
+    }
+
+    private static int selectorScale(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
+        float factor = FloatArgumentType.getFloat(ctx, "factor");
+        if (GulliverEnvoy.isInvalidSize(factor)) throw INVALID_SIZE.create();
+        int n = 0;
+        for (Entity e : EntityArgument.getEntities(ctx, "targets")) {
+            if (!(e instanceof LivingEntity living) || GulliverEnvoy.isDragonEntity(e)) continue;
+            ((IResizeableLiving) living).adjustBaseSize(factor);
+            n++;
+        }
+        int count = n;
+        ctx.getSource().sendSuccess(() -> Component.literal("Rescaled " + count + " entit" + (count == 1 ? "y" : "ies")), true);
+        return count;
     }
 
     // ---- player-targeted handlers ----

@@ -114,6 +114,9 @@ public final class SelfTest {
             runCommand(level, "entityhalfsize " + pig.getId());
             check(failures, Math.abs(((IResizeableEntity) pig).getSizeMultiplier() - 1.0F) < 1.0E-3F,
                     "/entityhalfsize halves");
+            runCommand(level, "gulliver size @e[type=pig] 0.5");
+            check(failures, Math.abs(((IResizeableEntity) pig).getSizeMultiplier() - 0.5F) < 1.0E-3F,
+                    "/gulliver size with a selector");
             pig.discard();
         }
 

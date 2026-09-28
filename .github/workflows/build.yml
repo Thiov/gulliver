@@ -1,0 +1,49 @@
+name: build
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: ${{ matrix.mc }} ${{ matrix.loader }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { mc: '26.2', loader: fabric }
+          - { mc: '26.2', loader: neoforge }
+          - { mc: '26.2', loader: forge }
+          - { mc: '26.1.2', loader: fabric }
+          - { mc: '26.1.2', loader: neoforge }
+          - { mc: '26.1.2', loader: forge }
+          - { mc: '1.21.11', loader: fabric }
+          - { mc: '1.21.11', loader: neoforge }
+          - { mc: '1.21.11', loader: forge }
+          - { mc: '1.21.10', loader: fabric }
+          - { mc: '1.21.10', loader: neoforge }
+          - { mc: '1.21.10', loader: forge }
+          - { mc: '1.20.1', loader: fabric }
+          - { mc: '1.20.1', loader: neoforge }
+          - { mc: '1.20.1', loader: forge }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          # Gradle runs on 25; older targets compile through toolchains.
+          java-version: |
+            17
+            21
+            25
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Build
+        run: ./gradlew -p versions/${{ matrix.mc }}/${{ matrix.loader }} build --console=plain
+      - uses: actions/upload-artifact@v4
+        with:
+          name: gulliver-${{ matrix.loader }}-${{ matrix.mc }}
+          path: |
+            versions/${{ matrix.mc }}/${{ matrix.loader }}/build/libs/gulliver-*.jar
+            !versions/${{ matrix.mc }}/${{ matrix.loader }}/build/libs/*-sources.jar
