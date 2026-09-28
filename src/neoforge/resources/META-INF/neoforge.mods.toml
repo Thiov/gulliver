@@ -1,0 +1,32 @@
+modLoader = "javafml"
+loaderVersion = "[1,)"
+license = "All Rights Reserved"
+issueTrackerURL = "https://github.com/Thiov/gulliver-fabric/issues"
+
+[[mods]]
+modId = "gulliver"
+version = "${mod_version}"
+displayName = "Gulliver"
+displayURL = "https://github.com/Thiov/gulliver-fabric"
+logoFile = "assets/gulliver/icon.png"
+authors = "Thiov"
+description = '''
+Resize yourself or other entities from 0.125x to 8x. Movement, combat, reach, sound, and world interaction all scale with size. Inspired by UncleMion's classic Gulliver mod.
+'''
+
+[[mixins]]
+config = "gulliver.mixins.json"
+
+[[dependencies.gulliver]]
+modId = "neoforge"
+type = "required"
+versionRange = "${loader_version_range}"
+ordering = "NONE"
+side = "BOTH"
+
+[[dependencies.gulliver]]
+modId = "minecraft"
+type = "required"
+versionRange = "${minecraft_version_range}"
+ordering = "NONE"
+side = "BOTH"

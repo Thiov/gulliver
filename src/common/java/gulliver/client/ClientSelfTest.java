@@ -22,8 +22,18 @@ public final class ClientSelfTest {
     private static int ticksInWorld;
     private static final List<String> FAILURES = new ArrayList<>();
 
+    private static int ticksTotal;
+
     public static void tick(Minecraft mc) {
         if (!SelfTest.ENABLED) return;
+        // Never leave a window hanging: bail out if we don't reach a world
+        // (a stray confirmation screen, a failed quick-play, ...).
+        if (++ticksTotal > 2400 && ticksInWorld < 260) {
+            Gulliver.LOGGER.error("GULLIVER SELFTEST CLIENT FAIL [stuck on {}]",
+                    mc.screen == null ? "no screen" : mc.screen.getClass().getName());
+            mc.stop();
+            return;
+        }
         LocalPlayer p = mc.player;
         if (p == null || mc.level == null) return;
         ticksInWorld++;
@@ -47,7 +57,7 @@ public final class ClientSelfTest {
             case 180 -> resizeOnServer(mc, 4.0F);
             case 220 -> {
                 check(Math.abs(((IResizeableEntity) p).getSizeMultiplier() - 4.0F) < 1.0E-3F,
-                        "local player grew to 4");
+                        "local player grew to 4 (got " + ((IResizeableEntity) p).getSizeMultiplier() + ")");
                 mc.options.setCameraType(net.minecraft.client.CameraType.FIRST_PERSON);
                 resizeOnServer(mc, 1.0F);
             }
