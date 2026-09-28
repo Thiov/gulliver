@@ -19,7 +19,7 @@ final class ForgeNetworking {
     static {
         PayloadProtocol<RegistryFriendlyByteBuf, CustomPacketPayload> play = ChannelBuilder
                 .named(Gulliver.id("main"))
-                .networkProtocolVersion(1)
+                .networkProtocolVersion(2) // bump whenever the packet table changes
                 .optional()
                 .payloadChannel()
                 .play();

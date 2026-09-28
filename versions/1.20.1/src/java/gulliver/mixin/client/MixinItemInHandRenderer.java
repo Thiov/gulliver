@@ -21,6 +21,9 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Mixin(ItemInHandRenderer.class)
 public abstract class MixinItemInHandRenderer {
 
+    /** One bit per first-person renderItem call in flight: did HEAD push? */
+    @org.spongepowered.asm.mixin.Unique private int gulliver$pushedBits;
+
     @Inject(method = "renderHandsWithItems", at = @At("HEAD"), cancellable = true)
     private void gulliver$hideHandsWhileRafting(float partialTicks, PoseStack pose, MultiBufferSource.BufferSource buffers,
                                                   LocalPlayer player, int light, CallbackInfo ci) {
@@ -37,7 +40,9 @@ public abstract class MixinItemInHandRenderer {
             return;
         }
         float size = sized.getSizeMultiplier();
-        if (size == 1.0F || gulliver$proportional()) return;
+        boolean push = size != 1.0F && !gulliver$proportional();
+        gulliver$pushedBits = (gulliver$pushedBits << 1) | (push ? 1 : 0);
+        if (!push) return;
         pose.pushPose();
         float invRoot = 1.0F / (float) Math.sqrt(size);
         pose.scale(invRoot, invRoot, invRoot);
@@ -46,11 +51,11 @@ public abstract class MixinItemInHandRenderer {
     @Inject(method = "renderItem", at = @At("RETURN"))
     private void gulliver$popFirstPerson(LivingEntity entity, ItemStack stack, ItemDisplayContext ctx, boolean leftHand,
                                           PoseStack pose, MultiBufferSource buffers, int light, CallbackInfo ci) {
+        // Only calls HEAD let through reach here (cancelled ones return early).
         if (!ctx.firstPerson()) return;
-        IResizeableLiving sized = (IResizeableLiving) entity;
-        if (sized.isRafting() || sized.isGliding() || sized.doesUmbrella()) return;
-        if (sized.getSizeMultiplier() == 1.0F || gulliver$proportional()) return;
-        pose.popPose();
+        boolean pushed = (gulliver$pushedBits & 1) != 0;
+        gulliver$pushedBits >>>= 1;
+        if (pushed) pose.popPose();
     }
 
     private static boolean gulliver$proportional() {

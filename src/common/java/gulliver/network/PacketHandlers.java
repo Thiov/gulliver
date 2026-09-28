@@ -32,6 +32,9 @@ public final class PacketHandlers {
             case Payloads.CarryAction.CYCLE -> ShoulderHelper.cycleOrPickUp(player);
             case Payloads.CarryAction.THROW -> ShoulderHelper.throwHeld(player);
             case Payloads.CarryAction.DROP -> ShoulderHelper.drop(player);
+            case Payloads.CarryAction.SET_DOWN -> {
+                if (!player.isSpectator()) ShoulderHelper.detachHand(player);
+            }
             default -> { }
         }
     }

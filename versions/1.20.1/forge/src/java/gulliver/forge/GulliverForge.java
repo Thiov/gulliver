@@ -41,7 +41,9 @@ public final class GulliverForge {
         IEventBus bus = MinecraftForge.EVENT_BUS;
         bus.addListener((PlayerInteractEvent.RightClickBlock e) ->
                 cancel(e, CommonEvents.onUseBlock(e.getEntity(), e.getLevel(), e.getHand(), e.getHitVec())));
-        bus.addListener((PlayerInteractEvent.EntityInteract e) ->
+        // The "specific" (interactAt) stage comes first: armor stands and
+        // the like consume the click there before EntityInteract would fire.
+        bus.addListener((PlayerInteractEvent.EntityInteractSpecific e) ->
                 cancel(e, CommonEvents.onUseEntity(e.getEntity(), e.getLevel(), e.getHand(), e.getTarget())));
         bus.addListener((PlayerInteractEvent.RightClickItem e) ->
                 cancel(e, CommonEvents.onUseItem(e.getEntity(), e.getLevel(), e.getHand())));

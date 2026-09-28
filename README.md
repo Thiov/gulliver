@@ -86,7 +86,7 @@ Gradle must run on **JDK 25** (older targets are compiled for Java 17 or 21 thro
 
 - `src/common` holds the mod itself, `src/fabric`, `src/neoforge` and `src/forge` the thin loader glue.
 - Version differences are handled at build time by `gradle/gulliver.gradle`: `//#if MC >= 1.21.2 && !FORGE … //#else … //#endif` blocks, whole-file conditions, and `versions/<mc>/remap.txt` for plain renames. Sources are written against the newest Minecraft names.
-- `scripts/selftest.sh <mc> <loader>` boots a dedicated server and then a client that joins it, with `-Dgulliver.selftest=true`: every mixin is force-applied and resizing, combat, trampling, carrying, spawn sizes, effects, brewing and the grappling hook are exercised before the game quits. `scripts/check_mixins.py` checks every mixin target against a Minecraft jar without launching.
+- `scripts/selftest.sh <mc> <loader>` boots a dedicated server and then a client that joins it, with `-Dgulliver.selftest=true`: every mixin is force-applied and resizing, combat, trampling, carrying, spawn sizes, effects, brewing and the grappling hook are exercised before the game quits. `scripts/prodtest.sh <mc>` does the same with the release jar on a real Fabric server. `scripts/check_mixins.py` checks every mixin target and handler signature against a Minecraft jar without launching.
 
 ## Credits and license
 

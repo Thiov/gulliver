@@ -25,8 +25,11 @@ public interface Platform {
     /** Server -> every client tracking the entity, plus the entity itself when it is a player. */
     void sendToTrackingAndSelf(Entity entity, GulliverPayload payload);
 
-    /** Client -> server. Only called on the client. */
-    void sendToServer(GulliverPayload payload);
+    /**
+     * Client -> server. Only called on the client. Returns false (and sends
+     * nothing) when the server doesn't have Gulliver.
+     */
+    boolean sendToServer(GulliverPayload payload);
 
     //#if MC < 1.20.5
     //$$ /** {block reach, entity reach} attributes where the loader has them (Forge), else null. */

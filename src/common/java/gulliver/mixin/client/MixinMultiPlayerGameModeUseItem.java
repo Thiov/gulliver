@@ -34,8 +34,11 @@ public abstract class MixinMultiPlayerGameModeUseItem {
         ItemStack stack = player.getItemInHand(hand);
         if (stack.is(Items.DYE.cyan()) || stack.is(Items.DYE.purple())
          || stack.is(Items.RED_MUSHROOM) || stack.is(Items.BROWN_MUSHROOM)) {
-            gulliver.platform.Services.platform().sendToServer(new Payloads.ConsumeResizingItem(hand == InteractionHand.MAIN_HAND));
-            cir.setReturnValue(InteractionResult.SUCCESS);
+            // Without Gulliver on the server these stay plain vanilla items.
+            if (gulliver.platform.Services.platform().sendToServer(
+                    new Payloads.ConsumeResizingItem(hand == InteractionHand.MAIN_HAND))) {
+                cir.setReturnValue(InteractionResult.SUCCESS);
+            }
         }
     }
 }

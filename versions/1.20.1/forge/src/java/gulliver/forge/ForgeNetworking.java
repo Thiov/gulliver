@@ -11,7 +11,8 @@ import net.minecraftforge.network.simple.SimpleChannel;
 final class ForgeNetworking {
     private ForgeNetworking() {}
 
-    private static final String VERSION = "1";
+    // Message ids follow the packet table's order: bump whenever it changes.
+    private static final String VERSION = "2";
 
     static final SimpleChannel CHANNEL = NetworkRegistry.newSimpleChannel(Gulliver.id("main"),
             () -> VERSION, NetworkRegistry.acceptMissingOr(VERSION), NetworkRegistry.acceptMissingOr(VERSION));

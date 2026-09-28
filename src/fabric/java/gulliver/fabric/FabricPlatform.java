@@ -47,13 +47,13 @@ public final class FabricPlatform implements Platform {
     }
 
     @Override
-    public void sendToServer(GulliverPayload payload) {
+    public boolean sendToServer(GulliverPayload payload) {
         //#if MC >= 1.20.5
-        if (ClientPlayNetworking.canSend(payload.type())) {
-            ClientPlayNetworking.send(payload);
-        }
+        if (!ClientPlayNetworking.canSend(payload.type())) return false;
+        ClientPlayNetworking.send(payload);
+        return true;
         //#else
-        //$$ FabricNetworking.sendToServer(payload);
+        //$$ return FabricNetworking.sendToServer(payload);
         //#endif
     }
 }

@@ -75,12 +75,13 @@ public final class FabricNetworking {
     //$$     ServerPlayNetworking.send(player, id, buf);
     //$$ }
     //$$
-    //$$ static void sendToServer(GulliverPayload payload) {
+    //$$ static boolean sendToServer(GulliverPayload payload) {
     //$$     var id = GulliverNetwork.specFor(payload).id();
-    //$$     if (!ClientPlayNetworking.canSend(id)) return;
+    //$$     if (!ClientPlayNetworking.canSend(id)) return false;
     //$$     FriendlyByteBuf buf = PacketByteBufs.create();
     //$$     payload.write(buf);
     //$$     ClientPlayNetworking.send(id, buf);
+    //$$     return true;
     //$$ }
     //#endif
 }

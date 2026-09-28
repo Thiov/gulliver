@@ -25,8 +25,9 @@ public abstract class MixinMinecraftAttackThrow {
         if (((IGulliverShoulderInternal) player).gulliver$getHandEntity() == null) return;
         // The server-side ShoulderHelper.throwHeld does the throw and
         // broadcasts the detach.
-        gulliver.platform.Services.platform().sendToServer(
-                new gulliver.network.Payloads.CarryAction(gulliver.network.Payloads.CarryAction.THROW));
-        cir.setReturnValue(true);
+        if (gulliver.platform.Services.platform().sendToServer(
+                new gulliver.network.Payloads.CarryAction(gulliver.network.Payloads.CarryAction.THROW))) {
+            cir.setReturnValue(true);
+        }
     }
 }

@@ -151,6 +151,8 @@ public final class Payloads {
         public static final byte CYCLE = 0;
         public static final byte THROW = 1;
         public static final byte DROP = 2;
+        /** Right-click on nothing with an empty hand: set the hand-held down. */
+        public static final byte SET_DOWN = 3;
 
         public static CarryAction read(FriendlyByteBuf b) {
             return new CarryAction(b.readByte());

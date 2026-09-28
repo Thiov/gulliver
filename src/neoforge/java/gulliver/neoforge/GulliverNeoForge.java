@@ -37,8 +37,15 @@ public final class GulliverNeoForge {
         IEventBus bus = NeoForge.EVENT_BUS;
         bus.addListener((PlayerInteractEvent.RightClickBlock e) ->
                 apply(e, CommonEvents.onUseBlock(e.getEntity(), e.getLevel(), e.getHand(), e.getHitVec())));
+        //#if MC >= 26.2
         bus.addListener((PlayerInteractEvent.EntityInteract e) ->
                 apply(e, CommonEvents.onUseEntity(e.getEntity(), e.getLevel(), e.getHand(), e.getTarget())));
+        //#else
+        //$$ // The "specific" (interactAt) stage comes first: armor stands and
+        //$$ // the like consume the click there before EntityInteract would fire.
+        //$$ bus.addListener((PlayerInteractEvent.EntityInteractSpecific e) ->
+        //$$         apply(e, CommonEvents.onUseEntity(e.getEntity(), e.getLevel(), e.getHand(), e.getTarget())));
+        //#endif
         bus.addListener((PlayerInteractEvent.RightClickItem e) ->
                 apply(e, CommonEvents.onUseItem(e.getEntity(), e.getLevel(), e.getHand())));
         bus.addListener((AttackEntityEvent e) ->
@@ -78,7 +85,11 @@ public final class GulliverNeoForge {
         if (event instanceof PlayerInteractEvent.RightClickBlock e) {
             e.setCanceled(true);
             e.setCancellationResult(result);
+        //#if MC >= 26.2
         } else if (event instanceof PlayerInteractEvent.EntityInteract e) {
+        //#else
+        //$$ } else if (event instanceof PlayerInteractEvent.EntityInteractSpecific e) {
+        //#endif
             e.setCanceled(true);
             e.setCancellationResult(result);
         } else if (event instanceof PlayerInteractEvent.RightClickItem e) {

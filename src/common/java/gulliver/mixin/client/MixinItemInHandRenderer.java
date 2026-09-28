@@ -31,6 +31,13 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 public abstract class MixinItemInHandRenderer {
 
     /**
+     * One bit per first-person renderItem call in flight: did HEAD push?
+     * RETURN pops exactly what HEAD pushed, even if the size or the config
+     * (reloaded on the server thread) changed in between.
+     */
+    @org.spongepowered.asm.mixin.Unique private int gulliver$pushedBits;
+
+    /**
      * 1st-person glide paper rendering. Cancels vanilla renderItem and
      * submits the item ourselves with ItemDisplayContext.FIXED — that
      * context lays the item flat (item-frame transform), avoiding the
@@ -77,7 +84,9 @@ public abstract class MixinItemInHandRenderer {
             //   vanilla     → 1.0×
             //   giant 8     → 0.354× (item appears small in giant POV)
             float size = sized.getSizeMultiplier();
-            if (size == 1.0F || gulliver$proportional()) return;
+            boolean push = size != 1.0F && !gulliver$proportional();
+            gulliver$pushedBits = (gulliver$pushedBits << 1) | (push ? 1 : 0);
+            if (!push) return;
             pose.pushPose();
             float invRoot = 1.0F / (float) Math.sqrt(size);
             pose.scale(invRoot, invRoot, invRoot);
@@ -98,13 +107,11 @@ public abstract class MixinItemInHandRenderer {
     private void gulliver$popFirstPerson(LivingEntity entity, ItemStack stack,
                                           ItemDisplayContext ctx, PoseStack pose,
                                           SubmitNodeCollector buf, int light, CallbackInfo ci) {
+        // Only calls HEAD let through reach here (cancelled ones return early).
         if (!ctx.firstPerson()) return;
-        IResizeableLiving sized = (IResizeableLiving) entity;
-        if (sized.isRafting()) return; // cancelled at HEAD
-        if (sized.isGliding() || sized.doesUmbrella()) return; // cancelled at HEAD
-        float size = sized.getSizeMultiplier();
-        if (size == 1.0F || gulliver$proportional()) return;
-        pose.popPose();
+        boolean pushed = (gulliver$pushedBits & 1) != 0;
+        gulliver$pushedBits >>>= 1;
+        if (pushed) pose.popPose();
     }
 
     /**

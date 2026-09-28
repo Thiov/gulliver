@@ -43,8 +43,8 @@ public final class ForgePlatform implements Platform {
     }
 
     @Override
-    public void sendToServer(GulliverPayload payload) {
-        ForgeNetworking.CHANNEL.sendToServer(payload);
+    public boolean sendToServer(GulliverPayload payload) {
+        return ForgeClientNetworking.sendToServer(payload);
     }
 
     @Override
