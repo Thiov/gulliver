@@ -22,9 +22,10 @@ public final class CommonEvents {
     private CommonEvents() {}
 
     public static InteractionResult onUseBlock(Player player, Level level, InteractionHand hand, BlockHitResult hit) {
-        InteractionResult r = InteractEventHandler.onUseBlock(player, level, hand, hit);
+        // Setting a carried entity down wins over the tiny interaction gate.
+        InteractionResult r = ShoulderInteractHandler.onUseBlock(player, level, hand, hit);
         if (r != InteractionResult.PASS) return r;
-        return ShoulderInteractHandler.onUseBlock(player, level, hand, hit);
+        return InteractEventHandler.onUseBlock(player, level, hand, hit);
     }
 
     public static InteractionResult onUseEntity(Player player, Level level, InteractionHand hand, Entity target) {
@@ -58,6 +59,7 @@ public final class CommonEvents {
 
     public static void onPlayerChangedDimension(ServerPlayer player) {
         ShoulderInteractHandler.onChangeDimension(player);
+        KarmaMode.onChangedDimension(player);
     }
 
     public static void registerCommands(CommandDispatcher<CommandSourceStack> dispatcher) {

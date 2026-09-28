@@ -74,19 +74,18 @@ public abstract class MixinLivingEntityMovement {
             y *= (float) Math.cbrt(root);
         }
 
-        // 1.6.4 of.java line 2487-2489: jump-boost potion adds linearly,
-        // scaled by sqrt(root) = size^0.25.
-        net.minecraft.world.effect.MobEffectInstance jb =
-                self.getEffect(net.minecraft.world.effect.MobEffects.JUMP_BOOST);
-        if (jb != null) {
-            y += (jb.getAmplifier() + 1) * 0.1F * (float) Math.sqrt(root);
-        }
+        // The formula above is the 1.6.4 size curve for a plain jump (0.42
+        // at size 1). Apply it as a factor on vanilla's own value, so honey
+        // blocks, the jump_strength attribute and other mods' changes still
+        // count; the jump-boost part is scaled separately by size^0.25
+        // (1.6.4 of.java 2487-2489).
+        float boost = self.getJumpBoostPower();
+        float plain = cir.getReturnValueF() - boost;
+        y = plain * (y / 0.42F) + boost * (float) Math.sqrt(root);
 
         // Reconstructed sneak-jump (1.6.4 ASM patch invisible in JDCore):
-        // shift+space lifts higher than plain jump. Empirically 1.5x is the
-        // commonly-described "super-jump" feel. Only applies on solid ground
-        // (vanilla isShiftKeyDown is true even mid-air); we gate on onGround
-        // so it doesn't compound during the same airborne arc.
+        // shift+space lifts higher than plain jump. Only from the ground, so
+        // it doesn't compound during the same airborne arc.
         if (self.isShiftKeyDown() && self.onGround()) {
             y *= 1.5F;
         }

@@ -90,8 +90,12 @@ public abstract class MixinItemInHandLayer {
             // head) and -Z points BACK. Lift +0.25 Y, push back -0.6 Z.
             pose.translate(0.0F, 0.3F, -0.3F);
         }
+        // Classic look: the body is already scaled by `size`, so 1/sqrt
+        // leaves items at sqrt(size) — a tiny's sword looks big. The
+        // "proportional" option keeps items exactly in body proportion
+        // (issue #5), matching tools rendered on the back by other mods.
         float size = g.gulliver$getSizeMultiplier();
-        if (size != 1.0F) {
+        if (size != 1.0F && !gulliver.common.GulliverConfig.INSTANCE.client.proportionalHeldItems()) {
             float invRoot = 1.0F / (float) Math.sqrt(size);
             pose.scale(invRoot, invRoot, invRoot);
         }

@@ -31,17 +31,14 @@ public abstract class MixinEntity implements IResizeableEntity, IGulliverEntityI
     @Unique private float gulliver$sizeBaseDestMultiplier = 1.0F;
     @Unique private float gulliver$sizePotionMultiplier = 1.0F;
     @Unique private float gulliver$sizeItemMultiplier = 1.0F;
-    @Unique private float gulliver$prevMaxHealth = Float.NaN;
-    @Unique private int   gulliver$prevMaxAir = -1;
+    @Unique private boolean gulliver$sizeInitialized = false;
     @Unique private java.util.UUID gulliver$holdingEntity = null;
     @Unique private java.util.UUID gulliver$handEntity = null;
     @Unique private java.util.UUID gulliver$rightShoulder = null;
     @Unique private java.util.UUID gulliver$leftShoulder = null;
 
-    @Override @Unique public float gulliver$getPrevMaxHealth() { return gulliver$prevMaxHealth; }
-    @Override @Unique public void gulliver$setPrevMaxHealth(float v) { gulliver$prevMaxHealth = v; }
-    @Override @Unique public int gulliver$getPrevMaxAir() { return gulliver$prevMaxAir; }
-    @Override @Unique public void gulliver$setPrevMaxAir(int v) { gulliver$prevMaxAir = v; }
+    @Override @Unique public boolean gulliver$isSizeInitialized() { return gulliver$sizeInitialized; }
+    @Override @Unique public void gulliver$setSizeInitialized(boolean v) { gulliver$sizeInitialized = v; }
 
     @Override
     @Unique

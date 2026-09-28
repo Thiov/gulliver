@@ -113,6 +113,7 @@ public final class GiantAoe {
         double mask = (r + 0.5D) * (r + 0.5D);
         boolean drops = !player.isCreative();
 
+        crater:
         for (int a = -r; a <= r; a++) {
             for (int b = -r; b <= r; b++) {
                 if (a == 0 && b == 0) continue;
@@ -128,7 +129,18 @@ public final class GiantAoe {
                 float h = st.getDestroySpeed(level, p);
                 if (h < 0.0F || h > hardnessCap) continue;
                 if (level.getBlockEntity(p) != null) continue;
-                level.destroyBlock(p, drops, player);
+                // Spawn protection / world border, like a normal break.
+                if (!level.mayInteract(player, p)) continue;
+                // Collateral only drops what the held tool could harvest, and
+                // wears the tool like mining it would (no free ore).
+                boolean harvest = drops && player.hasCorrectToolForDrops(st);
+                if (level.destroyBlock(p, harvest, player) && drops) {
+                    net.minecraft.world.item.ItemStack tool = player.getMainHandItem();
+                    if (!tool.isEmpty()) {
+                        tool.mineBlock(level, st, p, player);
+                        if (tool.isEmpty()) break crater; // the tool broke mid-swing
+                    }
+                }
             }
         }
     }

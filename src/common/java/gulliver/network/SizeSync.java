@@ -18,8 +18,10 @@ public final class SizeSync {
     public static void onStartTracking(Entity entity, ServerPlayer tracker) {
         if (!(entity instanceof IGulliverEntityInternal sized)) return;
         float dest = composedDest(sized);
-        if (dest == 1.0F) return;
-        Services.platform().sendToPlayer(tracker, new Payloads.EntitySize(entity.getId(), dest));
+        if (dest != 1.0F) {
+            Services.platform().sendToPlayer(tracker, new Payloads.EntitySize(entity.getId(), dest));
+        }
+        gulliver.common.ShoulderHelper.sendCarryState(entity, tracker);
     }
 
     /**

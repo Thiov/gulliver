@@ -19,7 +19,10 @@
       "trigger": "minecraft:consume_item",
       "conditions": {
         "item": {
-          "items": ["minecraft:cyan_dye"]
+          "items": [
+            "minecraft:cyan_dye",
+            "minecraft:red_mushroom"
+          ]
         }
       }
     },
@@ -27,12 +30,18 @@
       "trigger": "minecraft:consume_item",
       "conditions": {
         "item": {
-          "items": ["minecraft:purple_dye"]
+          "items": [
+            "minecraft:purple_dye",
+            "minecraft:brown_mushroom"
+          ]
         }
       }
     }
   },
   "requirements": [
-    ["eat_cyan_dye", "eat_purple_dye"]
+    [
+      "eat_cyan_dye",
+      "eat_purple_dye"
+    ]
   ]
 }

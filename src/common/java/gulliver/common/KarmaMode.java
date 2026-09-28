@@ -1,6 +1,10 @@
 package gulliver.common;
 
+import gulliver.Gulliver;
+import gulliver.access.IGulliverEntityInternal;
+import gulliver.api.IResizeableEntity;
 import gulliver.api.IResizeableLiving;
+import gulliver.network.SizeSync;
 import net.minecraft.server.level.ServerPlayer;
 
 /**
@@ -17,66 +21,54 @@ public final class KarmaMode {
     private KarmaMode() {}
 
     /**
-     * The loader's "player cloned" hook (respawn or End exit). Persists the
-     * size fields onto the new ServerPlayer — without this it is created
-     * with defaults (1.0) and every death would reset size even with karma
-     * mode off.
+     * The loader's "player cloned" hook (death respawn or End exit). Moves
+     * the size fields onto the new ServerPlayer, which vanilla creates with
+     * defaults. The potion multiplier only survives when the resizing
+     * effect itself did (alive = End exit keeps effects); after a death the
+     * effect is gone, so its multiplier must go too — otherwise a Strong
+     * Embiggening potion drunk before dying left a permanent giant.
      */
     public static void onClone(ServerPlayer oldPlayer, ServerPlayer newPlayer, boolean alive) {
-        {
-            gulliver.access.IGulliverEntityInternal oldI =
-                    (gulliver.access.IGulliverEntityInternal) oldPlayer;
-            gulliver.access.IGulliverEntityInternal newI =
-                    (gulliver.access.IGulliverEntityInternal) newPlayer;
-            float oldBase = oldI.gulliver$getSizeBaseMultiplier();
-            float oldDest = oldI.gulliver$getSizeBaseDestMultiplier();
-            newI.gulliver$setSizeBaseMultiplier(oldBase);
-            newI.gulliver$setSizeBaseDestMultiplier(oldDest);
-            newI.gulliver$setSizePotionMultiplier(oldI.gulliver$getSizePotionMultiplier());
-            newI.gulliver$setSizeItemMultiplier(oldI.gulliver$getSizeItemMultiplier());
-            float liveSize = oldBase * oldI.gulliver$getSizePotionMultiplier()
-                    * oldI.gulliver$getSizeItemMultiplier();
-            gulliver.common.SizeAttributes.applyForSize(newPlayer, liveSize);
-            newPlayer.refreshDimensions();
-            gulliver.network.SizeSync.broadcast(newPlayer);
-            gulliver.Gulliver.LOGGER.debug(
-                    "clone: size {} preserved (alive={})", oldBase, alive);
+        IGulliverEntityInternal oldI = (IGulliverEntityInternal) oldPlayer;
+        IGulliverEntityInternal newI = (IGulliverEntityInternal) newPlayer;
+        newI.gulliver$setSizeBaseMultiplier(oldI.gulliver$getSizeBaseMultiplier());
+        newI.gulliver$setSizeBaseDestMultiplier(oldI.gulliver$getSizeBaseDestMultiplier());
+        newI.gulliver$setSizeItemMultiplier(oldI.gulliver$getSizeItemMultiplier());
+        newI.gulliver$setSizePotionMultiplier(alive ? oldI.gulliver$getSizePotionMultiplier() : 1.0F);
+        newI.gulliver$setSizeInitialized(true);
+        // Attributes and the client sync follow in onRespawn, once the new
+        // player is actually in its level.
+        newPlayer.refreshDimensions();
+        Gulliver.LOGGER.debug("clone: base size {} kept (alive={})", oldI.gulliver$getSizeBaseMultiplier(), alive);
+    }
+
+    /** The loader's "after respawn" hook (death or End exit). */
+    public static void onRespawn(ServerPlayer player, boolean alive) {
+        if (!alive && GulliverConfig.INSTANCE.general.enableKarmaMode) {
+            // Karma: a real death resets you to the configured spawn size.
+            ((IResizeableLiving) player).setBaseSize(GulliverEnvoy.getNewBasePlayerSize());
+        }
+        refresh(player);
+        // Vanilla restores 20 HP before our max-health modifier is back, so a
+        // giant would respawn with a fraction of its hearts. Deaths only —
+        // on an End exit this would be a free heal.
+        if (!alive) {
+            player.setHealth(player.getMaxHealth());
+            player.setAirSupply(player.getMaxAirSupply());
         }
     }
 
-    /** The loader's "after respawn" hook. */
-    public static void onRespawn(ServerPlayer newPlayer, boolean alive) {
-        {
-            // Belt-and-suspenders: re-apply size data + attributes here too,
-            // in case vanilla respawn flow ran something between COPY_FROM
-            // and now that reset attributes. Force-set HP and air to max
-            // so player respawns full at the right size.
-            gulliver.access.IGulliverEntityInternal newI =
-                    (gulliver.access.IGulliverEntityInternal) newPlayer;
-            float liveSize = newI.gulliver$getSizeBaseMultiplier()
-                    * newI.gulliver$getSizePotionMultiplier()
-                    * newI.gulliver$getSizeItemMultiplier();
-            gulliver.common.SizeAttributes.applyForSize(newPlayer, liveSize);
-            newPlayer.refreshDimensions();
-            // Vanilla respawn sets HP to default 20 BEFORE attributes are
-            // applied — overwrite to scaled max so giants don't respawn
-            // with 20 of 80 hp showing 1/4 hearts filled. Death respawns
-            // only: AFTER_RESPAWN also fires on dimension change
-            // (alive=true, e.g. returning from the End), where forcing
-            // full HP/air would hand out a free heal.
-            if (!alive) {
-                newPlayer.setHealth(newPlayer.getMaxHealth());
-                newPlayer.setAirSupply(newPlayer.getMaxAirSupply());
-            }
-            gulliver.network.SizeSync.broadcast(newPlayer);
+    /**
+     * Changing dimension (portal, /tp) rebuilds the client's LocalPlayer
+     * with default fields, so the size has to be sent again.
+     */
+    public static void onChangedDimension(ServerPlayer player) {
+        refresh(player);
+    }
 
-            // Karma mode: if enabled AND this is a real death (not
-            // dimension change), reset size to spawn base after the
-            // restoration above.
-            if (!alive && GulliverConfig.INSTANCE.general.enableKarmaMode) {
-                float spawnBase = GulliverEnvoy.getNewBasePlayerSize();
-                ((IResizeableLiving) newPlayer).setBaseSize(spawnBase);
-            }
-        }
+    private static void refresh(ServerPlayer player) {
+        SizeAttributes.applyForSize(player, ((IResizeableEntity) player).getSizeMultiplier());
+        player.refreshDimensions();
+        SizeSync.broadcast(player);
     }
 }

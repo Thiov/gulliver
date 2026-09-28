@@ -77,7 +77,7 @@ public abstract class MixinItemInHandRenderer {
             //   vanilla     → 1.0×
             //   giant 8     → 0.354× (item appears small in giant POV)
             float size = sized.getSizeMultiplier();
-            if (size == 1.0F) return;
+            if (size == 1.0F || gulliver$proportional()) return;
             pose.pushPose();
             float invRoot = 1.0F / (float) Math.sqrt(size);
             pose.scale(invRoot, invRoot, invRoot);
@@ -103,7 +103,16 @@ public abstract class MixinItemInHandRenderer {
         if (sized.isRafting()) return; // cancelled at HEAD
         if (sized.isGliding() || sized.doesUmbrella()) return; // cancelled at HEAD
         float size = sized.getSizeMultiplier();
-        if (size == 1.0F) return;
+        if (size == 1.0F || gulliver$proportional()) return;
         pose.popPose();
+    }
+
+    /**
+     * "proportional" held items (issue #5): the first-person view already
+     * sees the world from the scaled eye, so items drawn at their normal
+     * size are exactly in proportion to the body.
+     */
+    private static boolean gulliver$proportional() {
+        return gulliver.common.GulliverConfig.INSTANCE.client.proportionalHeldItems();
     }
 }

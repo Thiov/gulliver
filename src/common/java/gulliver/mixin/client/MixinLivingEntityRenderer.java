@@ -21,18 +21,13 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
  * The 1.6.4 mod's RenderPlayer override scaled the model by
  * getSizeMultiplier() at the start of doRender; the modern equivalent is
  * exactly this state.scale multiply.
- *
- * Also: 1.6.4 hide-in-flower behaviour. When an extra-tiny entity is
- * fully inside a flower bbox (per GulliverEnvoy.isEntityIntersectingPlant)
- * we skip the entire render. Mirrors the 1.6.4 RenderPlayer
- * `if (entity.isHidingInPlant()) return;` short-circuit.
+
  */
 @Mixin(LivingEntityRenderer.class)
 public abstract class MixinLivingEntityRenderer {
 
     @Inject(method = "extractRenderState(Lnet/minecraft/world/entity/LivingEntity;Lnet/minecraft/client/renderer/entity/state/LivingEntityRenderState;F)V",
-            at = @At("RETURN"),
-            require = 0)
+            at = @At("RETURN"))
     private void gulliver$applyScale(LivingEntity entity, LivingEntityRenderState state,
                                       float partialTick, CallbackInfo ci) {
         float m = ((IResizeableEntity) entity).getSizeMultiplier();
@@ -71,25 +66,6 @@ public abstract class MixinLivingEntityRenderer {
     }
 
     /**
-     * Skip rendering the entity entirely when it's an extra-tiny inside a
-     * plant. shouldRender is the canonical "should we draw this?" gate
-     * that all LivingEntityRenderer subclasses inherit; setting return
-     * value to false visually hides the model AND its layers, matching
-     * the 1.6.4 hide-in-flower visual.
-     */
-    @Inject(method = "shouldRender", at = @At("HEAD"), cancellable = true, require = 0)
-    private void gulliver$hideInFlower(LivingEntity entity,
-                                        net.minecraft.client.renderer.culling.Frustum frustum,
-                                        double cameraX, double cameraY, double cameraZ,
-                                        CallbackInfoReturnable<Boolean> cir) {
-        IResizeableEntity sized = (IResizeableEntity) entity;
-        if (!sized.isExtraTiny()) return;
-        if (GulliverEnvoy.isEntityIntersectingPlant(entity)) {
-            cir.setReturnValue(false);
-        }
-    }
-
-    /**
      * Render a flat lily-pad raft under the player in 3rd-person view.
      * 1st person uses LilyRaftWorldRenderer (different code path because
      * the local player isn't passed through entity-render in 1st-person
@@ -111,8 +87,7 @@ public abstract class MixinLivingEntityRenderer {
      * points one direction".
      */
     @Inject(method = "submit(Lnet/minecraft/client/renderer/entity/state/LivingEntityRenderState;Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/SubmitNodeCollector;Lnet/minecraft/client/renderer/state/level/CameraRenderState;)V",
-            at = @At("RETURN"),
-            require = 0)
+            at = @At("RETURN"))
     private void gulliver$drawRaftLilypad(LivingEntityRenderState state,
                                            com.mojang.blaze3d.vertex.PoseStack pose,
                                            net.minecraft.client.renderer.SubmitNodeCollector buf,

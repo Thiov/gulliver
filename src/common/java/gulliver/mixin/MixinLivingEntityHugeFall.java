@@ -89,6 +89,7 @@ public abstract class MixinLivingEntityHugeFall {
                     if (st.isAir()) continue;
                     float h = st.getDestroySpeed(level, pos);
                     if (h < 0.0F || h > 1.0F) continue;  // bedrock or too-hard
+                    if (self instanceof Player pl && !level.mayInteract(pl, pos)) continue;
                     level.destroyBlock(pos, true, self);
                 }
             }

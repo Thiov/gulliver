@@ -37,6 +37,7 @@ public final class GulliverConfig {
     public General general = new General();
     public SpawnSize spawnSize = new SpawnSize();
     public SizeLimit sizeLimit = new SizeLimit();
+    public Client client = new Client();
 
     public static GulliverConfig INSTANCE = new GulliverConfig();
 
@@ -77,6 +78,7 @@ public final class GulliverConfig {
         if (general == null) general = new General();
         if (spawnSize == null) spawnSize = new SpawnSize();
         if (sizeLimit == null) sizeLimit = new SizeLimit();
+        if (client == null) client = new Client();
         if (spawnSize.overrides == null) spawnSize.overrides = new LinkedHashMap<>();
         if (sizeLimit.minOverrides == null) sizeLimit.minOverrides = new LinkedHashMap<>();
         if (sizeLimit.maxOverrides == null) sizeLimit.maxOverrides = new LinkedHashMap<>();
@@ -94,6 +96,31 @@ public final class GulliverConfig {
         public double maxEntitySize = 8.0D;
         public double minEntityBaseSize = 0.125D;
         public double maxEntityBaseSize = 8.0D;
+        /** Tiny anglers' bobbers grab onto blocks; reeling in pulls you up (1.6.4). */
+        public boolean fishingRodGrapple = true;
+        /** Largest size whose fishing rod works as a grappling hook (tiny = below 0.3). */
+        public double grappleMaxSize = 0.3D;
+        /**
+         * Anything walking over a creature smaller than this fraction of its
+         * own size tramples it (1.6.4 "quite smaller"). 0 disables trampling.
+         */
+        public double trampleSizeRatio = 0.4D;
+    }
+
+    /** Client-only look and feel; ignored by dedicated servers. */
+    public static final class Client {
+        /**
+         * How held items scale with your body:
+         *  "classic"      - items grow/shrink by the square root of your size
+         *                   (the 1.6.4 look: a tiny's sword looks big)
+         *  "proportional" - items scale exactly with your body, so they stay
+         *                   in proportion (matches tools worn on your back)
+         */
+        public String heldItemScaling = "classic";
+
+        public boolean proportionalHeldItems() {
+            return "proportional".equalsIgnoreCase(heldItemScaling);
+        }
     }
 
     public static final class SpawnSize {

@@ -32,30 +32,48 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Mixin(FarmlandBlock.class)
 public abstract class MixinFarmlandBlock {
 
+    /**
+     * Tinies are too light to trample; giants always trample. Either way
+     * the fall itself still hurts — cancelling fallOn would also skip the
+     * Block.fallOn -> causeFallDamage call, which let a giant jump off a
+     * cliff onto a field unharmed (and skipped its landing shockwave).
+     */
     @Inject(method = "fallOn", at = @At("HEAD"), cancellable = true)
-    private void gulliver$resizedFallOn(Level level, BlockState state, BlockPos pos,
-                                         Entity entity, double fallDistance, CallbackInfo ci) {
+    private void gulliver$resizedFallOn(Level level, BlockState state, BlockPos pos, Entity entity,
+                                         //#if MC >= 1.21.5
+                                         double fallDistance,
+                                         //#else
+                                         //$$ float fallDistance,
+                                         //#endif
+                                         CallbackInfo ci) {
         if (level.isClientSide()) return;
 
         IResizeableEntity sized = (IResizeableEntity) entity;
         if (sized.isTiny()) {
-            // Tinies never trample — invoke super logic (fall damage applies normally,
-            // just no farmland-to-dirt). Cancel the FarmlandBlock-specific path.
-            // Vanilla fallOn calls turnToDirt under a gameplay-specific predicate; cancelling
-            // skips that and falls through to the inherited Block.fallOn (default no-op).
+            gulliver$fallDamage(entity, fallDistance);
             ci.cancel();
             return;
         }
         if (sized.isHuge()) {
-            // Always trample (skipping the random-vs-fallDistance vanilla check).
-            // Honour mobGriefing for non-players.
+            // Honour mobGriefing for non-players (vanilla path decides then).
             if (!(entity instanceof Player)
                     && level instanceof ServerLevel sl
                     && !gulliver.init.GulliverGameRules.mobGriefing(sl)) {
                 return;
             }
             FarmlandBlock.turnToDirt(entity, state, level, pos);
+            gulliver$fallDamage(entity, fallDistance);
             ci.cancel();
         }
+    }
+
+    private static void gulliver$fallDamage(Entity entity,
+                                             //#if MC >= 1.21.5
+                                             double fallDistance
+                                             //#else
+                                             //$$ float fallDistance
+                                             //#endif
+    ) {
+        entity.causeFallDamage(fallDistance, 1.0F, entity.damageSources().fall());
     }
 }

@@ -3,139 +3,104 @@ package gulliver.mixin;
 import gulliver.api.IResizeableEntity;
 import gulliver.common.AttackContext;
 import gulliver.common.GulliverEnvoy;
+import gulliver.init.GulliverDamageTypes;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.tags.DamageTypeTags;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.Mob;
+import net.minecraft.world.item.ItemStack;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.ModifyVariable;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 /**
- * 1.6.4 of.java line 1413-1432 damage scaling for melee attacks. Uses
- * a single @Inject HEAD cancellable that handles immunity, scaling, and
- * attacker-context capture. Recursive guard via thread-local prevents
- * infinite loop when re-calling hurtServer with scaled amount.
+ * Size-scaled damage (1.6.4 of.java 1395-1432, softened to square roots
+ * after playtesting):
  *
- * Why not @ModifyVariable: in early attempts the modify ran BEFORE
- * @Inject HEAD callbacks, so AttackContext was empty when the modifier
- * fired. Trying multi-arg handler signatures was unreliable. The
- * recursive @Inject pattern is fully self-contained and binds without
- * surprises.
+ *   - target side:   amount / sqrt(targetSize)  — small bodies take more
+ *   - attacker side: amount * sqrt(attackerSize) — big bodies hit harder;
+ *     a tiny wielding something pointy gets cbrt instead (weak but real)
+ *
+ * Two melee-only rules sit on top: a much larger mob attacker may whiff
+ * over a tiny target (miss chance 1 - target/attacker, max 90%, unless it
+ * holds something pointy), and an attacker 8x smaller than its target
+ * without a pointy item can't hurt it at all. Projectiles, explosions and
+ * other indirect damage keep the scaling but never miss and are never
+ * blocked — an arrow doesn't care how tall the archer is.
+ *
+ * The amount is scaled in place (no re-dispatch), so subclass overrides
+ * of hurtServer — Player's difficulty scaling, a Guardian's thorns — run
+ * exactly once. Gulliver's own crushing damage is pre-scaled and skipped.
  */
 @Mixin(LivingEntity.class)
 public abstract class MixinLivingEntityDamage {
 
-    private static final ThreadLocal<Boolean> gulliver$inHurt =
-            ThreadLocal.withInitial(() -> Boolean.FALSE);
-
     @Inject(method = "hurtServer", at = @At("HEAD"), cancellable = true)
-    private void gulliver$gulliverDamageHandler(net.minecraft.server.level.ServerLevel level,
-                                                  DamageSource source, float amount,
-                                                  CallbackInfoReturnable<Boolean> cir) {
-        if (gulliver$inHurt.get()) {
-            // Recursive call from our own scaling. Set attacker context
-            // for knockback and let vanilla run with the scaled amount.
-            AttackContext.set(source.getEntity());
-            return;
-        }
-
+    private void gulliver$missOrImmune(ServerLevel level, DamageSource source, float amount,
+                                         CallbackInfoReturnable<Boolean> cir) {
         LivingEntity self = (LivingEntity) (Object) this;
         Entity attacker = source.getEntity();
+        AttackContext.push(attacker);
+        if (!gulliver$isMelee(source, attacker, self)) return;
+        LivingEntity attackerLiv = (LivingEntity) attacker;
         float targetSize = ((IResizeableEntity) self).getSizeMultiplier();
+        float attackerSize = ((IResizeableEntity) attacker).getSizeMultiplier();
+        boolean pointy = GulliverEnvoy.holdingPointyItem(attackerLiv);
 
-        if (attacker instanceof LivingEntity attackerLiv && attacker != self) {
-            float attackerSize = ((IResizeableEntity) attacker).getSizeMultiplier();
-
-            // 4(338) miss chance: a mob attacker much larger than its
-            // target rolls a miss with probability 1 - (target/attacker),
-            // capped at 90%. Models "swing whiffs over the tiny's head" —
-            // a size-1 zombie hitting a size-0.125 player misses 87.5%
-            // of the time. Only applies to Mob attackers; Player vs Player
-            // hits always land. Skipped if attacker holds a pointy item
-            // (precision strike) — sword users always land.
-            if (attackerLiv instanceof net.minecraft.world.entity.Mob
-                    && targetSize < attackerSize
-                    && !GulliverEnvoy.holdingPointyItem(attackerLiv)) {
-                float ratio = targetSize / attackerSize;
-                float missChance = Math.min(0.9F, 1.0F - ratio);
-                if (self.level().getRandom().nextFloat() < missChance) {
-                    cir.setReturnValue(false);
-                    return;
-                }
-            }
-
-            // Damage immunity gap: 8x size disparity → no damage when
-            // ATTACKER is far smaller than target. A microscopic mob
-            // can't bite a giant. EXCEPT when the attacker is wielding a
-            // pointy item — sword/stick gives them the precision to land
-            // a (cbrt-scaled, much-reduced) hit on a vastly larger foe.
-            // The user's case (size 0.125 + stick hits size 1) goes
-            // through the cbrt branch below.
-            boolean attackerPointy = GulliverEnvoy.holdingPointyItem(attackerLiv);
-            if (!attackerPointy && attackerSize / targetSize <= 0.125F) {
+        // A mob swinging at something much smaller often whiffs over it.
+        if (attackerLiv instanceof Mob && targetSize < attackerSize && !pointy) {
+            float missChance = Math.min(0.9F, 1.0F - targetSize / attackerSize);
+            if (self.getRandom().nextFloat() < missChance) {
+                AttackContext.pop();
                 cir.setReturnValue(false);
                 return;
             }
+        }
+        // A microscopic attacker can't hurt a giant without a weapon.
+        if (!pointy && attackerSize / targetSize <= 0.125F) {
+            AttackContext.pop();
+            cir.setReturnValue(false);
+        }
+    }
 
-            float scaled = amount;
-            // 1.6.4 used LINEAR divide-by-targetSize (line 1414) and
-            // LINEAR multiply-by-attackerSize for bare-hands (line 1432).
-            // At an 8x size disparity (size-1 zombie vs size-0.125 tiny,
-            // or size-8 zombie vs size-1 player) that produced an 8x
-            // damage multiplier — instant-kill. User feedback 4(349):
-            // "way too much".
-            //
-            // Switch to sqrt for both directions: same direction of
-            // scaling (smaller takes more, larger hits harder) but the
-            // 8x cases compress to ~2.83x. The pointy-tiny bonus stays
-            // at cbrt — a tiny+stick already does very little damage,
-            // and weakening it further would make the immunity-bypass
-            // path useless.
-            if (targetSize != 1.0F) scaled = scaled / (float) Math.sqrt(targetSize);
-
-            if (attackerSize != 1.0F) {
-                net.minecraft.world.item.ItemStack hand = attackerLiv.getMainHandItem();
-                boolean hasItem = hand != null && !hand.isEmpty();
-                if (hasItem && attackerSize < 1.0F && GulliverEnvoy.isItemPointy(hand)) {
-                    scaled *= (float) Math.cbrt(attackerSize);
-                } else {
-                    scaled *= (float) Math.sqrt(attackerSize);
-                }
-            }
-
-            if (scaled != amount) {
-                // Recurse with scaled amount; inHurt guard makes the
-                // re-entry skip this whole block and fall through to
-                // vanilla logic.
-                gulliver$inHurt.set(Boolean.TRUE);
-                try {
-                    AttackContext.set(attacker);
-                    boolean result = self.hurtServer(level, source, scaled);
-                    cir.setReturnValue(result);
-                } finally {
-                    gulliver$inHurt.set(Boolean.FALSE);
-                    AttackContext.clear();
-                }
-                return;
+    @ModifyVariable(method = "hurtServer", at = @At("HEAD"), argsOnly = true, ordinal = 0)
+    private float gulliver$scaleAmount(float amount, ServerLevel level, DamageSource source) {
+        LivingEntity self = (LivingEntity) (Object) this;
+        Entity attacker = source.getEntity();
+        if (!(attacker instanceof LivingEntity attackerLiv) || attacker == self) return amount;
+        if (source.is(GulliverDamageTypes.PASSIVE)) return amount; // already size-scaled
+        float targetSize = ((IResizeableEntity) self).getSizeMultiplier();
+        float attackerSize = ((IResizeableEntity) attacker).getSizeMultiplier();
+        float scaled = amount;
+        if (targetSize != 1.0F) scaled /= (float) Math.sqrt(targetSize);
+        if (attackerSize != 1.0F) {
+            ItemStack hand = attackerLiv.getMainHandItem();
+            if (attackerSize < 1.0F && !hand.isEmpty() && GulliverEnvoy.isItemPointy(hand)
+                    && gulliver$isMelee(source, attacker, self)) {
+                scaled *= (float) Math.cbrt(attackerSize);
+            } else {
+                scaled *= (float) Math.sqrt(attackerSize);
             }
         }
-
-        // No LivingEntity attacker (fall, drown, lava, cactus, etc.).
-        // 1.6.4 line 1395 gates target-side scaling on `cause != null`,
-        // so non-entity damage sources are NOT scaled by target size.
-        // Fall damage in particular is already pre-scaled inside
-        // MixinLivingEntityFallDamage's calculateFallDamage override —
-        // dividing by target size again would 8x a tiny's fall damage.
-        // No scaling here. Just set attacker context for any KB the
-        // vanilla path may fire.
-        AttackContext.set(attacker);
+        return scaled;
     }
 
     @Inject(method = "hurtServer", at = @At("RETURN"))
-    private void gulliver$clearAttacker(net.minecraft.server.level.ServerLevel level,
-                                          DamageSource source, float amount,
-                                          CallbackInfoReturnable<Boolean> cir) {
-        if (!gulliver$inHurt.get()) AttackContext.clear();
+    private void gulliver$popAttacker(ServerLevel level, DamageSource source, float amount,
+                                       CallbackInfoReturnable<Boolean> cir) {
+        AttackContext.pop();
+    }
+
+    private static boolean gulliver$isMelee(DamageSource source, Entity attacker, LivingEntity self) {
+        return attacker instanceof LivingEntity
+                && attacker != self
+                && source.getDirectEntity() == attacker
+                && !source.is(DamageTypeTags.IS_PROJECTILE)
+                && !source.is(DamageTypeTags.IS_EXPLOSION)
+                && !source.is(GulliverDamageTypes.PASSIVE);
     }
 }

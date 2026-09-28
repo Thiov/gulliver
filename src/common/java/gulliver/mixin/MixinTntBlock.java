@@ -71,11 +71,13 @@ public abstract class MixinTntBlock {
 
         if (!level.isClientSide()) {
             //#if MC >= 1.21.2
-            prime(level, pos, player);
+            // prime() refuses when the tnt_explodes game rule is off; the
+            // block must survive then.
+            if (prime(level, pos, player)) level.removeBlock(pos, false);
             //#else
             //$$ explode(level, pos, player);
+            //$$ level.removeBlock(pos, false);
             //#endif
-            level.removeBlock(pos, false);
         }
         cir.setReturnValue(InteractionResult.SUCCESS);
     }

@@ -6,62 +6,46 @@ import net.minecraft.client.renderer.entity.EntityRenderer;
 import net.minecraft.client.renderer.entity.state.EntityRenderState;
 import net.minecraft.client.renderer.entity.state.LivingEntityRenderState;
 import net.minecraft.client.renderer.state.level.CameraRenderState;
+import net.minecraft.world.phys.Vec3;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 /**
- * Scale the floating name tag along with the entity's body. Vanilla
- * submitNameDisplay positions the tag at a fixed height above the
- * entity's feet (eye + 0.5) using a constant {@link
- * EntityRenderer#NAMETAG_SCALE} 0.025 — neither the offset nor the
- * font size respond to the model scale we set in
- * MixinLivingEntityRenderer.extractRenderState (state.scale).
- *
- * Result without this mixin: a size-0.125 tiny has its name tag float
- * 8x its body height above its head; a size-8 giant has the tag stuck
- * at human-eye height somewhere mid-torso.
- *
- * Fix: at HEAD push the pose-stack and scale uniformly by state.scale
- * (which has already been multiplied by the entity's sizeMultiplier in
- * extractRenderState), so vanilla's translate-up + glyph render run in
- * a scaled coordinate space — the offset rises/falls with the body and
- * the text size matches. Pop at RETURN.
- *
- * The non-LivingEntityRenderState branch (items, projectiles, etc.) is
- * a no-op; their renderers don't fill in state.scale and rarely show
- * name tags anyway.
- *
- * Both 4-arg overloads share the same descriptor up to arity, but
- * Mixin can target by name + descriptor — only the public 4-arg
- * (pre-pack-light) overload is the override point. The 5-arg final
- * variant calls into it and inherits the scale.
+ * Name tags grow and shrink with their entity (square root of the size,
+ * so a tiny's tag stays readable and a titan's doesn't fill the sky).
+ * The tag's anchor already moves with the resized hitbox, so the scale
+ * pivots on that anchor instead of the entity's feet; hooked on the
+ * final method every renderer (players included) goes through.
  */
 @Mixin(EntityRenderer.class)
 public abstract class MixinEntityRendererNameTag {
 
-    @Inject(method = "submitNameDisplay(Lnet/minecraft/client/renderer/entity/state/EntityRenderState;Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/SubmitNodeCollector;Lnet/minecraft/client/renderer/state/level/CameraRenderState;)V",
-            at = @At("HEAD"),
-            require = 0)
-    private void gulliver$pushScale(EntityRenderState state, PoseStack pose,
-                                      SubmitNodeCollector buf, CameraRenderState cam,
-                                      CallbackInfo ci) {
-        if (!(state instanceof LivingEntityRenderState ls)) return;
-        float s = ls.scale;
-        if (s == 1.0F) return;
-        pose.pushPose();
-        pose.scale(s, s, s);
+    private static float gulliver$tagScale(EntityRenderState state) {
+        if (!(state instanceof LivingEntityRenderState ls) || ls.scale == 1.0F || state.nameTagAttachment == null) {
+            return 1.0F;
+        }
+        return Math.max(0.35F, Math.min(3.0F, (float) Math.sqrt(ls.scale)));
     }
 
-    @Inject(method = "submitNameDisplay(Lnet/minecraft/client/renderer/entity/state/EntityRenderState;Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/SubmitNodeCollector;Lnet/minecraft/client/renderer/state/level/CameraRenderState;)V",
-            at = @At("RETURN"),
-            require = 0)
-    private void gulliver$popScale(EntityRenderState state, PoseStack pose,
-                                     SubmitNodeCollector buf, CameraRenderState cam,
-                                     CallbackInfo ci) {
-        if (!(state instanceof LivingEntityRenderState ls)) return;
-        if (ls.scale == 1.0F) return;
-        pose.popPose();
+    @Inject(method = "submitNameDisplay(Lnet/minecraft/client/renderer/entity/state/EntityRenderState;Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/SubmitNodeCollector;Lnet/minecraft/client/renderer/state/level/CameraRenderState;I)V",
+            at = @At("HEAD"))
+    private void gulliver$pushScale(EntityRenderState state, PoseStack pose, SubmitNodeCollector buf,
+                                      CameraRenderState cam, int offset, CallbackInfo ci) {
+        float s = gulliver$tagScale(state);
+        if (s == 1.0F) return;
+        Vec3 a = state.nameTagAttachment;
+        pose.pushPose();
+        pose.translate((float) a.x, (float) a.y, (float) a.z);
+        pose.scale(s, s, s);
+        pose.translate((float) -a.x, (float) -a.y, (float) -a.z);
+    }
+
+    @Inject(method = "submitNameDisplay(Lnet/minecraft/client/renderer/entity/state/EntityRenderState;Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/SubmitNodeCollector;Lnet/minecraft/client/renderer/state/level/CameraRenderState;I)V",
+            at = @At("RETURN"))
+    private void gulliver$popScale(EntityRenderState state, PoseStack pose, SubmitNodeCollector buf,
+                                     CameraRenderState cam, int offset, CallbackInfo ci) {
+        if (gulliver$tagScale(state) != 1.0F) pose.popPose();
     }
 }

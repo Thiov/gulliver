@@ -38,12 +38,15 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 @Mixin(TargetingConditions.class)
 public abstract class MixinTargetingConditionsTinyHide {
 
+    /** Only hostile targeting ignores tinies; tempting, breeding and fleeing still see them. */
+    @org.spongepowered.asm.mixin.Shadow @org.spongepowered.asm.mixin.Final private boolean isCombat;
+
     @Inject(method = "test", at = @At("HEAD"), cancellable = true)
     private void gulliver$tinyInvisibleToMobs(ServerLevel level,
                                                 LivingEntity attacker,
                                                 LivingEntity target,
                                                 CallbackInfoReturnable<Boolean> cir) {
-        if (target == null || attacker == null) return;
+        if (target == null || attacker == null || !isCombat) return;
         float targetSize = ((IResizeableEntity) target).getSizeMultiplier();
         float attackerSize = ((IResizeableEntity) attacker).getSizeMultiplier();
         // Relative size threshold: target is "invisible" to this attacker

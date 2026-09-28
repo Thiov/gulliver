@@ -2,16 +2,13 @@
   "advancements.gulliver.drink_me.title": "Drink Me",
   "advancements.gulliver.drink_me.description": "Drink a Tiny or Huge potion.",
   "advancements.gulliver.eat_me.title": "Eat Me",
-  "advancements.gulliver.eat_me.description": "Eat a Cyan or Purple Dye to resize.",
-
+  "advancements.gulliver.eat_me.description": "Eat a cyan or purple dye, or a mushroom, to resize.",
   "key.categories.gulliver": "Gulliver",
   "key.gulliver.upsize": "Embiggen",
   "key.gulliver.downsize": "Ensmallen",
   "key.gulliver.shoulder": "Shoulder Entity",
-
   "effect.gulliver.tiny": "Ensmallening",
   "effect.gulliver.huge": "Embiggening",
-
   "item.minecraft.potion.effect.gulliver.tiny": "Potion of Ensmallening",
   "item.minecraft.splash_potion.effect.gulliver.tiny": "Splash Potion of Ensmallening",
   "item.minecraft.lingering_potion.effect.gulliver.tiny": "Lingering Potion of Ensmallening",
@@ -36,9 +33,12 @@
   "item.minecraft.splash_potion.effect.gulliver.strong_huge": "Splash Potion of Embiggening",
   "item.minecraft.lingering_potion.effect.gulliver.strong_huge": "Lingering Potion of Embiggening",
   "item.minecraft.tipped_arrow.effect.gulliver.strong_huge": "Arrow of Embiggening",
-
   "death.attack.gulliver.passive": "%1$s was crushed by %2$s",
   "death.attack.gulliver.passive.player": "%1$s was crushed by %2$s whilst trying to escape %3$s",
   "death.attack.gulliver.rain": "%1$s drowned in the rain",
-  "death.attack.gulliver.rain.player": "%1$s drowned in the rain whilst trying to escape %2$s"
+  "death.attack.gulliver.rain.player": "%1$s drowned in the rain whilst trying to escape %2$s",
+  "gamerule.gulliver.size_griefing": "Size griefing",
+  "gamerule.gulliver.size_griefing.description": "Whether resized players and mobs break blocks: giants' fist craters, bursting through ceilings as they grow, cracking floors and trampling crops.",
+  "gamerule.gulliverSizeGriefing": "Size griefing",
+  "gamerule.gulliverSizeGriefing.description": "Whether resized players and mobs break blocks: giants' fist craters, bursting through ceilings as they grow, cracking floors and trampling crops."
 }

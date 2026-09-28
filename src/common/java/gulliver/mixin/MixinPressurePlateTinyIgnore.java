@@ -41,7 +41,8 @@ public abstract class MixinPressurePlateTinyIgnore {
                                               Class<? extends Entity> clazz,
                                               CallbackInfoReturnable<Integer> cir) {
         List<? extends Entity> list = level.getEntitiesOfClass(clazz, aabb,
-                e -> !e.isIgnoringBlockTriggers()
+                e -> !e.isSpectator()
+                  && !e.isIgnoringBlockTriggers()
                   && !((IResizeableEntity) e).isTiny());
         cir.setReturnValue(list.size());
     }

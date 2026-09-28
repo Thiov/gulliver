@@ -2,6 +2,7 @@ package gulliver.mixin;
 
 import gulliver.common.AttackContext;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.phys.Vec3;
 import org.spongepowered.asm.mixin.Mixin;
@@ -22,8 +23,9 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
  *      which doesn't apply attacker-size scaling. Result: a size-0.125
  *      tiny with a sword still produces full sprint-attack knockback.
  *
- * Fix: re-set AttackContext to `this` at HEAD of causeExtraKnockback,
- * clear at RETURN. Narrow window — covers only the extra-knockback
+ * Fix: push `this` as the attacker at HEAD of causeExtraKnockback and
+ * pop it at RETURN. Hooked on LivingEntity too, so giant MOBS' extra
+ * knockback scales as well (Player's override never calls super). Narrow window — covers only the extra-knockback
  * path without touching the in-hurtServer scaling.
  *
  * Bare-hand attacks don't trigger causeExtraKnockback (the sprint-bonus
@@ -31,18 +33,18 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
  * matches the user's observation that bare-hand knockback DID scale
  * correctly while pointy attacks did not.
  */
-@Mixin(Player.class)
-public abstract class MixinPlayerExtraKnockbackContext {
+@Mixin({LivingEntity.class, Player.class})
+public abstract class MixinLivingEntityExtraKnockback {
 
     @Inject(method = "causeExtraKnockback", at = @At("HEAD"))
     private void gulliver$setAttackContext(Entity target, float strength, Vec3 vec,
                                              CallbackInfo ci) {
-        AttackContext.set((Entity) (Object) this);
+        AttackContext.push((Entity) (Object) this);
     }
 
     @Inject(method = "causeExtraKnockback", at = @At("RETURN"))
     private void gulliver$clearAttackContext(Entity target, float strength, Vec3 vec,
                                                CallbackInfo ci) {
-        AttackContext.clear();
+        AttackContext.pop();
     }
 }

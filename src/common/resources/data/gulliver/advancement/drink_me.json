@@ -24,9 +24,17 @@
       "trigger": "minecraft:consume_item",
       "conditions": {
         "item": {
-          "items": ["minecraft:potion", "minecraft:splash_potion", "minecraft:lingering_potion"],
+          "items": [
+            "minecraft:potion",
+            "minecraft:splash_potion",
+            "minecraft:lingering_potion"
+          ],
           "predicates": {
-            "minecraft:potion_contents": "gulliver:tiny"
+            "minecraft:potion_contents": [
+              "gulliver:tiny",
+              "gulliver:long_tiny",
+              "gulliver:strong_tiny"
+            ]
           }
         }
       }
@@ -35,15 +43,26 @@
       "trigger": "minecraft:consume_item",
       "conditions": {
         "item": {
-          "items": ["minecraft:potion", "minecraft:splash_potion", "minecraft:lingering_potion"],
+          "items": [
+            "minecraft:potion",
+            "minecraft:splash_potion",
+            "minecraft:lingering_potion"
+          ],
           "predicates": {
-            "minecraft:potion_contents": "gulliver:huge"
+            "minecraft:potion_contents": [
+              "gulliver:huge",
+              "gulliver:long_huge",
+              "gulliver:strong_huge"
+            ]
           }
         }
       }
     }
   },
   "requirements": [
-    ["drink_tiny", "drink_huge"]
+    [
+      "drink_tiny",
+      "drink_huge"
+    ]
   ]
 }

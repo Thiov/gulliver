@@ -66,6 +66,8 @@ public final class TremorHandler {
             STRIDE_PHASE.clear();
             return;
         }
+        // Forget walkers that left or died.
+        if ((ticks & 63) == 0) STRIDE_PHASE.keySet().removeIf(id -> level.getEntity(id) == null);
         if (mc.isPaused() || viewer.isSpectator()) return;
         float viewerSize = ((IResizeableEntity) viewer).getSizeMultiplier();
 

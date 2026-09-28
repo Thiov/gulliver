@@ -742,8 +742,12 @@ public final class GulliverEnvoy {
     private static double updraftColumn(net.minecraft.world.level.Level level,
                                          int x, int z, double yPos, int yStart, double scale) {
         net.minecraft.core.BlockPos.MutableBlockPos mp = new net.minecraft.core.BlockPos.MutableBlockPos();
+        // Only heat within 8 blocks lifts anything, so never scan further
+        // down than that (an airborne tiny over the void used to scan to
+        // the bottom of the world, five columns, twice a tick).
+        int floor = Math.max(level.getMinY(), yStart - 9);
         int h = yStart;
-        while (h > level.getMinY() && level.getBlockState(mp.set(x, h, z)).isAir()) {
+        while (h > floor && level.getBlockState(mp.set(x, h, z)).isAir()) {
             h--;
         }
         double alt = yPos - h;
@@ -766,12 +770,10 @@ public final class GulliverEnvoy {
      * within the motion-blocking heightmap AND not transparent, sheltered.
      */
     public static boolean couldBeRainedOn(net.minecraft.world.entity.LivingEntity entity) {
-        net.minecraft.world.level.Level level = entity.level();
-        if (!level.isRaining()) return false;
-        net.minecraft.core.BlockPos eye =
-                net.minecraft.core.BlockPos.containing(entity.getEyePosition());
-        if (!level.getBiome(eye).value().hasPrecipitation()) return false;
-        return level.canSeeSky(eye);
+        // isRainingAt = raining + open sky above + a biome where it RAINS
+        // there (snowfall and deserts don't count).
+        return entity.level().isRainingAt(
+                net.minecraft.core.BlockPos.containing(entity.getEyePosition()));
     }
 
     /**
@@ -996,10 +998,23 @@ public final class GulliverEnvoy {
      * Call AFTER refreshDimensions with the bbox captured BEFORE the
      * size change. Server-side + size_griefing-gated.
      */
+    private static boolean suppressGrowthBurst;
+
+    /** Runs a resize that must not burst blocks (spawning at a configured size). */
+    public static void withoutGrowthBurst(Runnable resize) {
+        boolean prev = suppressGrowthBurst;
+        suppressGrowthBurst = true;
+        try {
+            resize.run();
+        } finally {
+            suppressGrowthBurst = prev;
+        }
+    }
+
     public static void breakBlocksViaGrowth(net.minecraft.world.entity.LivingEntity entity,
                                              net.minecraft.world.phys.AABB oldBox) {
         net.minecraft.world.level.Level level = entity.level();
-        if (level.isClientSide()) return;
+        if (level.isClientSide() || suppressGrowthBurst) return;
         if (!canSizeGrief(entity)) return;
         net.minecraft.world.phys.AABB newBox = entity.getBoundingBox();
         float sizeMult = ((IResizeableEntity) entity).getSizeMultiplier();
@@ -1027,6 +1042,7 @@ public final class GulliverEnvoy {
                     boolean burst = h < sizeMult
                             || (huge && st.getBlock() instanceof net.minecraft.world.level.block.WebBlock);
                     if (!burst) continue;
+                    if (entity instanceof Player p && !level.mayInteract(p, pos)) continue;
                     level.destroyBlock(pos, true, entity);
                 }
             }
@@ -1085,11 +1101,9 @@ public final class GulliverEnvoy {
      * Only fires when the entity actually moved meaningful horizontal
      * distance this tick, to avoid trampling under a stationary giant.
      */
-    public static void leaveHugeFootprints(net.minecraft.world.entity.LivingEntity stepper) {
+    public static void leaveHugeFootprints(net.minecraft.world.entity.LivingEntity stepper, double horiz) {
         net.minecraft.world.level.Level level = stepper.level();
         if (level.isClientSide()) return;
-        net.minecraft.world.phys.Vec3 dm = stepper.getDeltaMovement();
-        double horiz = dm.x * dm.x + dm.z * dm.z;
         if (horiz < 1.0E-4D) return;
 
         net.minecraft.world.phys.AABB box = stepper.getBoundingBox();
@@ -1112,16 +1126,22 @@ public final class GulliverEnvoy {
         }
     }
 
-    public static void stepOnSmallerEntities(net.minecraft.world.entity.LivingEntity stepper) {
+    /**
+     * @param horizSqr squared horizontal distance the stepper moved this
+     *                 tick (measured from its positions, since a server-side
+     *                 player's delta movement is not kept up to date)
+     */
+    public static void stepOnSmallerEntities(net.minecraft.world.entity.LivingEntity stepper, double horizSqr) {
         net.minecraft.world.level.Level level = stepper.level();
         if (level.isClientSide()) return;
+        double ratio = GulliverConfig.INSTANCE.general.trampleSizeRatio;
+        if (ratio <= 0.0D) return;
+        if (stepper.isSpectator() || stepper.isPassenger()) return;
 
         // 1.6.4 canSquish gate (nn.java:1271): only crush when STEPPING.
         // The 1.6.4 mod gated this on collision-while-moving, which we
         // approximate with a horizontal-velocity threshold. Stationary
         // giant standing on a tiny no longer crushes them.
-        net.minecraft.world.phys.Vec3 dm = stepper.getDeltaMovement();
-        double horizSqr = dm.x * dm.x + dm.z * dm.z;
         if (horizSqr < 0.005D) return;
 
         net.minecraft.world.phys.AABB stepperBox = stepper.getBoundingBox();
@@ -1151,8 +1171,12 @@ public final class GulliverEnvoy {
             }
 
             IResizeableEntity tsized = (IResizeableEntity) target;
-            if (tsized.getSizeMultiplier() >= stepperMult * 0.5F) continue;
+            // 1.6.4 canSquish: target "quite smaller" (config ratio, 0.4 by
+            // default) AND the stepper at least 1.5x taller.
+            if (tsized.getSizeMultiplier() >= stepperMult * ratio) continue;
             if (stepperHeight <= target.getBbHeight() * 1.5F) continue;
+            if (target.isSpectator() || target.isPassenger()) continue;
+            if (stepper instanceof Player sp && target instanceof Player tp && !sp.canHarmPlayer(tp)) continue;
 
             net.minecraft.world.phys.AABB tBox = target.getBoundingBox();
             if (tBox.maxY < sBottom) continue;

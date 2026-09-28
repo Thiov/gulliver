@@ -33,20 +33,22 @@ import org.spongepowered.asm.mixin.injection.ModifyArg;
  * reach with margin), size-4 moo → 3.2 (51 blocks). You hear the
  * giant long before you see it.
  *
+ * Player overrides playSound without calling super, so it is hooked too
+ * (otherwise a giant PLAYER's footsteps never carried further).
+ *
  * playSound(SoundEvent) without volume/pitch defaults internally and
  * doesn't go through the (SoundEvent, float, float) overload — vanilla
  * uses 1.0/1.0 for both directly. Skipping a separate hook for that
  * overload is intentional: silent ambient sounds on tinies would be
  * surprising. The 1.6.4 mod also only hooked the volume-bearing path.
  */
-@Mixin(Entity.class)
+@Mixin({Entity.class, net.minecraft.world.entity.player.Player.class})
 public abstract class MixinEntitySound {
 
     @ModifyArg(method = "playSound(Lnet/minecraft/sounds/SoundEvent;FF)V",
                at = @At(value = "INVOKE",
                         target = "Lnet/minecraft/world/level/Level;playSound(Lnet/minecraft/world/entity/Entity;DDDLnet/minecraft/sounds/SoundEvent;Lnet/minecraft/sounds/SoundSource;FF)V"),
-               index = 6,
-               require = 0)
+               index = 6)
     private float gulliver$scaleVolume(float vol) {
         IResizeableEntity sized = (IResizeableEntity) this;
         float size = sized.getSizeMultiplier();
