@@ -17,8 +17,10 @@ import net.minecraft.commands.arguments.EntityArgument;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+//#if MC >= 1.21.11
 import net.minecraft.server.permissions.Permission;
 import net.minecraft.server.permissions.Permissions;
+//#endif
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 
@@ -50,14 +52,18 @@ public final class GulliverCommands {
     private static final SimpleCommandExceptionType INVALID_SIZE =
             new SimpleCommandExceptionType(Component.literal("Invalid size"));
 
-    /** Vanilla op-level 2 equivalent in 26.x. */
+    /** Vanilla op-level 2 (moderator) and 4 (admin: config reload). */
+    //#if MC >= 1.21.11
     private static final Predicate<CommandSourceStack> OP2 = perm(Permissions.COMMANDS_MODERATOR);
-    /** Vanilla op-level 4 equivalent (full admin / config reload). */
     private static final Predicate<CommandSourceStack> OP4 = perm(Permissions.COMMANDS_ADMIN);
 
     private static Predicate<CommandSourceStack> perm(Permission p) {
         return src -> src.permissions().hasPermission(p);
     }
+    //#else
+    //$$ private static final Predicate<CommandSourceStack> OP2 = src -> src.hasPermission(2);
+    //$$ private static final Predicate<CommandSourceStack> OP4 = src -> src.hasPermission(4);
+    //#endif
 
     public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
         // /basesize <size> [player]

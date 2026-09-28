@@ -46,7 +46,7 @@ public final class GulliverGameRules {
     //$$ /** Called once during common setup, before any world loads. */
     //$$ public static void register() {
     //$$     if (SIZE_GRIEFING == null) {
-    //$$         SIZE_GRIEFING = GameRules.register("gulliverSizeGriefing", GameRules.Category.MOBS,
+    //$$         SIZE_GRIEFING = gulliver.mixin.GameRulesInvoker.gulliver$register("gulliverSizeGriefing", GameRules.Category.MOBS,
     //$$                 gulliver.mixin.GameRulesBooleanValueInvoker.gulliver$create(true));
     //$$     }
     //$$ }

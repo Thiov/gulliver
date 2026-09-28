@@ -39,7 +39,13 @@ public abstract class MixinGameRendererBob {
         return c * factor;
     }
 
+    // The walk-distance local: slot 3 in bobView(CameraRenderState, PoseStack);
+    // before 26.1, bobView(PoseStack, float) keeps two more locals first.
+    //#if MC >= 26.1
     @ModifyVariable(method = "bobView", at = @At(value = "STORE"), index = 3)
+    //#else
+    //$$ @ModifyVariable(method = "bobView", at = @At(value = "STORE"), index = 5)
+    //#endif
     private float gulliver$normalizeBobFreq(float walkDist) {
         Entity cam = this.minecraft.getCameraEntity();
         if (cam == null) return walkDist;

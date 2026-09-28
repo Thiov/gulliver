@@ -1,3 +1,4 @@
+//#if MC >= 1.21.11
 package gulliver.mixin;
 
 import gulliver.common.AttackContext;
@@ -54,3 +55,4 @@ public abstract class MixinLivingEntityExtraKnockback {
         AttackContext.pop();
     }
 }
+//#endif

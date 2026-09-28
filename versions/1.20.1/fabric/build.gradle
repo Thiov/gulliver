@@ -1,0 +1,48 @@
+plugins {
+    id 'net.fabricmc.fabric-loom-remap' version '1.18.2'
+    id 'java'
+}
+
+version = "${project.mod_version}+fabric-${project.minecraft_version}"
+group = 'gulliver'
+
+base {
+    archivesName = 'gulliver'
+}
+
+apply from: '../../../gradle/gulliver.gradle'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    minecraft "com.mojang:minecraft:${project.minecraft_version}"
+    mappings loom.officialMojangMappings()
+    modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
+    modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
+}
+
+loom {
+    runtimeOnlyLog4j = true
+    runs {
+        configureEach {
+            if (project.hasProperty('selftest')) vmArg '-Dgulliver.selftest=true'
+        }
+        server {
+            programArgs '--nogui'
+        }
+        client {
+            if (project.hasProperty('selftest')) programArgs '--quickPlaySingleplayer', 'selftest'
+        }
+    }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    it.options.release = 17
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
+}

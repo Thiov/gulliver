@@ -1,0 +1,32 @@
+# Sources use 26.2 names; these are the 26.1.x spellings ("new old").
+EntityTypes EntityType
+net.minecraft.advancements.triggers.CriteriaTriggers net.minecraft.advancements.CriteriaTriggers
+net.minecraft.world.entity.monster.cubemob.Slime net.minecraft.world.entity.monster.Slime
+Items.DYE.cyan() Items.CYAN_DYE
+Items.DYE.purple() Items.PURPLE_DYE
+net.minecraft.tags.BlockItemTags.SAPLINGS.block() net.minecraft.tags.BlockTags.SAPLINGS
+.gui.screen() .screen
+.mainCamera() .getMainCamera()
+submitHandsWithItems renderHandsWithItems
+# 1.21.11 spellings of 26.1 names
+net.minecraft.client.renderer.state.level.CameraRenderState net.minecraft.client.renderer.state.CameraRenderState
+net.minecraft.client.renderer.state.level.LevelRenderState net.minecraft.client.renderer.state.LevelRenderState
+FarmlandBlock FarmBlock
+.getDefaultClockTime() .getDayTime()
+net/minecraft/client/renderer/state/level/CameraRenderState net/minecraft/client/renderer/state/CameraRenderState
+net/minecraft/client/renderer/state/level/LevelRenderState net/minecraft/client/renderer/state/LevelRenderState
+alignWithEntity setup
+# 1.21.10 spellings of 1.21.11 names
+Identifier ResourceLocation
+net.minecraft.client.model.player.PlayerModel net.minecraft.client.model.PlayerModel
+net.minecraft.world.entity.npc.villager.AbstractVillager net.minecraft.world.entity.npc.AbstractVillager
+this).entity() this).getEntity()
+xRot() getXRot()
+yRot() getYRot()
+# 1.20.1 spellings of 1.21 names
+MobEffects.SLOWNESS MobEffects.MOVEMENT_SLOWDOWN
+MobEffects.HASTE MobEffects.DIG_SPEED
+MobEffects.JUMP_BOOST MobEffects.JUMP
+.getMinY() .getMinBuildHeight()
+.getPotted() .getContent()
+key.identifier() key.location()

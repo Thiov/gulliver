@@ -41,7 +41,10 @@ public abstract class MixinLivingEntitySizeTween {
 
         if (server) {
             float live = ((IResizeableEntity) self).getSizeMultiplier();
-            if (live != gulliver$attrSize || (self.tickCount % 100) == 0) {
+            // Players re-check every tick: their reach also depends on what
+            // they hold (a tiny with a sword reaches further).
+            if (live != gulliver$attrSize || self instanceof net.minecraft.world.entity.player.Player
+                    || (self.tickCount % 100) == 0) {
                 SizeAttributes.applyForSize(self, live);
                 gulliver$attrSize = live;
             }

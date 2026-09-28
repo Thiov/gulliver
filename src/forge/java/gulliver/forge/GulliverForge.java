@@ -25,6 +25,9 @@ public final class GulliverForge {
     public GulliverForge(FMLJavaModLoadingContext context) {
         Services.set(new ForgePlatform());
         Gulliver.init();
+        //#if MC < 1.21.11
+        //$$ GulliverGameRules.register();
+        //#endif
         ForgeNetworking.init();
 
         BusGroup modBus = context.getModBusGroup();

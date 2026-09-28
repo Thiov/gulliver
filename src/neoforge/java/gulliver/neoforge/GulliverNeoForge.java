@@ -24,6 +24,9 @@ public final class GulliverNeoForge {
     public GulliverNeoForge(IEventBus modBus) {
         Services.set(new NeoForgePlatform());
         Gulliver.init();
+        //#if MC < 1.21.11
+        //$$ GulliverGameRules.register();
+        //#endif
 
         modBus.addListener(GulliverNeoForge::onRegister);
         modBus.addListener(NeoForgeNetworking::register);

@@ -1,3 +1,4 @@
+//#if MC >= 26.1
 package gulliver.mixin.client;
 
 import gulliver.api.IResizeableEntity;
@@ -31,8 +32,6 @@ import org.spongepowered.asm.mixin.injection.ModifyArg;
 @Mixin(Camera.class)
 public abstract class MixinCameraNearClip {
 
-    @Shadow @Final public Entity entity;
-
     @ModifyArg(
         method = "update",
         at = @At(value = "INVOKE",
@@ -40,9 +39,11 @@ public abstract class MixinCameraNearClip {
         index = 0
     )
     private float gulliver$scaleNearPlane(float near) {
+        Entity entity = ((net.minecraft.client.Camera) (Object) this).entity();
         if (entity == null) return near;
         float m = ((IResizeableEntity) entity).getSizeMultiplier();
         if (m == 1.0F) return near;
         return near * m;
     }
 }
+//#endif

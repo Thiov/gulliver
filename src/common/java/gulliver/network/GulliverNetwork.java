@@ -47,6 +47,13 @@ public final class GulliverNetwork {
             new Spec<>(Payloads.ConsumeResizingItem.ID, Payloads.ConsumeResizingItem.class, Payloads.ConsumeResizingItem::read),
             new Spec<>(Payloads.CarryAction.ID, Payloads.CarryAction.class, Payloads.CarryAction::read));
 
+    /** The table entry for a payload (by its record class). */
+    public static Spec<?> specFor(GulliverPayload payload) {
+        for (Spec<?> s : CLIENTBOUND) if (s.type() == payload.getClass()) return s;
+        for (Spec<?> s : SERVERBOUND) if (s.type() == payload.getClass()) return s;
+        throw new IllegalArgumentException("Unregistered Gulliver payload " + payload.getClass());
+    }
+
     /** Installed by the client entrypoint; runs on the client thread. */
     private static Consumer<GulliverPayload> clientHandler = p -> {};
 

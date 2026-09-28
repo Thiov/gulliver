@@ -27,4 +27,11 @@ public interface Platform {
 
     /** Client -> server. Only called on the client. */
     void sendToServer(GulliverPayload payload);
+
+    //#if MC < 1.20.5
+    //$$ /** {block reach, entity reach} attributes where the loader has them (Forge), else null. */
+    //$$ default net.minecraft.world.entity.ai.attributes.Attribute[] reachAttributes() {
+    //$$     return null;
+    //$$ }
+    //#endif
 }

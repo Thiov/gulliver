@@ -68,11 +68,11 @@ public final class GulliverEnvoy {
 
     public static boolean isArthropod(Entity entity) {
         if (!isMonster(entity)) return false;
-        try {
-            return entity.getType().builtInRegistryHolder().is(EntityTypeTags.ARTHROPOD);
-        } catch (Exception e) {
-            return false;
-        }
+        //#if MC >= 1.20.5
+        return entity.getType().builtInRegistryHolder().is(EntityTypeTags.ARTHROPOD);
+        //#else
+        //$$ return entity instanceof LivingEntity l && l.getMobType() == net.minecraft.world.entity.MobType.ARTHROPOD;
+        //#endif
     }
 
     public static boolean isDragonEntity(Entity entity) {
@@ -417,11 +417,11 @@ public final class GulliverEnvoy {
      */
     public static boolean isItemPointy(ItemStack stack) {
         if (stack == null || stack.isEmpty()) return false;
-        if (stack.typeHolder().is(ItemTags.SWORDS)) return true;
-        if (stack.typeHolder().is(ItemTags.PICKAXES)) return true;
-        if (stack.typeHolder().is(ItemTags.AXES)) return true;
-        if (stack.typeHolder().is(ItemTags.HOES)) return true;
-        if (stack.typeHolder().is(ItemTags.SHOVELS)) return true;
+        if (stack.is(ItemTags.SWORDS)) return true;
+        if (stack.is(ItemTags.PICKAXES)) return true;
+        if (stack.is(ItemTags.AXES)) return true;
+        if (stack.is(ItemTags.HOES)) return true;
+        if (stack.is(ItemTags.SHOVELS)) return true;
         if (stack.is(Items.SHEARS)) return true;
         if (stack.is(Items.SNOWBALL)) return true;
         if (stack.is(Items.CACTUS)) return true;

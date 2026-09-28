@@ -34,13 +34,13 @@ import org.spongepowered.asm.mixin.injection.ModifyConstant;
 @Mixin(Camera.class)
 public abstract class MixinCamera {
 
-    @Shadow @Final public Entity entity;
 
     @ModifyArg(method = "alignWithEntity",
                at = @At(value = "INVOKE",
                         target = "Lnet/minecraft/client/Camera;getMaxZoom(F)F"),
                index = 0)
     private float gulliver$scaleZoomInputDist(float maxDist) {
+        Entity entity = ((Camera) (Object) this).entity();
         if (entity == null) return maxDist;
         float m = ((IResizeableEntity) entity).getSizeMultiplier();
         if (m == 1.0F) return maxDist;
@@ -50,6 +50,7 @@ public abstract class MixinCamera {
     @ModifyConstant(method = "getMaxZoom",
                     constant = @Constant(floatValue = 0.1F))
     private float gulliver$scaleProbeBias(float c) {
+        Entity entity = ((Camera) (Object) this).entity();
         if (entity == null) return c;
         float m = ((IResizeableEntity) entity).getSizeMultiplier();
         if (m == 1.0F) return c;
@@ -86,6 +87,7 @@ public abstract class MixinCamera {
     //$$ @ModifyConstant(method = "alignWithEntity", constant = @Constant(floatValue = 0.3F))
     //#endif
     private float gulliver$scaleSleepCameraY(float c) {
+        Entity entity = ((Camera) (Object) this).entity();
         if (entity == null) return c;
         if (!(entity instanceof net.minecraft.world.entity.LivingEntity le)) return c;
         if (!le.isSleeping()) return c;

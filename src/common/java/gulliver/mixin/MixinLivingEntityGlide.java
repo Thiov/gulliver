@@ -52,7 +52,7 @@ public abstract class MixinLivingEntityGlide {
             if (y < minY) y = minY;
             self.setDeltaMovement(dm.x, y, dm.z);
             // Reset fall distance — gliders don't take fall damage on landing.
-            self.fallDistance = 0.0;
+            self.fallDistance = 0.0F;
         }
     }
 }

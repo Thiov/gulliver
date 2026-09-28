@@ -117,6 +117,14 @@ for root, _, files in os.walk(os.path.join(src, "gulliver", "mixin")):
                 if (name, "(" + desc) not in oi[0]:
                     # the method may be inherited; accept if any class in chain has it
                     problems.append(f"{f}: INVOKE {oc}.{name}({desc} not declared (may be inherited)")
+            for sh in re.findall(r'@Shadow[^;{]*?\s([A-Za-z_$][\w$]*)\s*\(', live):
+                checked += 1
+                if not any(n == sh for n, _ in methods):
+                    problems.append(f"{f}: @Shadow method {cls}.{sh} missing")
+            for sh in re.findall(r'@Shadow(?:\s+@\w+)*\s+(?:(?:public|protected|private|final|static)\s+)*[\w.<>\[\]]+\s+([A-Za-z_$][\w$]*)\s*;', live):
+                checked += 1
+                if sh not in fields:
+                    problems.append(f"{f}: @Shadow field {cls}.{sh} missing")
             for acc in re.findall(r'@Accessor\("([^"]+)"\)', live):
                 checked += 1
                 if acc not in fields:

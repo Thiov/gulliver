@@ -23,7 +23,7 @@ public final class ForgePlatform implements Platform {
 
     @Override
     public boolean isModLoaded(String modId) {
-        //#if MC >= 1.21.6
+        //#if MC >= 26.1
         return ModList.isLoaded(modId);
         //#else
         //$$ return ModList.get().isLoaded(modId);

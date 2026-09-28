@@ -1,0 +1,54 @@
+plugins {
+    id 'java'
+    id 'net.minecraftforge.gradle' version '[7.0.17,8)'
+}
+
+version = "${project.mod_version}+forge-${project.minecraft_version}"
+group = 'gulliver'
+
+base {
+    archivesName = 'gulliver'
+}
+
+java.toolchain.languageVersion = JavaLanguageVersion.of(21)
+
+apply from: '../../../gradle/gulliver.gradle'
+
+minecraft {
+    mappings channel: 'official', version: project.minecraft_version
+
+    runs {
+        configureEach {
+            workingDir = layout.projectDirectory.dir('run')
+            // Mixin configs come from the jar manifest in production; dev runs need them spelled out.
+            args '--mixin.config=gulliver.mixins.json'
+            if (project.hasProperty('selftest')) systemProperty 'gulliver.selftest', 'true'
+        }
+        register('client') {
+            // GLFW on macOS must own the first thread.
+            if (System.getProperty('os.name').toLowerCase().contains('mac')) jvmArgs '-XstartOnFirstThread'
+            if (project.hasProperty('selftest')) args '--quickPlaySingleplayer', 'selftest'
+        }
+        register('server') {
+            args '--nogui'
+        }
+    }
+}
+
+repositories {
+    minecraft.mavenizer(it)
+    maven fg.forgeMaven
+    maven fg.minecraftLibsMaven
+    mavenCentral()
+}
+
+dependencies {
+    implementation minecraft.dependency("net.minecraftforge:forge:${project.minecraft_version}-${project.forge_version}")
+    annotationProcessor 'net.minecraftforge:eventbus-validator:7.0.1'
+}
+
+jar {
+    manifest {
+        attributes('MixinConfigs': 'gulliver.mixins.json')
+    }
+}

@@ -53,7 +53,9 @@ public abstract class MixinLivingEntityRenderer {
             g.gulliver$setSizeMultiplier(sized.getSizeMultiplier());
             g.gulliver$setHandPassenger(((gulliver.access.IGulliverShoulderInternal) entity)
                     .gulliver$getHandEntity() != null);
-            g.gulliver$setPropArm(sized.doesUmbrella()
+            // Which arm holds the active prop (lily-pad raft/umbrella or
+            // glider paper) — either hand works.
+            g.gulliver$setPropArm(sized.isRafting() || sized.doesUmbrella()
                     ? GulliverEnvoy.armHolding(entity, GulliverEnvoy::isItemUmbrella)
                     : sized.isGliding() ? GulliverEnvoy.armHolding(entity, GulliverEnvoy::isGlideableItem) : null);
         }

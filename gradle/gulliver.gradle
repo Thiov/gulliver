@@ -197,21 +197,23 @@ class GulliverPre {
                     case 'if':
                         boolean parent = active
                         boolean v = parent && cond.eval(expr)
-                        stack.push([parent, v, v])
+                        stack.push([parent, v, v, false])
                         active = v
                         break
                     case 'elif':
                         if (stack.isEmpty()) throw new GradleException("$fileName:${idx + 1}: #elif without #if")
+                        if (stack.first()[3]) throw new GradleException("$fileName:${idx + 1}: #elif after #else")
                         def top = stack.pop()
                         boolean v = top[0] && !top[1] && cond.eval(expr)
-                        stack.push([top[0], top[1] || v, v])
+                        stack.push([top[0], top[1] || v, v, false])
                         active = v
                         break
                     case 'else':
                         if (stack.isEmpty()) throw new GradleException("$fileName:${idx + 1}: #else without #if")
+                        if (stack.first()[3]) throw new GradleException("$fileName:${idx + 1}: second #else")
                         def top = stack.pop()
                         boolean v = top[0] && !top[1]
-                        stack.push([top[0], true, v])
+                        stack.push([top[0], true, v, true])
                         active = v
                         break
                     case 'endif':

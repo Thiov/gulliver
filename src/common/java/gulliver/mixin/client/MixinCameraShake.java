@@ -30,9 +30,19 @@ public abstract class MixinCameraShake {
     @Shadow public abstract float xRot();
     @Shadow public abstract float yRot();
 
+    //#if MC >= 26.1
     @Inject(method = "update", at = @At("TAIL"))
     private void gulliver$applyTremor(DeltaTracker delta, CallbackInfo ci) {
         float pt = delta.getGameTimeDeltaPartialTick(false);
+    //#elif MC >= 1.21.11
+    //$$ @Inject(method = "setup", at = @At("TAIL"))
+    //$$ private void gulliver$applyTremor(net.minecraft.world.level.Level level, net.minecraft.world.entity.Entity entity,
+    //$$                                   boolean detached, boolean mirrored, float pt, CallbackInfo ci) {
+    //#else
+    //$$ @Inject(method = "setup", at = @At("TAIL"))
+    //$$ private void gulliver$applyTremor(net.minecraft.world.level.BlockGetter level, net.minecraft.world.entity.Entity entity,
+    //$$                                   boolean detached, boolean mirrored, float pt, CallbackInfo ci) {
+    //#endif
         float s = TremorHandler.shakeAmount(pt);
         if (s <= 0.0F) return;
         float t = TremorHandler.time(pt);
