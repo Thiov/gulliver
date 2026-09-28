@@ -47,7 +47,11 @@ public abstract class MixinEntitySound {
 
     @ModifyArg(method = "playSound(Lnet/minecraft/sounds/SoundEvent;FF)V",
                at = @At(value = "INVOKE",
+                        //#if MC >= 1.21
                         target = "Lnet/minecraft/world/level/Level;playSound(Lnet/minecraft/world/entity/Entity;DDDLnet/minecraft/sounds/SoundEvent;Lnet/minecraft/sounds/SoundSource;FF)V"),
+                        //#else
+                        //$$ target = "Lnet/minecraft/world/level/Level;playSound(Lnet/minecraft/world/entity/player/Player;DDDLnet/minecraft/sounds/SoundEvent;Lnet/minecraft/sounds/SoundSource;FF)V"),
+                        //#endif
                index = 6)
     private float gulliver$scaleVolume(float vol) {
         IResizeableEntity sized = (IResizeableEntity) this;

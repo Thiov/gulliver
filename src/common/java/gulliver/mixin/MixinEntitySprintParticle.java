@@ -44,7 +44,7 @@ public abstract class MixinEntitySprintParticle {
 
         if (size < 0.5F) {
             int slots = Mth.ceil(1.0F / size);
-            if (slots > 1 && self.getRandom().nextInt(slots) != 0) {
+            if (slots > 1 && self.level().getRandom().nextInt(slots) != 0) {
                 return;
             }
         }
@@ -54,12 +54,12 @@ public abstract class MixinEntitySprintParticle {
 
         double scaledY = y - 0.1 + 0.1 * size;
         double scaledDy = dy * size;
-        float width = self.getDimensions(self.getPose()).width();
+        float width = self.getBbWidth();
 
         level.addParticle(opts, x, scaledY, z, dx, scaledDy, dz);
         for (int p = 1; p < cnt; p++) {
-            double px = self.getX() + (self.getRandom().nextDouble() - 0.5) * width;
-            double pz = self.getZ() + (self.getRandom().nextDouble() - 0.5) * width;
+            double px = self.getX() + (self.level().getRandom().nextDouble() - 0.5) * width;
+            double pz = self.getZ() + (self.level().getRandom().nextDouble() - 0.5) * width;
             level.addParticle(opts, px, scaledY, pz, dx, scaledDy, dz);
         }
     }

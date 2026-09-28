@@ -28,7 +28,11 @@ import org.spongepowered.asm.mixin.injection.ModifyVariable;
 @Mixin(FoodData.class)
 public abstract class MixinFoodDataEat {
 
+    //#if MC >= 1.21.2
     @ModifyVariable(method = "add", at = @At("HEAD"), argsOnly = true, ordinal = 0)
+    //#else
+    //$$ @ModifyVariable(method = "eat(IF)V", at = @At("HEAD"), argsOnly = true, ordinal = 0)
+    //#endif
     private int gulliver$scaleNutrition(int nutrition) {
         LivingEntity eater = gulliver.common.EatContext.get();
         if (eater == null) return nutrition;
@@ -37,7 +41,11 @@ public abstract class MixinFoodDataEat {
         return Math.max(1, Math.round(nutrition / size));
     }
 
+    //#if MC >= 1.21.2
     @ModifyVariable(method = "add", at = @At("HEAD"), argsOnly = true, ordinal = 0)
+    //#else
+    //$$ @ModifyVariable(method = "eat(IF)V", at = @At("HEAD"), argsOnly = true, ordinal = 0)
+    //#endif
     private float gulliver$scaleSaturation(float saturation) {
         LivingEntity eater = gulliver.common.EatContext.get();
         if (eater == null) return saturation;

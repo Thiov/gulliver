@@ -431,6 +431,23 @@ public final class GulliverEnvoy {
         return false;
     }
 
+    /** Block interaction range, on every version (see SizeAttributes for how it scales). */
+    public static double blockReach(Player player) {
+        //#if MC >= 1.20.5
+        return player.blockInteractionRange();
+        //#else
+        //$$ return gulliver.platform.Services.platform().blockReach(player);
+        //#endif
+    }
+
+    public static double entityReach(Player player) {
+        //#if MC >= 1.20.5
+        return player.entityInteractionRange();
+        //#else
+        //$$ return gulliver.platform.Services.platform().entityReach(player);
+        //#endif
+    }
+
     public static boolean holdingPointyItem(LivingEntity living) {
         return isItemPointy(living.getMainHandItem()) || isItemPointy(living.getOffhandItem());
     }

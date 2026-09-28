@@ -33,5 +33,16 @@ public interface Platform {
     //$$ default net.minecraft.world.entity.ai.attributes.Attribute[] reachAttributes() {
     //$$     return null;
     //$$ }
+    //$$
+    //$$ /** Survival block reach (4.5, 5 in creative before 1.20.5) scaled by size. */
+    //$$ default double blockReach(net.minecraft.world.entity.player.Player player) {
+    //$$     return (player.isCreative() ? 5.0D : 4.5D) * gulliver.common.SizeAttributes.reachFactor(player,
+    //$$             ((gulliver.api.IResizeableEntity) player).getSizeMultiplier());
+    //$$ }
+    //$$
+    //$$ default double entityReach(net.minecraft.world.entity.player.Player player) {
+    //$$     return (player.isCreative() ? 5.0D : 3.0D) * gulliver.common.SizeAttributes.reachFactor(player,
+    //$$             ((gulliver.api.IResizeableEntity) player).getSizeMultiplier());
+    //$$ }
     //#endif
 }

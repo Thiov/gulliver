@@ -31,6 +31,7 @@ import org.spongepowered.asm.mixin.injection.Redirect;
 @Mixin(BowItem.class)
 public abstract class MixinBowItem {
 
+    //#if MC >= 1.20.5
     @Redirect(method = "releaseUsing",
               at = @At(value = "INVOKE",
                        target = "Lnet/minecraft/world/item/BowItem;getUseDuration(Lnet/minecraft/world/item/ItemStack;Lnet/minecraft/world/entity/LivingEntity;)I"))
@@ -46,4 +47,16 @@ public abstract class MixinBowItem {
         int held = duration - remaining;
         return remaining + Math.round(held * size);
     }
+    //#else
+    //$$ @Redirect(method = "releaseUsing",
+    //$$           at = @At(value = "INVOKE",
+    //$$                    target = "Lnet/minecraft/world/item/BowItem;getUseDuration(Lnet/minecraft/world/item/ItemStack;)I"))
+    //$$ private int gulliver$scaleDrawCharge(BowItem item, ItemStack stack, ItemStack stack2, Level level,
+    //$$                                   LivingEntity user, int remaining) {
+    //$$     int duration = item.getUseDuration(stack);
+    //$$     float size = ((IResizeableEntity) user).getSizeMultiplier();
+    //$$     if (size == 1.0F) return duration;
+    //$$     return remaining + Math.round((duration - remaining) * size);
+    //$$ }
+    //#endif
 }

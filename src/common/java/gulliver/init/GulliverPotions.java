@@ -49,6 +49,20 @@ public final class GulliverPotions {
         return potion;
     }
 
+    //#if MC < 1.20.5
+    //$$ /** Before 1.20.5: call once the potions are registered (brewing has no per-server builder). */
+    //$$ public static void registerLegacyMixes() {
+    //$$     if (TINY == null) return;
+    //$$     net.minecraft.world.item.alchemy.Potion awkward = net.minecraft.world.item.alchemy.Potions.AWKWARD;
+    //$$     gulliver.mixin.PotionBrewingInvoker.gulliver$addMix(awkward, net.minecraft.world.item.Items.RED_MUSHROOM, TINY);
+    //$$     gulliver.mixin.PotionBrewingInvoker.gulliver$addMix(awkward, net.minecraft.world.item.Items.BROWN_MUSHROOM, HUGE);
+    //$$     gulliver.mixin.PotionBrewingInvoker.gulliver$addMix(TINY, net.minecraft.world.item.Items.REDSTONE, LONG_TINY);
+    //$$     gulliver.mixin.PotionBrewingInvoker.gulliver$addMix(TINY, net.minecraft.world.item.Items.GLOWSTONE_DUST, STRONG_TINY);
+    //$$     gulliver.mixin.PotionBrewingInvoker.gulliver$addMix(HUGE, net.minecraft.world.item.Items.REDSTONE, LONG_HUGE);
+    //$$     gulliver.mixin.PotionBrewingInvoker.gulliver$addMix(HUGE, net.minecraft.world.item.Items.GLOWSTONE_DUST, STRONG_HUGE);
+    //$$ }
+    //#endif
+
     //#if MC >= 1.20.5
     public static Holder<Potion> holder(Potion potion) {
         return BuiltInRegistries.POTION.wrapAsHolder(potion);

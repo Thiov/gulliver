@@ -1,3 +1,4 @@
+//#if MC >= 1.21.2
 package gulliver.client;
 
 import com.mojang.blaze3d.vertex.PoseStack;
@@ -35,3 +36,4 @@ public final class NameTagScale {
         if (of(state) != 1.0F) pose.popPose();
     }
 }
+//#endif

@@ -1,3 +1,4 @@
+//#if MC >= 1.21.2
 package gulliver.mixin;
 
 import gulliver.common.EatContext;
@@ -30,3 +31,4 @@ public abstract class MixinConsumableEat {
         EatContext.clear();
     }
 }
+//#endif

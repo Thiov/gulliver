@@ -1,3 +1,4 @@
+//#if MC >= 1.20.5
 package gulliver.mixin;
 
 import gulliver.init.GulliverPotions;
@@ -30,3 +31,4 @@ public abstract class MixinPotionBrewing {
         builder.addMix(GulliverPotions.holder(GulliverPotions.HUGE), Items.GLOWSTONE_DUST, GulliverPotions.holder(GulliverPotions.STRONG_HUGE));
     }
 }
+//#endif

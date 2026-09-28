@@ -2,7 +2,9 @@ package gulliver.mixin.client;
 
 import gulliver.client.TremorHandler;
 import net.minecraft.client.Camera;
+//#if MC >= 26.1
 import net.minecraft.client.DeltaTracker;
+//#endif
 import net.minecraft.util.Mth;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;

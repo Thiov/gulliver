@@ -51,7 +51,13 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 public abstract class MixinLivingEntityFallDamage {
 
     @Inject(method = "calculateFallDamage", at = @At("HEAD"), cancellable = true)
-    private void gulliver$scaleFallDamage(double fallDistance, float multiplier,
+    private void gulliver$scaleFallDamage(
+                                           //#if MC >= 1.21.5
+                                           double fallDistance,
+                                           //#else
+                                           //$$ float fallDistance,
+                                           //#endif
+                                           float multiplier,
                                            CallbackInfoReturnable<Integer> cir) {
         LivingEntity self = (LivingEntity) (Object) this;
         IResizeableEntity sized = (IResizeableEntity) self;
@@ -93,7 +99,11 @@ public abstract class MixinLivingEntityFallDamage {
             cir.setReturnValue(0);
             return;
         }
+        //#if MC >= 1.20.5
         double fallMult = self.getAttributeValue(Attributes.FALL_DAMAGE_MULTIPLIER);
+        //#else
+        //$$ double fallMult = 1.0D;
+        //#endif
         cir.setReturnValue(Mth.floor(damageBlocks * multiplier * fallMult));
     }
 }

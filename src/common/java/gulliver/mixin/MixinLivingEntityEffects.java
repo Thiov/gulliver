@@ -18,8 +18,13 @@ import java.util.Collection;
 @Mixin(LivingEntity.class)
 public abstract class MixinLivingEntityEffects {
 
+    //#if MC >= 1.20.5
     @Inject(method = "onEffectsRemoved", at = @At("RETURN"))
     private void gulliver$recomputeOnRemove(Collection<MobEffectInstance> effects, CallbackInfo ci) {
+    //#else
+    //$$ @Inject(method = "onEffectRemoved", at = @At("RETURN"))
+    //$$ private void gulliver$recomputeOnRemove(MobEffectInstance effect, CallbackInfo ci) {
+    //#endif
         LivingEntity self = (LivingEntity) (Object) this;
         if (self.level().isClientSide()) return;
         ResizingEffect.refreshPotionMultiplier(self, null);

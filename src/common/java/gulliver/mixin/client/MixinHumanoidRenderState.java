@@ -1,3 +1,4 @@
+//#if MC >= 1.21.2
 package gulliver.mixin.client;
 
 import gulliver.access.IGlideRenderState;
@@ -34,3 +35,4 @@ public abstract class MixinHumanoidRenderState implements IGlideRenderState {
     @Override @Unique public net.minecraft.world.entity.HumanoidArm gulliver$getPropArm() { return gulliver$propArm; }
     @Override @Unique public void gulliver$setPropArm(net.minecraft.world.entity.HumanoidArm arm) { gulliver$propArm = arm; }
 }
+//#endif

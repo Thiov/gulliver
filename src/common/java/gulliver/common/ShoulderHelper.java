@@ -200,7 +200,7 @@ public final class ShoulderHelper {
             return toggleHandShoulder(player);
         }
         if (!handFree(player)) return false;
-        double reach = player.entityInteractionRange();
+        double reach = GulliverEnvoy.entityReach(player);
         Vec3 eye = player.getEyePosition();
         Vec3 look = player.getLookAngle();
         Vec3 end = eye.add(look.x * reach, look.y * reach, look.z * reach);

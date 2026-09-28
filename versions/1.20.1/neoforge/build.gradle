@@ -1,0 +1,65 @@
+plugins {
+    id 'java-library'
+    id 'net.neoforged.moddev.legacyforge' version '2.0.147'
+}
+
+version = "${project.mod_version}+${project.jar_loader_name}-${project.minecraft_version}"
+group = 'gulliver'
+
+base {
+    archivesName = 'gulliver'
+}
+
+java.toolchain.languageVersion = JavaLanguageVersion.of(17)
+
+apply from: '../../../gradle/gulliver.gradle'
+
+repositories {
+    mavenCentral()
+}
+
+legacyForge {
+    enable {
+        if (project.hasProperty('neo_forge_version')) {
+            neoForgeVersion = project.neo_forge_version
+        } else {
+            forgeVersion = project.minecraft_version + '-' + project.forge_version
+        }
+    }
+
+    runs {
+        client {
+            client()
+            if (project.hasProperty('selftest')) programArguments.addAll('--quickPlaySingleplayer', 'selftest')
+        }
+        server {
+            server()
+            programArgument '--nogui'
+        }
+        configureEach {
+            if (project.hasProperty('selftest')) systemProperty 'gulliver.selftest', 'true'
+            logLevel = org.slf4j.event.Level.INFO
+        }
+    }
+
+    mods {
+        gulliver {
+            sourceSet(sourceSets.main)
+        }
+    }
+}
+
+mixin {
+    add sourceSets.main, 'gulliver.refmap.json'
+    config 'gulliver.mixins.json'
+}
+
+dependencies {
+    annotationProcessor 'org.spongepowered:mixin:0.8.5:processor'
+}
+
+jar {
+    manifest {
+        attributes('MixinConfigs': 'gulliver.mixins.json')
+    }
+}

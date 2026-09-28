@@ -33,7 +33,11 @@ public abstract class MixinLivingEntityWalkAnim {
 
     @ModifyArg(method = "updateWalkAnimation",
                at = @At(value = "INVOKE",
+                        //#if MC >= 1.20.5
                         target = "Lnet/minecraft/world/entity/WalkAnimationState;update(FFF)V"),
+                        //#else
+                        //$$ target = "Lnet/minecraft/world/entity/WalkAnimationState;update(FF)V"),
+                        //#endif
                index = 0)
     private float gulliver$normalizeSpeed(float speed) {
         IResizeableEntity sized = (IResizeableEntity) this;

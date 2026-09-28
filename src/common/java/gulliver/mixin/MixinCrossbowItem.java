@@ -1,3 +1,4 @@
+//#if MC >= 1.21
 package gulliver.mixin;
 
 import gulliver.api.IResizeableEntity;
@@ -35,3 +36,4 @@ public abstract class MixinCrossbowItem {
         cir.setReturnValue(Math.max(1, Math.round(cir.getReturnValueI() / size)));
     }
 }
+//#endif

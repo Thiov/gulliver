@@ -39,9 +39,15 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 @Mixin(LivingEntity.class)
 public abstract class MixinLivingEntityDamage {
 
+    //#if MC >= 1.21.2
     @Inject(method = "hurtServer", at = @At("HEAD"), cancellable = true)
     private void gulliver$missOrImmune(ServerLevel level, DamageSource source, float amount,
                                          CallbackInfoReturnable<Boolean> cir) {
+    //#else
+    //$$ @Inject(method = "hurt", at = @At("HEAD"), cancellable = true)
+    //$$ private void gulliver$missOrImmune(DamageSource source, float amount, CallbackInfoReturnable<Boolean> cir) {
+    //$$     if (((LivingEntity) (Object) this).level().isClientSide()) return;
+    //#endif
         LivingEntity self = (LivingEntity) (Object) this;
         Entity attacker = source.getEntity();
         AttackContext.push(attacker);
@@ -67,8 +73,14 @@ public abstract class MixinLivingEntityDamage {
         }
     }
 
+    //#if MC >= 1.21.2
     @ModifyVariable(method = "hurtServer", at = @At("HEAD"), argsOnly = true, ordinal = 0)
     private float gulliver$scaleAmount(float amount, ServerLevel level, DamageSource source) {
+    //#else
+    //$$ @ModifyVariable(method = "hurt", at = @At("HEAD"), argsOnly = true, ordinal = 0)
+    //$$ private float gulliver$scaleAmount(float amount, DamageSource source) {
+    //$$     if (((LivingEntity) (Object) this).level().isClientSide()) return amount;
+    //#endif
         LivingEntity self = (LivingEntity) (Object) this;
         Entity attacker = source.getEntity();
         if (!(attacker instanceof LivingEntity attackerLiv) || attacker == self) return amount;
@@ -89,11 +101,18 @@ public abstract class MixinLivingEntityDamage {
         return scaled;
     }
 
+    //#if MC >= 1.21.2
     @Inject(method = "hurtServer", at = @At("RETURN"))
     private void gulliver$popAttacker(ServerLevel level, DamageSource source, float amount,
                                        CallbackInfoReturnable<Boolean> cir) {
         AttackContext.pop();
     }
+    //#else
+    //$$ @Inject(method = "hurt", at = @At("RETURN"))
+    //$$ private void gulliver$popAttacker(DamageSource source, float amount, CallbackInfoReturnable<Boolean> cir) {
+    //$$     if (!((LivingEntity) (Object) this).level().isClientSide()) AttackContext.pop();
+    //$$ }
+    //#endif
 
     private static boolean gulliver$isMelee(DamageSource source, Entity attacker, LivingEntity self) {
         return attacker instanceof LivingEntity

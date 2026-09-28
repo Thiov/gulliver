@@ -3,7 +3,9 @@ package gulliver.mixin;
 import gulliver.api.IResizeableEntity;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.Entity;
+//#if MC >= 1.21.5
 import net.minecraft.world.entity.InsideBlockEffectApplier;
+//#endif
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.CactusBlock;
@@ -29,8 +31,11 @@ public abstract class MixinCactusBlock {
 
     @Inject(method = "entityInside", at = @At("HEAD"), cancellable = true)
     private void gulliver$skipDamageForTiny(BlockState state, Level level, BlockPos pos,
-                                             Entity entity, InsideBlockEffectApplier applier,
-                                             boolean inside, CallbackInfo ci) {
+                                             Entity entity,
+                                             //#if MC >= 1.21.5
+                                             InsideBlockEffectApplier applier, boolean inside,
+                                             //#endif
+                                             CallbackInfo ci) {
         if (!(entity instanceof LivingEntity)) return;
         if (((IResizeableEntity) entity).isTiny()) {
             ci.cancel();

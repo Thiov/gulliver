@@ -4,7 +4,9 @@ import gulliver.api.IResizeableEntity;
 import gulliver.common.GulliverEnvoy;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.Entity;
+//#if MC >= 1.21.5
 import net.minecraft.world.entity.InsideBlockEffectApplier;
+//#endif
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.WebBlock;
 import net.minecraft.world.level.block.state.BlockState;
@@ -23,8 +25,11 @@ public abstract class MixinWebBlock {
 
     @Inject(method = "entityInside", at = @At("HEAD"), cancellable = true)
     private void gulliver$tinySkipsAndHugeBreaks(BlockState state, Level level, BlockPos pos,
-                                                  Entity entity, InsideBlockEffectApplier applier,
-                                                  boolean inside, CallbackInfo ci) {
+                                                  Entity entity,
+                                             //#if MC >= 1.21.5
+                                             InsideBlockEffectApplier applier, boolean inside,
+                                             //#endif
+                                             CallbackInfo ci) {
         IResizeableEntity sized = (IResizeableEntity) entity;
         // Tinies slip past silk strands — skip the slow + cancel vanilla
         // entityInside entirely.

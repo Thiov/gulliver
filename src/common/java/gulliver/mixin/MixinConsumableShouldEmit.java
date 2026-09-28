@@ -1,3 +1,4 @@
+//#if MC >= 1.21.2
 package gulliver.mixin;
 
 import gulliver.api.IResizeableEntity;
@@ -50,3 +51,4 @@ public abstract class MixinConsumableShouldEmit {
         cir.setReturnValue(fire);
     }
 }
+//#endif

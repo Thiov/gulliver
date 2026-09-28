@@ -51,11 +51,19 @@ public abstract class MixinTntBlock {
     //$$ }
     //#endif
 
+    //#if MC >= 1.21.2
     @Inject(method = "useItemOn", at = @At("HEAD"), cancellable = true)
     private void gulliver$hugeBareHandPrime(ItemStack stack, BlockState state, Level level,
                                              BlockPos pos, Player player, InteractionHand hand,
                                              BlockHitResult hit,
                                              CallbackInfoReturnable<InteractionResult> cir) {
+    //#else
+    //$$ @Inject(method = "use", at = @At("HEAD"), cancellable = true)
+    //$$ private void gulliver$hugeBareHandPrime(BlockState state, Level level, BlockPos pos, Player player,
+    //$$                                          InteractionHand hand, BlockHitResult hit,
+    //$$                                          CallbackInfoReturnable<InteractionResult> cir) {
+    //$$     ItemStack stack = player.getItemInHand(hand);
+    //#endif
         if (!((IResizeableEntity) player).isHuge()) return;
         // Don't override the vanilla flint/steel / fire charge path.
         if (stack.is(Items.FLINT_AND_STEEL) || stack.is(Items.FIRE_CHARGE)) return;

@@ -47,7 +47,13 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 public abstract class MixinLivingEntityHugeFall {
 
     @Inject(method = "causeFallDamage", at = @At("HEAD"))
-    private void gulliver$crushOnLanding(double fallDistance, float multiplier,
+    private void gulliver$crushOnLanding(
+                                           //#if MC >= 1.21.5
+                                           double fallDistance,
+                                           //#else
+                                           //$$ float fallDistance,
+                                           //#endif
+                                           float multiplier,
                                           net.minecraft.world.damagesource.DamageSource source,
                                           CallbackInfoReturnable<Boolean> cir) {
         LivingEntity self = (LivingEntity) (Object) this;
@@ -121,7 +127,12 @@ public abstract class MixinLivingEntityHugeFall {
         // sizeMultiplierRoot volume scaling.
         float volume = Math.min(3.5F, 0.8F + size * 0.35F);
         float pitch = Math.max(0.4F, 1.0F / sized.getSizeMultiplierRoot());
-        sl.playSound(null, x, y, z, SoundEvents.MACE_SMASH_GROUND_HEAVY,
+        sl.playSound(null, x, y, z,
+                //#if MC >= 1.21
+                SoundEvents.MACE_SMASH_GROUND_HEAVY,
+                //#else
+                //$$ SoundEvents.GENERIC_EXPLODE,
+                //#endif
                 self.getSoundSource(), volume, pitch);
 
         // Screen quake for much-smaller viewers nearby (client-side

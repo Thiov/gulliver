@@ -1,3 +1,4 @@
+//#if MC >= 1.21.2
 package gulliver.mixin.client;
 
 import gulliver.access.IGlideRenderState;
@@ -81,3 +82,4 @@ public abstract class MixinPlayerModelPose {
         }
     }
 }
+//#endif

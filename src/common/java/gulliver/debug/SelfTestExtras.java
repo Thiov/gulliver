@@ -52,7 +52,11 @@ final class SelfTestExtras {
             pig.setHealth(pig.getMaxHealth());
             pig.invulnerableTime = 0;
             float hp = pig.getHealth();
+            //#if MC >= 1.21.2
             pig.hurtServer(level, level.damageSources().mobAttack(zombie), 2.0F);
+            //#else
+            //$$ pig.hurt(level.damageSources().mobAttack(zombie), 2.0F);
+            //#endif
             float lost = hp - pig.getHealth();
             check(failures, Math.abs(lost - 4.0F) < 0.01F, "0.25 target takes 2x melee damage once (lost " + lost + ")");
 

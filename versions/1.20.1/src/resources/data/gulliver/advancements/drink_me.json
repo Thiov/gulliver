@@ -1,0 +1,96 @@
+{
+  "display": {
+    "icon": {
+      "item": "minecraft:potion",
+      "nbt": "{Potion:\"gulliver:tiny\"}"
+    },
+    "title": {
+      "translate": "advancements.gulliver.drink_me.title"
+    },
+    "description": {
+      "translate": "advancements.gulliver.drink_me.description"
+    },
+    "frame": "task",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "criteria": {
+    "drink_tiny": {
+      "trigger": "minecraft:consume_item",
+      "conditions": {
+        "item": {
+          "items": [
+            "minecraft:potion"
+          ],
+          "potion": "gulliver:tiny"
+        }
+      }
+    },
+    "drink_long_tiny": {
+      "trigger": "minecraft:consume_item",
+      "conditions": {
+        "item": {
+          "items": [
+            "minecraft:potion"
+          ],
+          "potion": "gulliver:long_tiny"
+        }
+      }
+    },
+    "drink_strong_tiny": {
+      "trigger": "minecraft:consume_item",
+      "conditions": {
+        "item": {
+          "items": [
+            "minecraft:potion"
+          ],
+          "potion": "gulliver:strong_tiny"
+        }
+      }
+    },
+    "drink_huge": {
+      "trigger": "minecraft:consume_item",
+      "conditions": {
+        "item": {
+          "items": [
+            "minecraft:potion"
+          ],
+          "potion": "gulliver:huge"
+        }
+      }
+    },
+    "drink_long_huge": {
+      "trigger": "minecraft:consume_item",
+      "conditions": {
+        "item": {
+          "items": [
+            "minecraft:potion"
+          ],
+          "potion": "gulliver:long_huge"
+        }
+      }
+    },
+    "drink_strong_huge": {
+      "trigger": "minecraft:consume_item",
+      "conditions": {
+        "item": {
+          "items": [
+            "minecraft:potion"
+          ],
+          "potion": "gulliver:strong_huge"
+        }
+      }
+    }
+  },
+  "requirements": [
+    [
+      "drink_tiny",
+      "drink_long_tiny",
+      "drink_strong_tiny",
+      "drink_huge",
+      "drink_long_huge",
+      "drink_strong_huge"
+    ]
+  ]
+}

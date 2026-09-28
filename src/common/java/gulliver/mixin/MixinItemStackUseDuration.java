@@ -40,17 +40,27 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 @Mixin(ItemStack.class)
 public abstract class MixinItemStackUseDuration {
 
+    //#if MC >= 1.20.5
     @Inject(method = "getUseDuration", at = @At("RETURN"), cancellable = true)
     private void gulliver$scaleByEntitySize(LivingEntity entity,
                                               CallbackInfoReturnable<Integer> cir) {
         int base = cir.getReturnValueI();
         if (base <= 0) return;
         ItemStack self = (ItemStack) (Object) this;
+        //#if MC >= 1.21.2
         if (!self.has(net.minecraft.core.component.DataComponents.CONSUMABLE)) return;
+        //#else
+        //$$ if (self.getUseAnimation() != net.minecraft.world.item.UseAnim.EAT
+        //$$         && self.getUseAnimation() != net.minecraft.world.item.UseAnim.DRINK) return;
+        //#endif
         float size = ((IResizeableEntity) entity).getSizeMultiplier();
         if (size == 1.0F) return;
         cir.setReturnValue(Math.max(1, Math.round(base / size)));
     }
+    //#else
+    //$$ // 1.20.1: ItemStack.getUseDuration() has no entity; the eater is found
+    //$$ // through LivingEntity.startUsingItem (MixinLivingEntityUseDurationLegacy).
+    //#endif
 
     @Inject(method = "onUseTick", at = @At("HEAD"))
     private void gulliver$captureEater(Level level, LivingEntity entity, int remaining,

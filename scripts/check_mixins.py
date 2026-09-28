@@ -55,6 +55,11 @@ def members(fqcn):
 
 
 def resolve(simple, imports, pkg):
+    if "." in simple and simple[0].isupper():
+        # Outer.Inner through an import of Outer
+        outer, inner = simple.split(".", 1)
+        base = resolve(outer, imports, pkg)
+        return base + "$" + inner.replace(".", "$") if base else None
     if "." in simple:
         return simple
     for imp in imports:

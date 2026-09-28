@@ -69,7 +69,7 @@ public final class GiantAoe {
         PUNCH_FACE.remove();
         BROKEN_STATE.set(level.getBlockState(pos));
         if (((IResizeableEntity) player).isHuge()) {
-            double reach = player.blockInteractionRange() + 1.0D;
+            double reach = GulliverEnvoy.blockReach(player) + 1.0D;
             if (player.pick(reach, 1.0F, false)
                     instanceof net.minecraft.world.phys.BlockHitResult bhr
                     && bhr.getBlockPos().equals(pos)) {
@@ -105,7 +105,14 @@ public final class GiantAoe {
         // spreads vertically — regardless of distance or view angle.
         // Look-axis fallback only if the raytrace missed (e.g. the
         // block broke through a gap the ray can't thread).
-        if (face == null) face = Direction.getApproximateNearest(player.getLookAngle());
+        if (face == null) {
+            net.minecraft.world.phys.Vec3 look = player.getLookAngle();
+            //#if MC >= 1.21.2
+            face = Direction.getApproximateNearest(look);
+            //#else
+            //$$ face = Direction.getNearest(look.x, look.y, look.z);
+            //#endif
+        }
         Direction.Axis axis = face.getAxis();
 
         float centerHardness = Math.max(0.0F, state.getDestroySpeed(level, pos));

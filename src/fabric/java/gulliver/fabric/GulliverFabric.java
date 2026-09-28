@@ -36,6 +36,9 @@ public final class GulliverFabric implements ModInitializer {
         //#else
         //$$ GulliverGameRules.register();
         //#endif
+        //#if MC < 1.20.5
+        //$$ GulliverPotions.registerLegacyMixes();
+        //#endif
 
         FabricNetworking.registerCommon();
 

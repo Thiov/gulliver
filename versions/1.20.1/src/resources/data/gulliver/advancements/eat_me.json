@@ -1,0 +1,47 @@
+{
+  "display": {
+    "icon": {
+      "item": "minecraft:melon_slice"
+    },
+    "title": {
+      "translate": "advancements.gulliver.eat_me.title"
+    },
+    "description": {
+      "translate": "advancements.gulliver.eat_me.description"
+    },
+    "frame": "task",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "criteria": {
+    "eat_shrink": {
+      "trigger": "minecraft:consume_item",
+      "conditions": {
+        "item": {
+          "items": [
+            "minecraft:cyan_dye",
+            "minecraft:red_mushroom"
+          ]
+        }
+      }
+    },
+    "eat_grow": {
+      "trigger": "minecraft:consume_item",
+      "conditions": {
+        "item": {
+          "items": [
+            "minecraft:purple_dye",
+            "minecraft:brown_mushroom"
+          ]
+        }
+      }
+    }
+  },
+  "requirements": [
+    [
+      "eat_shrink",
+      "eat_grow"
+    ]
+  ]
+}
