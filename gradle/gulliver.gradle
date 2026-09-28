@@ -1,0 +1,345 @@
+// Shared build logic for every versions/<mc>/<loader> build.
+//
+// One source tree serves all Minecraft versions and loaders. Before
+// compiling, this script copies the shared sources (src/common), the
+// loader's sources (src/<loader>) and any per-version overlays
+// (versions/<mc>/src, versions/<mc>/<loader>/src) into build/preprocessed,
+// resolving conditional blocks on the way:
+//
+//     //#if MC >= 1.21.2 && !FORGE
+//     code for 1.21.2+ on Fabric/NeoForge
+//     //#elif MC >= 1.20.5
+//     code for 1.20.5 .. 1.21.1
+//     //#else
+//     //$$ code for older versions (may be pre-commented with //$$)
+//     //#endif
+//
+// Inactive Java lines are commented out with "//$$ " (so line numbers match
+// the source), active lines lose a leading "//$$ ". In resource files the
+// directives and inactive lines are dropped. A file that is wrapped whole
+// in one inactive //#if is skipped. The mixin config is generated from the
+// mixin classes that survive, so a version-specific mixin never needs a
+// hand-edited list.
+//
+// Identifiers: MC (compared against dotted versions), FABRIC, NEOFORGE,
+// FORGE, and OBF (the runtime uses obfuscated/intermediary names).
+
+import java.nio.file.Files
+
+def repoRoot = file('../../..')
+def mc = project.property('minecraft_version').toString()
+def loader = project.property('gulliver_loader').toString()
+def obfRuntime = (project.findProperty('gulliver_obf_runtime') ?: 'false').toString().toBoolean()
+def javaLevel = (project.findProperty('gulliver_mixin_java') ?: 'JAVA_21').toString()
+def refmapName = project.findProperty('gulliver_refmap')?.toString()
+
+class Condition {
+    List<String> tokens
+    int pos = 0
+    Map<String, Boolean> flags
+    List<Integer> mc
+
+    static List<String> tokenize(String s) {
+        def out = []
+        def m = (s =~ /\s*(>=|<=|==|!=|&&|\|\||[()!<>]|[A-Za-z_][A-Za-z0-9_]*|[0-9][0-9.]*)\s*/)
+        int end = 0
+        while (m.find()) {
+            if (m.start() != end) throw new GradleException("Bad preprocessor expression: '$s'")
+            out << m.group(1)
+            end = m.end()
+        }
+        if (end != s.length()) throw new GradleException("Bad preprocessor expression: '$s'")
+        return out
+    }
+
+    boolean eval(String expr) {
+        tokens = tokenize(expr)
+        pos = 0
+        boolean r = parseOr()
+        if (pos != tokens.size()) throw new GradleException("Trailing tokens in '$expr'")
+        return r
+    }
+
+    String peek() { pos < tokens.size() ? tokens[pos] : null }
+    String next() { tokens[pos++] }
+
+    boolean parseOr() {
+        boolean v = parseAnd()
+        while (peek() == '||') { next(); boolean r = parseAnd(); v = v || r }
+        return v
+    }
+
+    boolean parseAnd() {
+        boolean v = parseUnary()
+        while (peek() == '&&') { next(); boolean r = parseUnary(); v = v && r }
+        return v
+    }
+
+    boolean parseUnary() {
+        if (peek() == '!') { next(); return !parseUnary() }
+        return parsePrimary()
+    }
+
+    boolean parsePrimary() {
+        String t = next()
+        if (t == '(') {
+            boolean v = parseOr()
+            if (next() != ')') throw new GradleException("Missing ')'")
+            return v
+        }
+        if (t == 'MC') {
+            String op = next()
+            List<Integer> v = GulliverPre.parseV(next())
+            int c = GulliverPre.cmp(mc, v)
+            switch (op) {
+                case '>=': return c >= 0
+                case '<=': return c <= 0
+                case '>': return c > 0
+                case '<': return c < 0
+                case '==': return c == 0
+                case '!=': return c != 0
+                default: throw new GradleException("Bad operator '$op'")
+            }
+        }
+        if (!flags.containsKey(t)) throw new GradleException("Unknown preprocessor identifier '$t'")
+        return flags[t]
+    }
+}
+
+class GulliverPre {
+    static List<Integer> parseV(String v) {
+        def parts = v.tokenize('.').collect { it.isEmpty() ? 0 : it.toInteger() }
+        while (parts.size() < 3) parts << 0
+        return parts
+    }
+
+    static int cmp(List<Integer> a, List<Integer> b) {
+        for (int i = 0; i < 3; i++) {
+            int c = a[i] <=> b[i]
+            if (c != 0) return c
+        }
+        return 0
+    }
+
+    static final def DIRECTIVE = ~/^\s*\/\/#(if|elif|else|endif)\b(.*)$/
+    static final def COMMENTED = ~/^(\s*)\/\/\$\$ ?(.*)$/
+
+    /** Returns null when the whole file is disabled. */
+    static String process(String text, Condition cond, boolean javaStyle, String fileName) {
+        List<String> lines = text.split('\n', -1) as List<String>
+
+        // Whole-file condition: first directive wraps everything.
+        def nonBlank = lines.findIndexValues { !it.trim().isEmpty() }
+        if (!nonBlank.isEmpty()) {
+            def first = lines[nonBlank.first() as int]
+            def last = lines[nonBlank.last() as int]
+            def fm = first =~ DIRECTIVE
+            if (fm.matches() && fm.group(1) == 'if' && last.trim() == '//#endif') {
+                // Only a whole-file wrapper when this #if closes on the last line.
+                int depth = 0
+                boolean wrapper = true
+                for (int i = (nonBlank.first() as int); i <= (nonBlank.last() as int); i++) {
+                    def m = lines[i] =~ DIRECTIVE
+                    if (!m.matches()) continue
+                    def kind = m.group(1)
+                    if (kind == 'if') depth++
+                    else if (kind == 'endif') { depth--; if (depth == 0 && i != (nonBlank.last() as int)) { wrapper = false; break } }
+                    else if (depth == 1) { wrapper = false; break }
+                }
+                if (wrapper && !cond.eval(fm.group(2).trim())) return null
+            }
+        }
+
+        def out = new StringBuilder()
+        // Stack entries: [parentActive, anyBranchTaken, active]
+        def stack = []
+        boolean active = true
+        lines.eachWithIndex { String line, int idx ->
+            def m = line =~ DIRECTIVE
+            if (m.matches()) {
+                def kind = m.group(1)
+                def expr = m.group(2).trim()
+                switch (kind) {
+                    case 'if':
+                        boolean parent = active
+                        boolean v = parent && cond.eval(expr)
+                        stack.push([parent, v, v])
+                        active = v
+                        break
+                    case 'elif':
+                        if (stack.isEmpty()) throw new GradleException("$fileName:${idx + 1}: #elif without #if")
+                        def top = stack.pop()
+                        boolean v = top[0] && !top[1] && cond.eval(expr)
+                        stack.push([top[0], top[1] || v, v])
+                        active = v
+                        break
+                    case 'else':
+                        if (stack.isEmpty()) throw new GradleException("$fileName:${idx + 1}: #else without #if")
+                        def top = stack.pop()
+                        boolean v = top[0] && !top[1]
+                        stack.push([top[0], true, v])
+                        active = v
+                        break
+                    case 'endif':
+                        if (stack.isEmpty()) throw new GradleException("$fileName:${idx + 1}: #endif without #if")
+                        def top = stack.pop()
+                        active = top[0]
+                        break
+                }
+                if (javaStyle) out.append(line)
+                else return
+            } else if (active) {
+                def c = line =~ COMMENTED
+                out.append(c.matches() ? c.group(1) + c.group(2) : line)
+            } else {
+                if (!javaStyle) return
+                def c = line =~ COMMENTED
+                if (c.matches()) out.append(line)
+                else {
+                    def indent = (line =~ /^(\s*)/)[0][1]
+                    out.append(line.trim().isEmpty() ? line : indent + '//$$ ' + line.substring(indent.length()))
+                }
+            }
+            if (idx < lines.size() - 1) out.append('\n')
+        }
+        if (!stack.isEmpty()) throw new GradleException("$fileName: unterminated #if")
+        return out.toString()
+    }
+}
+
+def flags = [
+        FABRIC  : loader == 'fabric',
+        NEOFORGE: loader == 'neoforge',
+        FORGE   : loader == 'forge',
+        OBF     : obfRuntime,
+]
+
+def textExtensions = ['java', 'json', 'toml', 'mcmeta', 'cfg', 'accesswidener', 'txt', 'properties', 'MF']
+
+def outJava = layout.buildDirectory.dir('preprocessed/java')
+def outRes = layout.buildDirectory.dir('preprocessed/resources')
+
+def javaRoots = [
+        new File(repoRoot, 'src/common/java'),
+        new File(repoRoot, "src/${loader}/java"),
+        new File(repoRoot, "versions/${mc}/src/java"),
+        new File(repoRoot, "versions/${mc}/${loader}/src/java"),
+]
+def resRoots = [
+        new File(repoRoot, 'src/common/resources'),
+        new File(repoRoot, "src/${loader}/resources"),
+        new File(repoRoot, "versions/${mc}/src/resources"),
+        new File(repoRoot, "versions/${mc}/${loader}/src/resources"),
+]
+
+def expansions = [
+        'mod_version'           : project.property('mod_version').toString(),
+        'minecraft_version'     : mc,
+        'minecraft_version_range': (project.findProperty('minecraft_version_range') ?: mc).toString(),
+        'loader_version_range'  : (project.findProperty('loader_version_range') ?: '').toString(),
+        'loader_dependency'     : (project.findProperty('loader_dependency') ?: '').toString(),
+        'java_version'          : (project.findProperty('java_version') ?: '21').toString(),
+        'fabric_api_range'      : (project.findProperty('fabric_api_range') ?: '*').toString(),
+        'pack_format'           : (project.findProperty('pack_format') ?: '15').toString(),
+]
+def expandFiles = ['fabric.mod.json', 'mods.toml', 'neoforge.mods.toml', 'pack.mcmeta']
+
+def preprocess = tasks.register('gulliverPreprocess') {
+    group = 'build'
+    description = 'Resolves //#if blocks for this Minecraft version and loader.'
+    inputs.property('mc', mc)
+    inputs.property('loader', loader)
+    inputs.property('flags', flags.toString())
+    inputs.property('expansions', expansions.toString())
+    inputs.property('javaLevel', javaLevel)
+    inputs.property('refmap', refmapName ?: '')
+    (javaRoots + resRoots).each { if (it.exists()) inputs.dir(it) }
+    outputs.dir(outJava)
+    outputs.dir(outRes)
+
+    doLast {
+        def cond = new Condition(flags: flags, mc: GulliverPre.parseV(mc))
+        def javaOut = outJava.get().asFile
+        def resOut = outRes.get().asFile
+        project.delete(javaOut, resOut)
+        javaOut.mkdirs()
+        resOut.mkdirs()
+
+        def copyTree = { List<File> roots, File dest, boolean java ->
+            roots.each { File root ->
+                if (!root.exists()) return
+                root.eachFileRecurse(groovy.io.FileType.FILES) { File f ->
+                    if (f.name == '.DS_Store') return
+                    def rel = root.toPath().relativize(f.toPath()).toString()
+                    def target = new File(dest, rel)
+                    def ext = f.name.contains('.') ? f.name.substring(f.name.lastIndexOf('.') + 1) : ''
+                    if (textExtensions.contains(ext)) {
+                        def text = f.getText('UTF-8')
+                        def processed = GulliverPre.process(text, cond, ext == 'java', rel)
+                        if (processed == null) {
+                            if (target.exists()) target.delete()
+                            return
+                        }
+                        if (expandFiles.contains(f.name)) {
+                            expansions.each { k, v -> processed = processed.replace('${' + k + '}', v) }
+                        }
+                        target.parentFile.mkdirs()
+                        target.setText(processed, 'UTF-8')
+                    } else {
+                        target.parentFile.mkdirs()
+                        Files.copy(f.toPath(), target.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING)
+                    }
+                }
+            }
+        }
+        copyTree(javaRoots, javaOut, true)
+        copyTree(resRoots, resOut, false)
+
+        // Generate gulliver.mixins.json from the mixin classes that exist
+        // for this target (a file counts when an uncommented @Mixin remains).
+        def mixinDir = new File(javaOut, 'gulliver/mixin')
+        def common = []
+        def client = []
+        if (mixinDir.exists()) {
+            mixinDir.eachFileRecurse(groovy.io.FileType.FILES) { File f ->
+                if (!f.name.endsWith('.java')) return
+                boolean live = f.readLines('UTF-8').any { it ==~ /^\s*@Mixin\b.*/ }
+                if (!live) return
+                def rel = mixinDir.toPath().relativize(f.toPath()).toString()
+                def name = rel.substring(0, rel.length() - 5).replace(File.separator, '.')
+                (name.startsWith('client.') ? client : common) << name
+            }
+        }
+        common.sort()
+        client.sort()
+        def json = [
+                required          : true,
+                'package'         : 'gulliver.mixin',
+                compatibilityLevel: javaLevel,
+                minVersion        : '0.8',
+        ]
+        if (refmapName) json.refmap = refmapName
+        json.mixins = common
+        json.client = client
+        json.injectors = [defaultRequire: 1]
+        new File(resOut, 'gulliver.mixins.json').setText(groovy.json.JsonOutput.prettyPrint(groovy.json.JsonOutput.toJson(json)), 'UTF-8')
+    }
+}
+
+sourceSets {
+    main {
+        java.srcDirs = [outJava]
+        resources.srcDirs = [outRes]
+    }
+}
+
+tasks.named('compileJava') { dependsOn preprocess }
+tasks.named('processResources') { dependsOn preprocess }
+tasks.matching { it.name == 'sourcesJar' }.configureEach { dependsOn preprocess }
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+    options.compilerArgs << '-Xlint:-options'
+}
+
+ext.gulliverPreprocess = preprocess

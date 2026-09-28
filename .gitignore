@@ -1,7 +1,11 @@
 build/
 .gradle/
+run/
+dist/
 *.class
 .idea/
 .vscode/
 *.iml
 reference/
+.DS_Store
+build-mac.sh
