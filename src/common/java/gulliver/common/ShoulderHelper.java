@@ -9,6 +9,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.EntityTypes;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.ClipContext;
@@ -48,8 +49,8 @@ public final class ShoulderHelper {
     /** Bosses and multipart giants can't be carried or ridden with string. */
     public static boolean isUnholdable(Entity e) {
         EntityType<?> t = e.getType();
-        return t == EntityType.ENDER_DRAGON || t == EntityType.WITHER || t == EntityType.WARDEN
-                || t == EntityType.ELDER_GUARDIAN || GulliverEnvoy.isDragonEntity(e);
+        return t == EntityTypes.ENDER_DRAGON || t == EntityTypes.WITHER || t == EntityTypes.WARDEN
+                || t == EntityTypes.ELDER_GUARDIAN || GulliverEnvoy.isDragonEntity(e);
     }
 
     public static boolean canCarry(LivingEntity carrier, Entity target) {

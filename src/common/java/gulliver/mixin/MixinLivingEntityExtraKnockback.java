@@ -38,12 +38,18 @@ public abstract class MixinLivingEntityExtraKnockback {
 
     @Inject(method = "causeExtraKnockback", at = @At("HEAD"))
     private void gulliver$setAttackContext(Entity target, float strength, Vec3 vec,
+                                             //#if MC >= 26.2
+                                             net.minecraft.world.damagesource.DamageSource source, float f, boolean b,
+                                             //#endif
                                              CallbackInfo ci) {
         AttackContext.push((Entity) (Object) this);
     }
 
     @Inject(method = "causeExtraKnockback", at = @At("RETURN"))
     private void gulliver$clearAttackContext(Entity target, float strength, Vec3 vec,
+                                               //#if MC >= 26.2
+                                               net.minecraft.world.damagesource.DamageSource source, float f, boolean b,
+                                               //#endif
                                                CallbackInfo ci) {
         AttackContext.pop();
     }

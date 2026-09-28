@@ -80,7 +80,11 @@ public abstract class MixinCamera {
      * where hfactor = sizeMultiplier (linear). No pitch tilt — original
      * mod kept vanilla camera angle, just scaled the Y offset.
      */
-    @ModifyConstant(method = "alignWithEntity", constant = @Constant(floatValue = 0.3F))
+    //#if MC >= 26.2
+    @ModifyConstant(method = "alignWithEntity", constant = @Constant(floatValue = 0.15F))
+    //#else
+    //$$ @ModifyConstant(method = "alignWithEntity", constant = @Constant(floatValue = 0.3F))
+    //#endif
     private float gulliver$scaleSleepCameraY(float c) {
         if (entity == null) return c;
         if (!(entity instanceof net.minecraft.world.entity.LivingEntity le)) return c;

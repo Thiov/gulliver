@@ -57,7 +57,7 @@ public final class KeyInputHandler {
     /** End of every client tick. */
     public static void tick(Minecraft client) {
         if (client.player == null || client.level == null) return;
-        if (client.screen != null) return; // don't fire while a GUI is open
+        if (client.gui.screen() != null) return; // don't fire while a GUI is open
         while (UPSIZE.consumeClick()) dispatchSize(client, true);
         while (DOWNSIZE.consumeClick()) dispatchSize(client, false);
         while (SHOULDER.consumeClick()) {

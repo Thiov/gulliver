@@ -13,6 +13,7 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.EntityTypes;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
 import org.spongepowered.asm.mixin.MixinEnvironment;
@@ -74,7 +75,7 @@ public final class SelfTest {
 
         // 3. Resize a mob and check dimensions + attributes follow.
         BlockPos spawn = BlockPos.ZERO;
-        Mob zombie = spawnMob(level, EntityType.ZOMBIE, spawn);
+        Mob zombie = spawnMob(level, EntityTypes.ZOMBIE, spawn);
         check(failures, zombie != null, "spawn zombie");
         if (zombie != null) {
             float w = zombie.getBbWidth();
@@ -92,7 +93,7 @@ public final class SelfTest {
         }
 
         // 4. The resizing effect drives the potion multiplier.
-        Mob cow = spawnMob(level, EntityType.COW, spawn);
+        Mob cow = spawnMob(level, EntityTypes.COW, spawn);
         if (cow != null) {
             cow.addEffect(new MobEffectInstance(GulliverEffects.tiny(), 100, 0));
             for (int i = 0; i < 3; i++) cow.tick();
@@ -105,7 +106,7 @@ public final class SelfTest {
         }
 
         // 5. Commands parse and run.
-        Mob pig = spawnMob(level, EntityType.PIG, spawn);
+        Mob pig = spawnMob(level, EntityTypes.PIG, spawn);
         if (pig != null) {
             runCommand(level, "entitybasesize " + pig.getId() + " 2");
             check(failures, Math.abs(((IResizeableEntity) pig).getSizeMultiplier() - 2.0F) < 1.0E-3F,

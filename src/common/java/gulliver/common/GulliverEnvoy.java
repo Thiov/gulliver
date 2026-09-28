@@ -972,7 +972,7 @@ public final class GulliverEnvoy {
         net.minecraft.core.BlockPos pos = entity.blockPosition();
         net.minecraft.world.level.block.state.BlockState st = level.getBlockState(pos);
         if (st.is(net.minecraft.tags.BlockTags.FLOWERS)) return true;
-        if (st.is(net.minecraft.tags.BlockTags.SAPLINGS)) return true;
+        if (st.is(net.minecraft.tags.BlockItemTags.SAPLINGS.block())) return true;
         net.minecraft.world.level.block.Block b = st.getBlock();
         if (b instanceof net.minecraft.world.level.block.FlowerPotBlock) return true;
         return false;

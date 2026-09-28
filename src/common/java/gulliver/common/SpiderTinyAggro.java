@@ -4,6 +4,7 @@ import gulliver.api.IResizeableEntity;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.EntityTypes;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.phys.AABB;
@@ -84,10 +85,10 @@ public final class SpiderTinyAggro {
     }
 
     private static boolean isSmallCreaturePredator(EntityType<?> type) {
-        return type == EntityType.SPIDER
-            || type == EntityType.CAVE_SPIDER
-            || type == EntityType.SILVERFISH
-            || type == EntityType.ENDERMITE
-            || type == EntityType.BEE;
+        return type == EntityTypes.SPIDER
+            || type == EntityTypes.CAVE_SPIDER
+            || type == EntityTypes.SILVERFISH
+            || type == EntityTypes.ENDERMITE
+            || type == EntityTypes.BEE;
     }
 }

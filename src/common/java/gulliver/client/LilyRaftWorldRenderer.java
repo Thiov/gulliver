@@ -52,7 +52,7 @@ public final class LilyRaftWorldRenderer {
     private static void renderDisc(PoseStack pose, SubmitNodeCollector buf,
                             LocalPlayer player, IResizeableLiving sized, boolean raft) {
         Minecraft mc = Minecraft.getInstance();
-        net.minecraft.client.Camera cam = mc.gameRenderer.getMainCamera();
+        net.minecraft.client.Camera cam = mc.gameRenderer.mainCamera();
         Vec3 camPos = cam.position();
         float pt = mc.getDeltaTracker().getGameTimeDeltaPartialTick(false);
 

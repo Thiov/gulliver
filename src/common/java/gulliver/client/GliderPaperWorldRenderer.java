@@ -47,7 +47,7 @@ public final class GliderPaperWorldRenderer {
         IResizeableLiving sized = (IResizeableLiving) player;
         if (!sized.isGliding()) return;
 
-        net.minecraft.client.Camera cam = mc.gameRenderer.getMainCamera();
+        net.minecraft.client.Camera cam = mc.gameRenderer.mainCamera();
         Vec3 camPos = cam.position();
         float pt = mc.getDeltaTracker().getGameTimeDeltaPartialTick(false);
 

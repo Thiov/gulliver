@@ -11,6 +11,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.EntityTypes;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.item.ItemStack;
@@ -31,8 +32,8 @@ final class SelfTestExtras {
         BlockPos at = new BlockPos(8, 0, 8);
 
         // Trampling by size difference (issue #1): a normal zombie stomps a quarter-size pig.
-        Mob zombie = SelfTest.spawnMob(level, EntityType.ZOMBIE, at);
-        Mob pig = SelfTest.spawnMob(level, EntityType.PIG, at);
+        Mob zombie = SelfTest.spawnMob(level, EntityTypes.ZOMBIE, at);
+        Mob pig = SelfTest.spawnMob(level, EntityTypes.PIG, at);
         if (zombie != null && pig != null) {
             ((IResizeableLiving) pig).setBaseSize(0.25F);
             pig.setPos(zombie.getX(), zombie.getY(), zombie.getZ());
@@ -64,7 +65,7 @@ final class SelfTestExtras {
         }
 
         // Tiny + Huge at once cancel out; removing one leaves the other.
-        Mob cow = SelfTest.spawnMob(level, EntityType.COW, at);
+        Mob cow = SelfTest.spawnMob(level, EntityTypes.COW, at);
         if (cow != null) {
             cow.addEffect(new MobEffectInstance(GulliverEffects.tiny(), 200, 0));
             cow.addEffect(new MobEffectInstance(GulliverEffects.huge(), 200, 0));
@@ -82,7 +83,7 @@ final class SelfTestExtras {
         String old = ss.baseAnimalSize;
         ss.baseAnimalSize = "0.5";
         try {
-            Mob sheep = SelfTest.spawnMob(level, EntityType.SHEEP, at);
+            Mob sheep = SelfTest.spawnMob(level, EntityTypes.SHEEP, at);
             if (sheep != null) {
                 sheep.tick();
                 check(failures, Math.abs(((IResizeableEntity) sheep).getSizeMultiplier() - 0.5F) < 1.0E-3F,

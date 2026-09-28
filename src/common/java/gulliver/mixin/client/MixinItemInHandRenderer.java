@@ -42,7 +42,7 @@ public abstract class MixinItemInHandRenderer {
      * player is rafting. The lily-pad becomes the raft, so the hands
      * shouldn't appear cradling air or the un-rendered lily-pad.
      */
-    @Inject(method = "renderHandsWithItems(FLcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/SubmitNodeCollector;Lnet/minecraft/client/player/LocalPlayer;I)V",
+    @Inject(method = "submitHandsWithItems(FLcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/SubmitNodeCollector;Lnet/minecraft/client/player/LocalPlayer;I)V",
             at = @At("HEAD"), cancellable = true)
     private void gulliver$hideHandsWhileRafting(float partialTicks, PoseStack pose,
                                                   SubmitNodeCollector buf,

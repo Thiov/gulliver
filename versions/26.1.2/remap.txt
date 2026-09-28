@@ -1,0 +1,10 @@
+# Sources use 26.2 names; these are the 26.1.x spellings ("new old").
+EntityTypes EntityType
+net.minecraft.advancements.triggers.CriteriaTriggers net.minecraft.advancements.CriteriaTriggers
+net.minecraft.world.entity.monster.cubemob.Slime net.minecraft.world.entity.monster.Slime
+Items.DYE.cyan() Items.CYAN_DYE
+Items.DYE.purple() Items.PURPLE_DYE
+net.minecraft.tags.BlockItemTags.SAPLINGS.block() net.minecraft.tags.BlockTags.SAPLINGS
+.gui.screen() .screen
+.mainCamera() .getMainCamera()
+submitHandsWithItems renderHandsWithItems

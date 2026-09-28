@@ -8,7 +8,11 @@ modId = "gulliver"
 version = "${mod_version}"
 displayName = "Gulliver"
 displayURL = "https://github.com/Thiov/gulliver-fabric"
+//#if MC >= 26.2
+iconFile = "assets/gulliver/icon.png"
+//#else
 logoFile = "assets/gulliver/icon.png"
+//#endif
 authors = "Thiov"
 description = '''
 Resize yourself or other entities from 0.125x to 8x. Movement, combat, reach, sound, and world interaction all scale with size. Inspired by UncleMion's classic Gulliver mod.

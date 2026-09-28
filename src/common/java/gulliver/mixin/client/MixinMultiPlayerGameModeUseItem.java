@@ -32,7 +32,7 @@ public abstract class MixinMultiPlayerGameModeUseItem {
     private void gulliver$consumeResizing(Player player, InteractionHand hand,
                                            CallbackInfoReturnable<InteractionResult> cir) {
         ItemStack stack = player.getItemInHand(hand);
-        if (stack.is(Items.CYAN_DYE) || stack.is(Items.PURPLE_DYE)
+        if (stack.is(Items.DYE.cyan()) || stack.is(Items.DYE.purple())
          || stack.is(Items.RED_MUSHROOM) || stack.is(Items.BROWN_MUSHROOM)) {
             gulliver.platform.Services.platform().sendToServer(new Payloads.ConsumeResizingItem(hand == InteractionHand.MAIN_HAND));
             cir.setReturnValue(InteractionResult.SUCCESS);

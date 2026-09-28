@@ -9,6 +9,7 @@ public final class GulliverClient {
 
     public static void init() {
         GulliverNetwork.setClientHandler(ClientPacketHandlers::handle);
+        ClientSelfTest.startWatchdog();
     }
 
     /** End of every client tick (MixinMinecraftTick). */

@@ -32,30 +32,35 @@ import org.spongepowered.asm.mixin.injection.ModifyVariable;
 @Mixin(LivingEntity.class)
 public abstract class MixinLivingEntityKnockback {
 
-    @ModifyVariable(method = "knockback(DDD)V", at = @At("HEAD"),
-            argsOnly = true, ordinal = 0)
-    private double gulliver$scaleKnockback(double strength) {
+    //#if MC >= 26.2
+    @ModifyVariable(method = "knockback(DDDLnet/minecraft/world/damagesource/DamageSource;FZ)V",
+            at = @At("HEAD"), argsOnly = true, ordinal = 0)
+    private double gulliver$scaleKnockback(double strength, double strength2, double x, double z,
+                                            net.minecraft.world.damagesource.DamageSource source) {
+        net.minecraft.world.entity.Entity attacker = source != null && source.getEntity() != null
+                ? source.getEntity() : gulliver.common.AttackContext.get();
+        return gulliver$scaled(strength, attacker);
+    }
+    //#else
+    //$$ @ModifyVariable(method = "knockback(DDD)V", at = @At("HEAD"), argsOnly = true, ordinal = 0)
+    //$$ private double gulliver$scaleKnockback(double strength) {
+    //$$     return gulliver$scaled(strength, gulliver.common.AttackContext.get());
+    //$$ }
+    //#endif
+
+    private double gulliver$scaled(double strength, net.minecraft.world.entity.Entity attacker) {
         LivingEntity self = (LivingEntity) (Object) this;
         IResizeableEntity sized = (IResizeableEntity) self;
         float targetSize = sized.getSizeMultiplier();
         double scaled = strength;
-
-        // AttackContext is set in MixinLivingEntityDamage's HEAD inject
-        // on hurtServer, cleared at RETURN. So during a hurtServer call
-        // (when knockback is invoked at offset 460), the thread-local
-        // is populated with the current attacker.
-        net.minecraft.world.entity.Entity attacker = gulliver.common.AttackContext.get();
         if (attacker != null && attacker != self) {
             float attackerSize = ((IResizeableEntity) attacker).getSizeMultiplier();
             scaled = strength * (attackerSize / targetSize);
         } else if (targetSize != 1.0F) {
-            // No attacker (explosion, environment): light targets are
-            // tossed further, but CAP the factor — uncapped 1/size sent
-            // a 0.125 tiny flying 8× on any sourceless knockback, which
-            // read as "the rain flings me across the map".
+            // No attacker (explosion, environment): light targets are tossed
+            // further, but capped — uncapped 1/size flung a 0.125 tiny 8x.
             scaled = strength * Math.min(3.0D, 1.0D / targetSize);
         }
-
         if (sized.isSticky()) scaled *= 0.25D;
         return scaled;
     }

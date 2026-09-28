@@ -23,6 +23,29 @@ public final class ClientSelfTest {
     private static final List<String> FAILURES = new ArrayList<>();
 
     private static int ticksTotal;
+    private static volatile boolean finished;
+
+    /**
+     * Hard stop for the self-test client: whatever screen it gets stuck on
+     * (a loader warning, a confirmation dialog), the process ends after
+     * three minutes instead of leaving a window open.
+     */
+    public static void startWatchdog() {
+        if (!SelfTest.ENABLED) return;
+        Thread t = new Thread(() -> {
+            try {
+                Thread.sleep(180_000L);
+            } catch (InterruptedException e) {
+                return;
+            }
+            if (!finished) {
+                Gulliver.LOGGER.error("GULLIVER SELFTEST CLIENT FAIL [watchdog: no result after 180s]");
+                Runtime.getRuntime().halt(1);
+            }
+        }, "gulliver-selftest-watchdog");
+        t.setDaemon(true);
+        t.start();
+    }
     private static double grappleStartY;
     private static double grapplePeakY;
 
@@ -57,9 +80,10 @@ public final class ClientSelfTest {
         if (!SelfTest.ENABLED) return;
         // Never leave a window hanging: bail out if we don't reach a world
         // (a stray confirmation screen, a failed quick-play, ...).
-        if (++ticksTotal > 2400 && ticksInWorld < 300) {
+        if (++ticksTotal > 1600 && ticksInWorld < 300) {
+            finished = true;
             Gulliver.LOGGER.error("GULLIVER SELFTEST CLIENT FAIL [stuck on {}]",
-                    mc.screen == null ? "no screen" : mc.screen.getClass().getName());
+                    mc.gui.screen() == null ? "no screen" : mc.gui.screen().getClass().getName());
             mc.stop();
             return;
         }
@@ -111,6 +135,7 @@ public final class ClientSelfTest {
                 resizeOnServer(mc, 1.0F);
             }
             case 300 -> {
+                finished = true;
                 if (FAILURES.isEmpty()) Gulliver.LOGGER.info("GULLIVER SELFTEST CLIENT PASS");
                 else Gulliver.LOGGER.error("GULLIVER SELFTEST CLIENT FAIL {}", FAILURES);
                 mc.stop();

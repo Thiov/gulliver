@@ -23,6 +23,11 @@
 //
 // Identifiers: MC (compared against dotted versions), FABRIC, NEOFORGE,
 // FORGE, and OBF (the runtime uses obfuscated/intermediary names).
+//
+// Pure renames don't need //#if blocks: sources are written against the
+// newest Minecraft names, and versions/<mc>/remap.txt lists "new old"
+// pairs applied to active Java code (whole words for names, literal text
+// for anything containing punctuation such as ".mainCamera()").
 
 import java.nio.file.Files
 
@@ -124,8 +129,37 @@ class GulliverPre {
     static final def DIRECTIVE = ~/^\s*\/\/#(if|elif|else|endif)\b(.*)$/
     static final def COMMENTED = ~/^(\s*)\/\/\$\$ ?(.*)$/
 
+    static List<List<String>> loadRemap(File f) {
+        def rules = []
+        if (!f.exists()) return rules
+        f.eachLine('UTF-8') { String line ->
+            def t = line.trim()
+            if (t.isEmpty() || t.startsWith('#')) return
+            def parts = t.split(/\s+/)
+            if (parts.length != 2) throw new GradleException("Bad remap line in $f: '$line'")
+            rules << [parts[0], parts[1]]
+        }
+        return rules
+    }
+
+    static String remapLine(String line, List<List<String>> rules) {
+        if (rules.isEmpty() || line.trim().startsWith('//')) return line
+        String out = line
+        for (def r : rules) {
+            String from = r[0], to = r[1]
+            if (!out.contains(from)) continue
+            if (from ==~ /[A-Za-z_][A-Za-z0-9_.]*/) {
+                out = out.replaceAll('(?<![A-Za-z0-9_])' + java.util.regex.Pattern.quote(from) + '(?![A-Za-z0-9_])',
+                        java.util.regex.Matcher.quoteReplacement(to))
+            } else {
+                out = out.replace(from, to)
+            }
+        }
+        return out
+    }
+
     /** Returns null when the whole file is disabled. */
-    static String process(String text, Condition cond, boolean javaStyle, String fileName) {
+    static String process(String text, Condition cond, boolean javaStyle, String fileName, List<List<String>> remap) {
         List<String> lines = text.split('\n', -1) as List<String>
 
         // Whole-file condition: first directive wraps everything.
@@ -190,7 +224,8 @@ class GulliverPre {
                 else return
             } else if (active) {
                 def c = line =~ COMMENTED
-                out.append(c.matches() ? c.group(1) + c.group(2) : line)
+                String code = c.matches() ? c.group(1) + c.group(2) : line
+                out.append(javaStyle ? remapLine(code, remap) : code)
             } else {
                 if (!javaStyle) return
                 def c = line =~ COMMENTED
@@ -254,11 +289,14 @@ def preprocess = tasks.register('gulliverPreprocess') {
     inputs.property('javaLevel', javaLevel)
     inputs.property('refmap', refmapName ?: '')
     (javaRoots + resRoots).each { if (it.exists()) inputs.dir(it) }
+    def remapFile = new File(repoRoot, "versions/${mc}/remap.txt")
+    if (remapFile.exists()) inputs.file(remapFile)
     outputs.dir(outJava)
     outputs.dir(outRes)
 
     doLast {
         def cond = new Condition(flags: flags, mc: GulliverPre.parseV(mc))
+        def remap = GulliverPre.loadRemap(new File(repoRoot, "versions/${mc}/remap.txt"))
         def javaOut = outJava.get().asFile
         def resOut = outRes.get().asFile
         project.delete(javaOut, resOut)
@@ -275,7 +313,7 @@ def preprocess = tasks.register('gulliverPreprocess') {
                     def ext = f.name.contains('.') ? f.name.substring(f.name.lastIndexOf('.') + 1) : ''
                     if (textExtensions.contains(ext)) {
                         def text = f.getText('UTF-8')
-                        def processed = GulliverPre.process(text, cond, ext == 'java', rel)
+                        def processed = GulliverPre.process(text, cond, ext == 'java', rel, remap)
                         if (processed == null) {
                             if (target.exists()) target.delete()
                             return

@@ -135,7 +135,7 @@ public abstract class MixinLivingEntity implements IResizeableLiving,
         if (GulliverEnvoy.isHolding(self, net.minecraft.world.item.Items.SLIME_BALL)) return true;
         if (GulliverEnvoy.alongStickySurface(self)) return true;
         return !self.level().getEntitiesOfClass(
-                net.minecraft.world.entity.monster.Slime.class,
+                net.minecraft.world.entity.monster.cubemob.Slime.class,
                 self.getBoundingBox()).isEmpty();
     }
 
