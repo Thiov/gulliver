@@ -389,6 +389,22 @@ ext.gulliverPreprocess = preprocess
 // remapped jar is exercised exactly as players get it. -PprodMc=<version>
 // runs it on another Minecraft release (e.g. 26.1 for the 26.1.2 jar) and
 // -PprodFabricApi=<version> picks the matching Fabric API.
+// Mod Menu's API, for its settings button (compile only; Mod Menu stays optional).
+if (loader == 'fabric' && project.hasProperty('modmenu_version')) {
+    repositories {
+        maven { url = 'https://maven.terraformersmc.com/releases/' }
+    }
+    dependencies {
+        def modMenu = "com.terraformersmc:modmenu:${project.modmenu_version}"
+        def conf = configurations.findByName('modCompileOnly') ? 'modCompileOnly' : 'compileOnly'
+        add(conf, modMenu) { transitive = false }
+        // In dev runs too, so the self-test can press Mod Menu's settings button.
+        def rt = configurations.findByName('modLocalRuntime') ? 'modLocalRuntime'
+                : (configurations.findByName('localRuntime') ? 'localRuntime' : 'runtimeOnly')
+        add(rt, modMenu) { transitive = false }
+    }
+}
+
 if (loader == 'fabric') {
     configurations { gulliverProdMods { transitive = false } }
     dependencies {

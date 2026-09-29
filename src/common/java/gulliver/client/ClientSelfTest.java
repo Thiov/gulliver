@@ -76,11 +76,19 @@ public final class ClientSelfTest {
         });
     }
 
+    private static GulliverConfigScreen configScreen;
+
+    /**
+     * Set by the loader's client entrypoint in self-test runs: builds the
+     * settings screen the way Mod Menu / the mod list's Config button does.
+     */
+    public static java.util.function.UnaryOperator<net.minecraft.client.gui.screens.Screen> loaderConfigScreen;
+
     public static void tick(Minecraft mc) {
         if (!SelfTest.ENABLED) return;
         // Never leave a window hanging: bail out if we don't reach a world
         // (a stray confirmation screen, a failed quick-play, ...).
-        if (++ticksTotal > 1600 && ticksInWorld < 300) {
+        if (++ticksTotal > 1600 && ticksInWorld < 330) {
             finished = true;
             Gulliver.LOGGER.error("GULLIVER SELFTEST CLIENT FAIL [stuck on {}]",
                     mc.gui.screen() == null ? "no screen" : mc.gui.screen().getClass().getName());
@@ -91,6 +99,8 @@ public final class ClientSelfTest {
         if (p == null || mc.level == null) return;
         ticksInWorld++;
         if (ticksInWorld > 262 && ticksInWorld < 285) grapplePeakY = Math.max(grapplePeakY, p.getY());
+        // Opt-in: a "selftest-screenshots" file in the run folder saves each settings tab.
+        if (ticksInWorld >= 303 && ticksInWorld <= 315 && (ticksInWorld - 303) % 4 == 0) screenshot(mc);
         switch (ticksInWorld) {
             case 100 -> {
                 try {
@@ -134,7 +144,42 @@ public final class ClientSelfTest {
                 check(rise > 1.0D, "reeling in an anchored hook pulls the tiny up (rose " + rise + ")");
                 resizeOnServer(mc, 1.0F);
             }
+            case 296 -> {
+                if (loaderConfigScreen != null) {
+                    net.minecraft.client.gui.screens.Screen s = null;
+                    try {
+                        s = loaderConfigScreen.apply(null);
+                    } catch (Throwable t) {
+                        Gulliver.LOGGER.error("loader config button failed", t);
+                    }
+                    check(s instanceof GulliverConfigScreen, "the loader's config button builds the settings screen");
+                } else {
+                    Gulliver.LOGGER.info("selftest skip loader config button (Mod Menu not installed)");
+                }
+            }
+            // Config screen: open it, render every tab, save a change through Done.
             case 300 -> {
+                configScreen = new GulliverConfigScreen(null);
+                mc.gui.setScreen(configScreen);
+            }
+            case 304 -> {
+                check(mc.gui.screen() == configScreen, "config screen opens");
+                configScreen.showPage(1);
+            }
+            case 308 -> configScreen.showPage(2);
+            case 312 -> configScreen.showPage(3);
+            case 316 -> {
+                configScreen.draft().general.trampleSizeRatio = 0.35D;
+                configScreen.pressDone();
+            }
+            case 320 -> {
+                check(mc.gui.screen() == null, "config screen closes on Done");
+                check(gulliver.common.GulliverConfig.INSTANCE.general.trampleSizeRatio == 0.35D,
+                        "Done applies the edited settings");
+                gulliver.common.GulliverConfig.INSTANCE.general.trampleSizeRatio = 0.4D;
+                gulliver.common.GulliverConfig.save();
+            }
+            case 330 -> {
                 finished = true;
                 if (FAILURES.isEmpty()) Gulliver.LOGGER.info("GULLIVER SELFTEST CLIENT PASS");
                 else Gulliver.LOGGER.error("GULLIVER SELFTEST CLIENT FAIL {}", FAILURES);
@@ -142,6 +187,14 @@ public final class ClientSelfTest {
             }
             default -> { }
         }
+    }
+
+    private static void screenshot(Minecraft mc) {
+        //#if MC >= 26.2
+        if (java.nio.file.Files.exists(mc.gameDirectory.toPath().resolve("selftest-screenshots"))) {
+            net.minecraft.client.Screenshot.grab(mc.gameDirectory, mc.gameRenderer.mainRenderTarget(), msg -> { });
+        }
+        //#endif
     }
 
     /** Resize the local player's server-side twin; the size packet brings it back. */

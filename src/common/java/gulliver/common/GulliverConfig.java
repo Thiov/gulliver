@@ -73,6 +73,13 @@ public final class GulliverConfig {
         }
     }
 
+    /** An independent copy, for editing without touching the live config. */
+    public GulliverConfig copy() {
+        GulliverConfig c = GSON.fromJson(GSON.toJson(this), GulliverConfig.class);
+        c.fillDefaults();
+        return c;
+    }
+
     private void fillDefaults() {
         if (potion == null) potion = new Potion();
         if (general == null) general = new General();

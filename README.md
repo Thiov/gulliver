@@ -14,7 +14,7 @@ Inspired by UncleMion's classic Gulliver mod for 1.6.4. No scaling library is ne
 | 1.21.10   | ✓ | ✓ | ✓ |
 | 1.20.1    | ✓ | ✓ | ✓ |
 
-Pick the jar whose name matches your loader and Minecraft version, e.g. `gulliver-1.1.0+neoforge-26.1.2.jar`. Fabric needs the Fabric API.
+Get the jars from the [releases page](https://github.com/Thiov/gulliver/releases) and pick the one whose name matches your loader and Minecraft version, e.g. `gulliver-1.1.0+neoforge-26.1.2.jar`. Fabric needs the Fabric API; Mod Menu is optional (settings button).
 
 ## Features
 
@@ -64,7 +64,9 @@ Pick the jar whose name matches your loader and Minecraft version, e.g. `gullive
 
 ## Configuration
 
-`config/gulliver.json` (reload with `/gulliver reload`):
+In game: **Mods → Gulliver → Config** on NeoForge and Forge, or the settings button in [Mod Menu](https://modrinth.com/mod/modmenu) on Fabric. The settings screen covers the gameplay switches, spawn sizes, size limits and held-item style. On a multiplayer server the server's own config decides gameplay.
+
+Everything is stored in `config/gulliver.json` (reload with `/gulliver reload`):
 
 - `general`: size limits, `enableDyeResizing`, `enableKarmaMode` (reset size on death), `fishingRodGrapple` and `grappleMaxSize` (default 0.3, i.e. tiny), `trampleSizeRatio` (default 0.4, 0 disables trampling).
 - `spawnSize`: starting sizes for players, animals, monsters, villagers, and per-entity overrides. Accepts plain sizes (`"0.5"`), ranges (`"0.5-2"`), sets (`"0.5,1,2"`) and heights (`"5'9\""`, `"120cm"`).

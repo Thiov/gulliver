@@ -10,6 +10,7 @@ import net.minecraft.core.registries.Registries;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionResult;
 import net.neoforged.bus.api.IEventBus;
+import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.loading.FMLEnvironment;
 import net.neoforged.neoforge.common.NeoForge;
@@ -21,7 +22,7 @@ import net.neoforged.neoforge.registries.RegisterEvent;
 
 @Mod(Gulliver.MOD_ID)
 public final class GulliverNeoForge {
-    public GulliverNeoForge(IEventBus modBus) {
+    public GulliverNeoForge(IEventBus modBus, ModContainer container) {
         Services.set(new NeoForgePlatform());
         Gulliver.init();
         //#if MC < 1.21.11
@@ -31,7 +32,7 @@ public final class GulliverNeoForge {
         modBus.addListener(GulliverNeoForge::onRegister);
         modBus.addListener(NeoForgeNetworking::register);
         if (FMLEnvironment.getDist().isClient()) {
-            GulliverNeoForgeClient.init(modBus);
+            GulliverNeoForgeClient.init(modBus, container);
         }
 
         IEventBus bus = NeoForge.EVENT_BUS;

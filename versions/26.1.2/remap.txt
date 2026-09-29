@@ -6,5 +6,6 @@ Items.DYE.cyan() Items.CYAN_DYE
 Items.DYE.purple() Items.PURPLE_DYE
 net.minecraft.tags.BlockItemTags.SAPLINGS.block() net.minecraft.tags.BlockTags.SAPLINGS
 .gui.screen() .screen
+.gui.setScreen( .setScreen(
 .mainCamera() .getMainCamera()
 submitHandsWithItems renderHandsWithItems

@@ -7,14 +7,15 @@
   "icon": "assets/gulliver/icon.png",
   "authors": ["Thiov"],
   "contact": {
-    "sources": "https://github.com/Thiov/gulliver-fabric",
-    "issues": "https://github.com/Thiov/gulliver-fabric/issues"
+    "sources": "https://github.com/Thiov/gulliver",
+    "issues": "https://github.com/Thiov/gulliver/issues"
   },
   "license": "All-Rights-Reserved",
   "environment": "*",
   "entrypoints": {
     "main": ["gulliver.fabric.GulliverFabric"],
-    "client": ["gulliver.fabric.GulliverFabricClient"]
+    "client": ["gulliver.fabric.GulliverFabricClient"],
+    "modmenu": ["gulliver.fabric.GulliverModMenu"]
   },
   "mixins": [
     "gulliver.mixins.json"
@@ -24,5 +25,8 @@
     "fabric-api": "${fabric_api_range}",
     "minecraft": "${minecraft_version_range}",
     "java": ">=${java_version}"
+  },
+  "suggests": {
+    "modmenu": "*"
   }
 }

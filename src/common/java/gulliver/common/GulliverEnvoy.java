@@ -185,6 +185,24 @@ public final class GulliverEnvoy {
         return f <= 0.0F || Float.isInfinite(f) || Float.isNaN(f);
     }
 
+    /** Whether every size in a spawn-size string ("0.5", "0.5-2", "0.5,1,2", heights) parses. */
+    public static boolean isValidSizeString(String sizes, boolean allowHeights) {
+        if (sizes == null || sizes.isBlank()) return false;
+        for (String set : sizes.split(",", -1)) {
+            String[] range = set.trim().split("-", -1);
+            if (range.length > 2) return false;
+            for (String part : range) {
+                try {
+                    float f = allowHeights ? parsePlayerHeight(part.trim()) : Float.parseFloat(part.trim());
+                    if (isInvalidSize(f)) return false;
+                } catch (NumberFormatException | ArrayIndexOutOfBoundsException ex) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
     /**
      * 1.6.4 getSizeFromRangeString:
      *   - comma-separated set: pick uniformly random

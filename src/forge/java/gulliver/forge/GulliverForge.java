@@ -33,7 +33,7 @@ public final class GulliverForge {
         BusGroup modBus = context.getModBusGroup();
         RegisterEvent.getBus(modBus).addListener(GulliverForge::onRegister);
         if (FMLEnvironment.dist == Dist.CLIENT) {
-            GulliverForgeClient.init(modBus);
+            GulliverForgeClient.init(modBus, context);
         }
 
         PlayerInteractEvent.RightClickBlock.BUS.addListener(e -> {

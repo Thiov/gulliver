@@ -15,6 +15,9 @@ public final class GulliverFabricClient implements ClientModInitializer {
     public void onInitializeClient() {
         GulliverClient.init();
         FabricNetworking.registerClient();
+        if (gulliver.debug.SelfTest.ENABLED && net.fabricmc.loader.api.FabricLoader.getInstance().isModLoaded("modmenu")) {
+            ModMenuCheck.install();
+        }
         for (KeyMapping key : KeyInputHandler.ALL) {
             //#if MC >= 26.1
             KeyMappingHelper.registerKeyMapping(key);

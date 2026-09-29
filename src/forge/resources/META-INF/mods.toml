@@ -1,13 +1,13 @@
 modLoader = "javafml"
 loaderVersion = "${loader_version_range}"
 license = "All Rights Reserved"
-issueTrackerURL = "https://github.com/Thiov/gulliver-fabric/issues"
+issueTrackerURL = "https://github.com/Thiov/gulliver/issues"
 
 [[mods]]
 modId = "gulliver"
 version = "${mod_version}"
 displayName = "Gulliver"
-displayURL = "https://github.com/Thiov/gulliver-fabric"
+displayURL = "https://github.com/Thiov/gulliver"
 logoFile = "assets/gulliver/icon.png"
 authors = "Thiov"
 description = '''
