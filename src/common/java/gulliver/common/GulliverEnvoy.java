@@ -10,7 +10,7 @@ import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.entity.monster.Monster;
+import net.minecraft.world.entity.monster.Enemy;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -19,6 +19,8 @@ import net.minecraft.world.level.Level;
 import java.util.IllegalFormatException;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import java.util.Random;
 
 /**
@@ -59,7 +61,9 @@ public final class GulliverEnvoy {
     }
 
     public static boolean isMonster(Entity entity) {
-        return entity instanceof Monster;
+        // Enemy, not Monster: slimes, ghasts, phantoms, shulkers and hoglins
+        // are hostile too but don't extend Monster.
+        return entity instanceof Enemy;
     }
 
     public static boolean isAnimal(Entity entity) {
@@ -82,61 +86,109 @@ public final class GulliverEnvoy {
         return "ender_dragon".equals(path) || "ender_dragon_part".equals(path);
     }
 
-    private static String entityName(Entity entity) {
-        Identifier key = BuiltInRegistries.ENTITY_TYPE.getKey(entity.getType());
-        return key.getPath().toLowerCase();
-    }
-
     // ---- size resolution: per-entity max / min / new-base ----
 
-    public static double getMaxSizeForEntity(Entity entity) {
-        Level level = entity.level();
-        GulliverConfig.General g = GulliverConfig.INSTANCE.general;
-        if (level == null || level.isClientSide()) {
-            return g.maxEntitySize;
-        }
-        GulliverConfig.SizeLimit sl = GulliverConfig.INSTANCE.sizeLimit;
+    /** An entity type's id as written in the config: "minecraft:zombie". */
+    private static Identifier entityTypeKey(Entity entity) {
+        return BuiltInRegistries.ENTITY_TYPE.getKey(entity.getType());
+    }
 
-        String name = entityName(entity);
-        if (name != null) {
-            Double override = sl.maxOverrides.get(name);
-            if (override != null && override != 0.0D) return override;
+    /**
+     * Per-entity config lookup. The full id ("othermod:zombie") wins; the
+     * plain path ("zombie") that older configs use still works for vanilla
+     * entities and for modded ones whose path doesn't also name a vanilla
+     * entity, so a modded zombie is only reachable through its full id.
+     */
+    private static <V> V override(Map<String, V> map, Entity entity) {
+        if (map == null || map.isEmpty()) return null;
+        Identifier key = entityTypeKey(entity);
+        if (key == null) return null;
+        V exact = map.get(key.toString().toLowerCase(Locale.ROOT));
+        if (exact != null) return exact;
+        V plain = map.get(key.getPath().toLowerCase(Locale.ROOT));
+        if (plain != null && plainPathApplies(key)) return plain;
+        return null;
+    }
+
+    private static boolean plainPathApplies(Identifier key) {
+        if ("minecraft".equals(key.getNamespace())) return true;
+        //#if MC >= 1.21
+        Identifier vanilla = Identifier.fromNamespaceAndPath("minecraft", key.getPath());
+        //#else
+        //$$ Identifier vanilla = new Identifier("minecraft", key.getPath());
+        //#endif
+        return !BuiltInRegistries.ENTITY_TYPE.containsKey(vanilla);
+    }
+
+    /**
+     * The entity's effective size range: its per-entity override, else its
+     * class's limit, else the general range, always inside the general range
+     * (the config validates that already). Clients don't have the server's
+     * class and entity tables; the server sends sizes already clamped and
+     * its general range, which is all a client needs.
+     * Slow (map lookups): entities cache the result, see MixinEntity.
+     */
+    public static void sizeLimitsFor(Entity entity, float[] out) {
+        Level level = entity.level();
+        if (level == null || level.isClientSide()) {
+            out[0] = SyncedSettings.minSize();
+            out[1] = SyncedSettings.maxSize();
+            return;
         }
+        // Only living creatures follow the configured limits; the dragon
+        // is never resized, and items, arrows and the like stay as they are.
+        if (isDragonEntity(entity)) {
+            out[0] = 1.0F;
+            out[1] = 1.0F;
+            return;
+        }
+        if (!(entity instanceof LivingEntity)) {
+            out[0] = GulliverConfig.MIN_SIZE;
+            out[1] = GulliverConfig.MAX_SIZE;
+            return;
+        }
+        GulliverConfig cfg = GulliverConfig.INSTANCE;
+        GulliverConfig.General g = cfg.general;
+        GulliverConfig.SizeLimit sl = cfg.sizeLimit;
+        float envMin = (float) g.minEntitySize;
+        float envMax = (float) g.maxEntitySize;
+
+        double classMin;
+        double classMax;
         if (entity instanceof Player) {
-            if (sl.maxPlayerSize != 0.0D) return sl.maxPlayerSize;
+            classMin = sl.minPlayerSize;
+            classMax = sl.maxPlayerSize;
         } else if (isNPC(entity)) {
-            if (sl.maxNpcSize != 0.0D) return sl.maxNpcSize;
+            classMin = sl.minNpcSize;
+            classMax = sl.maxNpcSize;
         } else if (isMonster(entity)) {
-            if (sl.maxMonsterSize != 0.0D) return sl.maxMonsterSize;
+            classMin = sl.minMonsterSize;
+            classMax = sl.maxMonsterSize;
         } else {
-            if (sl.maxAnimalSize != 0.0D) return sl.maxAnimalSize;
+            classMin = sl.minAnimalSize;
+            classMax = sl.maxAnimalSize;
         }
-        return g.maxEntitySize;
+        Double minOverride = override(sl.minOverrides, entity);
+        Double maxOverride = override(sl.maxOverrides, entity);
+        float lo = (float) (minOverride != null && minOverride != 0.0D ? minOverride : classMin != 0.0D ? classMin : envMin);
+        float hi = (float) (maxOverride != null && maxOverride != 0.0D ? maxOverride : classMax != 0.0D ? classMax : envMax);
+        lo = Math.max(envMin, Math.min(envMax, lo));
+        hi = Math.max(envMin, Math.min(envMax, hi));
+        if (hi < lo) hi = lo;
+        out[0] = lo;
+        out[1] = hi;
+    }
+
+    public static double getMaxSizeForEntity(Entity entity) {
+        float[] limits = new float[2];
+        sizeLimitsFor(entity, limits);
+        return limits[1];
     }
 
     public static double getMinSizeForEntity(Entity entity) {
-        Level level = entity.level();
-        GulliverConfig.General g = GulliverConfig.INSTANCE.general;
-        if (level == null || level.isClientSide()) {
-            return g.minEntitySize;
-        }
-        GulliverConfig.SizeLimit sl = GulliverConfig.INSTANCE.sizeLimit;
-
-        String name = entityName(entity);
-        if (name != null) {
-            Double override = sl.minOverrides.get(name);
-            if (override != null && override != 0.0D) return override;
-        }
-        if (entity instanceof Player) {
-            if (sl.minPlayerSize != 0.0D) return sl.minPlayerSize;
-        } else if (isNPC(entity)) {
-            if (sl.minNpcSize != 0.0D) return sl.minNpcSize;
-        } else if (isMonster(entity)) {
-            if (sl.minMonsterSize != 0.0D) return sl.minMonsterSize;
-        } else {
-            if (sl.minAnimalSize != 0.0D) return sl.minAnimalSize;
-        }
-        return g.minEntitySize;
+        float[] limits = new float[2];
+        sizeLimitsFor(entity, limits);
+        return limits[0];
     }
 
     public static float getNewBasePlayerSize() {
@@ -144,10 +196,8 @@ public final class GulliverEnvoy {
     }
 
     /**
-     * 1.6.4 lookup order: per-entity 'entity{id}' override → per-entity-name
-     * override → class default. Modern MC has no numeric entity IDs, but
-     * legacy 'entity{id}' override keys remain honoured if present in the
-     * config (string-equality lookup only).
+     * 1.6.4 lookup order: per-entity override (by full id, or the plain
+     * path of older configs) → class default.
      */
     public static float getNewBaseEntitySize(Entity entity) {
         Level level = entity.level();
@@ -155,12 +205,9 @@ public final class GulliverEnvoy {
             return 1.0F;
         }
         GulliverConfig.SpawnSize ss = GulliverConfig.INSTANCE.spawnSize;
-        String name = entityName(entity);
-        if (name != null) {
-            String byName = ss.overrides.get(name);
-            if (byName != null && !byName.isEmpty()) {
-                return getSizeFromRangeString(byName, false);
-            }
+        String byName = override(ss.overrides, entity);
+        if (byName != null && !byName.isEmpty()) {
+            return getSizeFromRangeString(byName, false);
         }
         if (isNPC(entity)) {
             return getSizeFromRangeString(ss.baseNpcSize, false);
@@ -191,11 +238,16 @@ public final class GulliverEnvoy {
         for (String set : sizes.split(",", -1)) {
             String[] range = set.trim().split("-", -1);
             if (range.length > 2) return false;
-            for (String part : range) {
+            for (int i = 0; i < range.length; i++) {
+                String part = range[i].trim();
                 try {
-                    float f = allowHeights ? parsePlayerHeight(part.trim()) : Float.parseFloat(part.trim());
-                    if (isInvalidSize(f)) return false;
-                } catch (NumberFormatException | ArrayIndexOutOfBoundsException ex) {
+                    float f = allowHeights ? parsePlayerHeight(part) : Float.parseFloat(part);
+                    // A range may start at 0 ("0-2"); it never rolls 0 itself.
+                    boolean ok = i == 0 && range.length == 2
+                            ? f >= 0.0F && !Float.isInfinite(f) && !Float.isNaN(f)
+                            : !isInvalidSize(f);
+                    if (!ok) return false;
+                } catch (RuntimeException ex) {
                     return false;
                 }
             }
@@ -229,29 +281,34 @@ public final class GulliverEnvoy {
     }
 
     private static float getSizeFromRangeString(String sizes, boolean allowHeights, boolean strict) {
-        float f1;
-        float f2 = 1.0F;
-        String[] sets = sizes.split(",");
-        int r = RAND.nextInt(sets.length);
-        String[] range = sets[r].split("-");
-        String s1 = range[0];
-        String s2 = range.length > 1 ? range[1] : "";
-
+        float bad = strict ? Float.NaN : 1.0F;
+        if (sizes == null) return bad;
         try {
-            f1 = allowHeights ? parsePlayerHeight(s1) : Float.parseFloat(s1);
-        } catch (NumberFormatException ex) {
-            return strict ? Float.NaN : 1.0F;
-        }
-        if (range.length == 1) return f1;
-        try {
-            f2 = allowHeights ? parsePlayerHeight(s2) : Float.parseFloat(s2);
-        } catch (NumberFormatException ex) {
-            return strict ? Float.NaN : f1;
-        }
-        if (f1 > f2) return f1;
+            // A trailing separator ("1,", "-") keeps its empty piece, so the
+            // set and range always have a first element to parse.
+            String[] sets = sizes.split(",", -1);
+            String[] range = sets[RAND.nextInt(sets.length)].split("-", -1);
+            if (range.length > 2 && strict) return bad;
+            float f1 = allowHeights ? parsePlayerHeight(range[0].trim()) : Float.parseFloat(range[0].trim());
+            if (Float.isNaN(f1) || Float.isInfinite(f1) || f1 < 0.0F) return bad;
+            if (range.length == 1) return isInvalidSize(f1) ? bad : f1;
+            float f2;
+            try {
+                f2 = allowHeights ? parsePlayerHeight(range[1].trim()) : Float.parseFloat(range[1].trim());
+            } catch (NumberFormatException ex) {
+                return strict || isInvalidSize(f1) ? bad : f1;
+            }
+            if (isInvalidSize(f2)) return strict || isInvalidSize(f1) ? bad : f1;
+            if (f1 > f2) return f1;
 
-        f1 += (f2 - f1) * RAND.nextInt(9) / 8.0F;
-        return f1;
+            // Nine evenly spaced rolls from start to end. A range that starts
+            // at 0 ("0-2") skips the zero step: a size of 0 is no size.
+            int step = RAND.nextInt(f1 > 0.0F ? 9 : 8) + (f1 > 0.0F ? 0 : 1);
+            f1 += (f2 - f1) * step / 8.0F;
+            return isInvalidSize(f1) ? bad : f1;
+        } catch (RuntimeException ex) {
+            return bad;
+        }
     }
 
     /**

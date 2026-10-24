@@ -16,9 +16,10 @@ public final class Payloads {
     private Payloads() {}
 
     /**
-     * S2C: an entity's size changed. sizeMult is the full composed
-     * multiplier (base x potion x items) the entity is heading to; the
-     * server is the source of truth and the client stores it as its base.
+     * S2C: an entity's size changed. sizeMult is the entity's effective
+     * size (base x potion x items, already clamped to its limits by the
+     * server) it is heading to; the server is the source of truth and the
+     * client stores it as its base, whatever its own config says.
      */
     public record EntitySize(int entityId, float sizeMult) implements GulliverPayload {
         public static final Identifier ID = Gulliver.id("entity_size");
@@ -36,6 +37,32 @@ public final class Payloads {
         //#if MC >= 1.20.5
         public static final Type<EntitySize> TYPE = new Type<>(ID);
         @Override public Type<EntitySize> type() { return TYPE; }
+        //#endif
+    }
+
+    /**
+     * S2C: the server's settings a client has to follow. Sent on join and
+     * after every config reload. minSize/maxSize are the server's general
+     * size range (the most any creature can be); dyeResizing says whether
+     * the dye and mushroom use packet is worth sending at all.
+     */
+    public record ServerSettings(boolean dyeResizing, float minSize, float maxSize) implements GulliverPayload {
+        public static final Identifier ID = Gulliver.id("server_settings");
+
+        public static ServerSettings read(FriendlyByteBuf b) {
+            return new ServerSettings(b.readBoolean(), b.readFloat(), b.readFloat());
+        }
+
+        @Override
+        public void write(FriendlyByteBuf b) {
+            b.writeBoolean(dyeResizing);
+            b.writeFloat(minSize);
+            b.writeFloat(maxSize);
+        }
+
+        //#if MC >= 1.20.5
+        public static final Type<ServerSettings> TYPE = new Type<>(ID);
+        @Override public Type<ServerSettings> type() { return TYPE; }
         //#endif
     }
 
