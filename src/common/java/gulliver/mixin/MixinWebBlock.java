@@ -2,7 +2,10 @@ package gulliver.mixin;
 
 import gulliver.api.IResizeableEntity;
 import gulliver.common.GulliverEnvoy;
+import gulliver.platform.Services;
 import net.minecraft.core.BlockPos;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
 //#if MC >= 1.21.5
 import net.minecraft.world.entity.InsideBlockEffectApplier;
@@ -44,7 +47,17 @@ public abstract class MixinWebBlock {
         // Use getRandom() — Level.random is private since 26.x.
         if (level.getRandom().nextInt(50) != 0) return;
 
+        // A player's giant stride is bound by the same protection as their
+        // pickaxe: spawn protection, adventure mode and the loader's claim
+        // checks (mobs have only the size_griefing / mobGriefing rules).
+        if (entity instanceof ServerPlayer player
+                && (!player.getAbilities().mayBuild
+                    || !level.mayInteract(player, pos)
+                    || !Services.platform().mayBreakBlock((ServerLevel) level, pos, state, player))) {
+            return;
+        }
+
         // Drop loot then remove the cobweb (vanilla destroyBlock with drop).
-        level.destroyBlock(pos, true);
+        level.destroyBlock(pos, true, entity);
     }
 }

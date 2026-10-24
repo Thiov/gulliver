@@ -49,15 +49,18 @@ public abstract class MixinSnowLayerBlock {
         if (sized.isExtraTiny()) {
             adj = layers + 1;
         } else if (sized.isHuge()) {
-            adj = layers - (int) (mult * 1.25F);
+            // (the cast also keeps a size-32 sink from overflowing)
+            adj = layers - (int) Math.min(mult * 1.25F, 16.0F);
         }
 
+        // Vanilla's collision for L layers is SHAPES[L - 1] (SHAPES has nine
+        // entries, 0 to 8 layers' height: one layer has no collision, eight
+        // is a full block). Eight layers for an extra-tiny is therefore the
+        // full block, SHAPES[8], not the seven-layer shape.
         if (adj <= 0) {
             cir.setReturnValue(Shapes.empty());
-        } else if (adj >= 8) {
-            cir.setReturnValue(SHAPES[7]);
         } else {
-            cir.setReturnValue(SHAPES[adj - 1]);
+            cir.setReturnValue(SHAPES[Math.min(adj, SHAPES.length) - 1]);
         }
     }
 }

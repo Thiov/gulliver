@@ -5,6 +5,7 @@ import gulliver.api.IResizeableEntity;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.CarpetBlock;
 import net.minecraft.world.level.block.SnowLayerBlock;
 import net.minecraft.world.level.block.SoulSandBlock;
@@ -18,7 +19,8 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
  * Size-dependent ground drag, applied through the block speed factor so it
  * counts once per move however many blocks the body overlaps:
  *
- *  - soul sand: giants stride over it, tinies sink in twice as slow;
+ *  - soul sand: giants stride over it, tinies sink in twice as slow (and,
+ *    like vanilla's own slowdown, not at all while standing in water);
  *  - snow (2+ layers) and carpet: extra-tinies wade through slowly
  *    (1.6.4 "struggling").
  */
@@ -33,9 +35,12 @@ public abstract class MixinEntityBlockSpeed {
         float factor = cir.getReturnValueF();
         BlockState feet = self.level().getBlockState(self.blockPosition());
 
-        if (feet.getBlock() instanceof SoulSandBlock
+        // Vanilla skips the block underfoot while the feet are in water, and
+        // soul sand's slowdown with it.
+        boolean wet = feet.is(Blocks.WATER) || feet.is(Blocks.BUBBLE_COLUMN);
+        if (!wet && (feet.getBlock() instanceof SoulSandBlock
                 || self.level().getBlockState(BlockPos.containing(self.getX(), self.getY() - 0.5000001D, self.getZ()))
-                        .getBlock() instanceof SoulSandBlock) {
+                        .getBlock() instanceof SoulSandBlock)) {
             if (sized.isHuge()) cir.setReturnValue(Math.max(factor, 1.0F));
             else if (sized.isTiny()) cir.setReturnValue(factor * 0.5F);
             return;

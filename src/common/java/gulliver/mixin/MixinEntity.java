@@ -199,9 +199,8 @@ public abstract class MixinEntity implements IResizeableEntity, IGulliverEntityI
     @Override
     @Unique
     public float getSizeMovementMultiplier() {
-        // 1.6.4 nn.java line 316-325
-        if (!isWeighted()) return getSizeMultiplierRoot();
-        return getSizeMultiplier();
+        // 1.6.4 nn.java line 316-325 (curve and its large-size cap: Movement)
+        return gulliver.common.Movement.speedMultiplier(getSizeMultiplier(), isWeighted());
     }
 
     @Override
@@ -285,14 +284,8 @@ public abstract class MixinEntity implements IResizeableEntity, IGulliverEntityI
     private void gulliver$scaleStepHeight(CallbackInfoReturnable<Float> cir) {
         float m = getSizeMultiplier();
         if (m == 1.0F) return;
-        float f = cir.getReturnValue();
-        float norm = 1.0F;
-        // Bounded: 1/32..32 needs at most five halvings or doublings, so even
-        // a size that slipped past the clamp can't spin here.
-        for (int i = 0; i < 12 && norm * m < 0.5F; i++) { norm *= 2.0F; f /= 2.0F; }
-        for (int i = 0; i < 12 && norm * m > 1.0F; i++) { norm /= 2.0F; f *= 2.0F; }
-        if (norm * m < 0.65F) { f *= norm * m; }
-        cir.setReturnValue(f);
+        // (shared with LivingEntity's own maxUpStep, MixinLivingEntityStep)
+        cir.setReturnValue(gulliver.common.Movement.stepHeight(cir.getReturnValue(), m));
     }
 
     /**
