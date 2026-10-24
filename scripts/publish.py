@@ -114,6 +114,7 @@ def curseforge(args, files, changelog):
     _, types = request("GET", f"{CF_API}/game/version-types", h)
     mc_types = {t["id"] for t in types if t["slug"].startswith("minecraft-")}
     loader_types = {t["id"] for t in types if t["slug"] == "modloader"}
+    env_types = {t["id"] for t in types if t["slug"] == "environment"}
     _, versions = request("GET", f"{CF_API}/game/versions", h)
     by_name = {}
     for v in versions:
@@ -121,6 +122,10 @@ def curseforge(args, files, changelog):
             by_name.setdefault(("mc", v["name"]), v["id"])
         elif v["gameVersionTypeID"] in loader_types:
             by_name.setdefault(("loader", v["name"]), v["id"])
+        elif v["gameVersionTypeID"] in env_types:
+            by_name.setdefault(("env", v["name"]), v["id"])
+    # The mod runs on both sides; CurseForge wants at least one environment tag.
+    environments = [by_name[("env", n)] for n in ("Client", "Server") if ("env", n) in by_name]
     for f in files:
         ids, missing = [], []
         for g in f["games"]:
@@ -138,7 +143,7 @@ def curseforge(args, files, changelog):
             "changelog": changelog,
             "changelogType": "markdown",
             "displayName": f["name"][:-4],
-            "gameVersions": ids + [loader_id],
+            "gameVersions": ids + [loader_id] + environments,
             "releaseType": args.release_type,
         }
         if f["loader"] == "fabric":

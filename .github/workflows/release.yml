@@ -37,6 +37,11 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: ${{ inputs.tag || github.ref }}
+      - name: Latest publishing scripts
+        # Tooling fixes on main also apply when an older tag is (re)published.
+        run: |
+          git fetch --depth=1 origin main
+          git checkout FETCH_HEAD -- scripts/publish.py
       - uses: actions/download-artifact@v4
         with:
           pattern: gulliver-*
