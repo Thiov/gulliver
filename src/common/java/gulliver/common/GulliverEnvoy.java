@@ -1093,8 +1093,7 @@ public final class GulliverEnvoy {
                 && isMovingFreely(entity)
                 && !onLadder && !entity.isShiftKeyDown()
                 && !inWater && !inRain
-                && glideable
-                && !isEntityIntersectingPlant(entity);
+                && glideable;
         // 1.6.4 also gates on airborne (entity.fallDistance > 0 OR not onGround);
         // we check onGround so newly-jumped tinies start gliding immediately.
         canGlide = canGlide && !entity.onGround();
@@ -1112,6 +1111,24 @@ public final class GulliverEnvoy {
     public static boolean isMovingFreely(net.minecraft.world.entity.LivingEntity entity) {
         if (entity.isFallFlying() || entity.isSpectator() || entity.isPassenger() || entity.noPhysics) return false;
         return !(entity instanceof Player p && p.getAbilities().flying);
+    }
+
+    /**
+     * Keeps the Hidden effect in step with hiding: an extra-tiny inside a
+     * flower, sapling or flower pot is invisible to everyone else, and the
+     * effect's icon is how the player knows. Server side, every tick.
+     */
+    public static void updateHidden(net.minecraft.server.level.ServerPlayer player) {
+        boolean hiding = !player.isSpectator() && ((IResizeableEntity) player).isExtraTiny()
+                && isEntityIntersectingPlant(player);
+        var effect = gulliver.init.GulliverEffects.hidden();
+        boolean shown = player.hasEffect(effect);
+        if (hiding && !shown) {
+            player.addEffect(new net.minecraft.world.effect.MobEffectInstance(effect,
+                    net.minecraft.world.effect.MobEffectInstance.INFINITE_DURATION, 0, true, false, true));
+        } else if (!hiding && shown) {
+            player.removeEffect(effect);
+        }
     }
 
     /**

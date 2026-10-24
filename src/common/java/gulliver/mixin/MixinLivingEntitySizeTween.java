@@ -59,6 +59,7 @@ public abstract class MixinLivingEntitySizeTween {
         if (server) {
             // Players re-check every tick: their reach also depends on what
             // they hold (a tiny with a sword reaches further).
+            if (self instanceof ServerPlayer player) gulliver.common.GulliverEnvoy.updateHidden(player);
             if (live != gulliver$attrSize && self instanceof ServerPlayer player) {
                 gulliver.common.GulliverAdvancements.onPlayerSize(player, live);
             }

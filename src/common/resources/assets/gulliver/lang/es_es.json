@@ -9,6 +9,7 @@
   "key.gulliver.shoulder": "Criatura al hombro",
   "effect.gulliver.tiny": "Encogimiento",
   "effect.gulliver.huge": "Agrandamiento",
+  "effect.gulliver.hidden": "Oculto",
   "item.minecraft.potion.effect.gulliver.tiny": "Poción de encogimiento",
   "item.minecraft.splash_potion.effect.gulliver.tiny": "Poción arrojadiza de encogimiento",
   "item.minecraft.lingering_potion.effect.gulliver.tiny": "Poción persistente de encogimiento",

@@ -16,6 +16,7 @@ Gulliver now also runs on **Minecraft 26.3** (Fabric, NeoForge and Forge), next 
 - **Tooltips** on paper, lily pads, slimeballs, string, fishing rods and pointy items explain what they do while you're tiny.
 - **Advancements**: a Gulliver tab with Ant's-Eye View, Head in the Clouds, Paper Plane, Up We Go, Tiny Rider, Pocket Friend and Watch Your Step, next to Drink Me and Eat Me.
 - **Settings**: screen shake strength (it also follows vanilla's Damage Tilt and Distortion Effects), smooth resizing, size readout, loot scaling, giant boss bars and tiny mounts.
+- **Hidden icon**: while an extra-tiny hides in a flower, sapling or flower pot, a closed-eye effect icon shows you that others can't see you (you still see yourself in third person). The Tiny and Huge effects got proper icons too.
 - Easier to click small creatures: the crosshair is more forgiving with creatures far smaller than you.
 - Giant name tags and shadows stay visible from further away; splashes scale with the body entering the water.
 
@@ -34,6 +35,7 @@ Gulliver now also runs on **Minecraft 26.3** (Fabric, NeoForge and Forge), next 
 - Screen shake no longer stops working after about half an hour on 1.20.1 and 1.21.10, and stops while paused or dead.
 - The inventory player preview shows you at normal size; the third-person camera accounts for big mounts.
 - Item pickup is only strict for tinies, not just below size 1.
+- Gliding no longer stops when you fly over flowers or saplings.
 - Sneak-jumps, sprint-jumps, horse and rabbit jumps and the giant walk animation scale properly.
 - Bees really attack tinies, spiders need to see their prey, creepers still flee tiny cats, ender chests need a pointy item, and trampling spares your own pets and teammates.
 - A broken `gulliver.json` is backed up instead of overwritten, invalid values are rejected, and `/gulliver reload` reports errors. `/gulliver get` is operator-only, as documented.

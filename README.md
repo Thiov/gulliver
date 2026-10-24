@@ -45,7 +45,7 @@ Get the jars from the [releases page](https://github.com/Thiov/gulliver/releases
 - Climb soft blocks while sneaking, or any wall with a slimeball or string in hand.
 - Carry a pointy item (sword, tool, or stick) to use functional blocks. You're too light to trip pressure plates and tripwires.
 - **Rain slowly drowns the smallest sizes.** Hold a lily pad overhead as an umbrella, get under cover, or sneak to huddle.
-- Hide inside flowers.
+- Hide inside flowers: others can't see you, and an eye icon tells you you're hidden.
 - **Ride small animals**: right-click a chicken, rabbit, cat, ocelot, wolf or fox at least three times your size with an empty hand and steer it like a horse. Chickens flap down gently, rabbits leap.
 - Wind charges and breezes fling tinies across the room; giants barely notice them.
 - Paper, lily pads, slimeballs, and string all work from **either hand**, and their tooltips tell you what they do while you're tiny.

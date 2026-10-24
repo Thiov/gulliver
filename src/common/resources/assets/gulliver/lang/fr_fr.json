@@ -9,6 +9,7 @@
   "key.gulliver.shoulder": "Créature sur l'épaule",
   "effect.gulliver.tiny": "Rétrécissement",
   "effect.gulliver.huge": "Agrandissement",
+  "effect.gulliver.hidden": "Caché",
   "item.minecraft.potion.effect.gulliver.tiny": "Potion de rétrécissement",
   "item.minecraft.splash_potion.effect.gulliver.tiny": "Potion jetable de rétrécissement",
   "item.minecraft.lingering_potion.effect.gulliver.tiny": "Potion persistante de rétrécissement",
