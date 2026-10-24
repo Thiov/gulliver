@@ -36,6 +36,7 @@ public final class ClientPacketHandlers {
         if (e == null) return;
         IGulliverEntityInternal sized = (IGulliverEntityInternal) e;
         float newSize = payload.sizeMult();
+        float oldSize = ((gulliver.api.IResizeableEntity) e).getSizeMultiplier();
         sized.gulliver$setSizeBaseDestMultiplier(newSize);
         sized.gulliver$setSizePotionMultiplier(1.0F);
         sized.gulliver$setSizeItemMultiplier(1.0F);
@@ -46,6 +47,8 @@ public final class ClientPacketHandlers {
         if (sized.gulliver$getSizeBaseMultiplier() == 1.0F && newSize != 1.0F) {
             sized.gulliver$setSizeBaseMultiplier(newSize);
             e.refreshDimensions();
+        } else {
+            SizeChangeFx.onSizeChanged(e, oldSize, newSize);
         }
     }
 
