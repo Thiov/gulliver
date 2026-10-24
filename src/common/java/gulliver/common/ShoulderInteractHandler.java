@@ -15,6 +15,8 @@ import net.minecraft.world.phys.BlockHitResult;
 /**
  * Right-click handling for the carry system:
  *  - sneak + RMB (empty hand) on a carryable target -> pick it up
+ *  - RMB (empty hand, not sneaking) on a small animal at least three times
+ *    your size -> ride it (TinyMounts)
  *  - RMB holding STRING on a target at least twice your size -> ride it
  *  - RMB in air / on a block while carrying in HAND -> set it down (on
  *    the clicked block's top face when there is one)
@@ -27,13 +29,9 @@ import net.minecraft.world.phys.BlockHitResult;
 public final class ShoulderInteractHandler {
     private ShoulderInteractHandler() {}
 
-    private static boolean carryingInHand(Player player) {
-        return ((IGulliverShoulderInternal) player).gulliver$getHandEntity() != null;
-    }
-
     /** RMB in air while carrying in HAND: set the hand-held down in place. */
     public static InteractionResult onUseItem(Player player, Level level, InteractionHand hand) {
-        if (hand != InteractionHand.MAIN_HAND || !carryingInHand(player)) return InteractionResult.PASS;
+        if (hand != InteractionHand.MAIN_HAND || !ShoulderHelper.handOccupied(player)) return InteractionResult.PASS;
         if (player instanceof ServerPlayer carrier) ShoulderHelper.detachHand(carrier);
         return InteractionResult.SUCCESS;
     }
@@ -41,6 +39,8 @@ public final class ShoulderInteractHandler {
     public static InteractionResult onUseEntity(Player player, Level level, InteractionHand hand, Entity entity) {
         // Fabric's UseEntityCallback fires for spectators too.
         if (hand != InteractionHand.MAIN_HAND || player.isSpectator()) return InteractionResult.PASS;
+        // The claim probe of ShoulderHelper.mayInteract fires this same event; it is none of our business.
+        if (ShoulderHelper.isProbing()) return InteractionResult.PASS;
 
         // String-ride: holding STRING (either hand), RMB a living target at
         // least twice your size -> ride it. Bosses excepted.
@@ -49,7 +49,7 @@ public final class ShoulderInteractHandler {
                 && player.getVehicle() == null) {
             float riderSize = ((IResizeableEntity) player).getSizeMultiplier();
             float targetSize = ((IResizeableEntity) target).getSizeMultiplier();
-            if (riderSize <= targetSize * 0.5F) {
+            if (riderSize <= targetSize * 0.5F && !TinyMounts.refusesRide(player, target)) {
                 if (player instanceof ServerPlayer rider) {
                     //#if MC >= 1.21.5
                     rider.startRiding(target, true, false);
@@ -61,29 +61,29 @@ public final class ShoulderInteractHandler {
             }
         }
 
+        // Empty hand, not sneaking, a small animal much bigger than you: climb on.
+        if (!player.isShiftKeyDown() && ShoulderHelper.handFree(player) && GulliverConfig.INSTANCE.general.tinyMounts
+                && TinyMounts.canBoard(player, entity)) {
+            if (player instanceof ServerPlayer rider && !TinyMounts.mount(rider, entity)) return InteractionResult.PASS;
+            return InteractionResult.SUCCESS;
+        }
+
         // Sneak + RMB with an empty hand: pick up (swapping out any current
         // hand-held; shoulder slots are never touched here).
         if (!player.isShiftKeyDown() || !ShoulderHelper.handFree(player)) return InteractionResult.PASS;
         if (!ShoulderHelper.canCarry(player, entity)) return InteractionResult.PASS;
-        if (player instanceof ServerPlayer carrier) ShoulderHelper.pickUp(carrier, entity);
+        if (player instanceof ServerPlayer carrier && !ShoulderHelper.pickUp(carrier, entity)) {
+            return InteractionResult.PASS; // somebody else's pet, or a claim said no
+        }
         return InteractionResult.SUCCESS;
     }
 
-    /** RMB on a block while carrying in HAND: place the hand-held on top of it. */
+    /** RMB on a block while carrying in HAND: place the hand-held on, beside or under it. */
     public static InteractionResult onUseBlock(Player player, Level level, InteractionHand hand, BlockHitResult hitResult) {
-        if (hand != InteractionHand.MAIN_HAND || !carryingInHand(player)) return InteractionResult.PASS;
+        if (hand != InteractionHand.MAIN_HAND || !ShoulderHelper.handOccupied(player)) return InteractionResult.PASS;
         if (player instanceof ServerPlayer carrier) {
             Entity held = ShoulderHelper.detachHand(carrier);
-            if (held != null) {
-                net.minecraft.world.phys.Vec3 hit = hitResult.getLocation();
-                net.minecraft.core.BlockPos pos = hitResult.getBlockPos();
-                double placeY = hitResult.getDirection() == net.minecraft.core.Direction.UP
-                        ? pos.getY() + 1.0D
-                        : hit.y;
-                held.setPos(hit.x, placeY, hit.z);
-                held.setDeltaMovement(0.0D, 0.0D, 0.0D);
-                held.fallDistance = 0.0F;
-            }
+            if (held != null) ShoulderHelper.setDownOn(carrier, held, hitResult);
         }
         return InteractionResult.SUCCESS;
     }
@@ -96,8 +96,9 @@ public final class ShoulderInteractHandler {
     }
 
     /**
-     * Carrier changed dimension: carried entities stay behind (they are
-     * not vanilla passengers), so clear the slots and release them.
+     * Carrier changed dimension. By now the carried entities have been
+     * released already (MixinServerLevelRemovePlayer lets go before the
+     * player leaves); this is the safety net for anything that slipped by.
      */
     public static void onChangeDimension(ServerPlayer player) {
         if (((IGulliverShoulderInternal) player).gulliver$hasAnyCarry()) {

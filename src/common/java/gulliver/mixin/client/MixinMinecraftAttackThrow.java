@@ -1,6 +1,6 @@
 package gulliver.mixin.client;
 
-import gulliver.access.IGulliverShoulderInternal;
+import gulliver.common.ShoulderHelper;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
 import org.spongepowered.asm.mixin.Mixin;
@@ -21,8 +21,9 @@ public abstract class MixinMinecraftAttackThrow {
 
     @Inject(method = "startAttack", at = @At("HEAD"), cancellable = true)
     private void gulliver$throwHeldOnAttack(CallbackInfoReturnable<Boolean> cir) {
-        if (player == null) return;
-        if (((IGulliverShoulderInternal) player).gulliver$getHandEntity() == null) return;
+        // handOccupied also clears a slot whose creature is gone, so a lost
+        // release packet can't swallow every later attack.
+        if (player == null || !ShoulderHelper.handOccupied(player)) return;
         // The server-side ShoulderHelper.throwHeld does the throw and
         // broadcasts the detach.
         if (gulliver.platform.Services.platform().sendToServer(
