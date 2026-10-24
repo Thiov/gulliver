@@ -14,7 +14,9 @@ public final class GulliverClient {
 
     /** End of every client tick (MixinMinecraftTick). */
     public static void onClientTick(Minecraft mc) {
+        PickBoost.end(); // the crosshair pick completes within a frame; this only heals a stuck window
         KeyInputHandler.tick(mc);
+        VisualSize.tick(mc);
         TremorHandler.tick(mc);
         ClientSelfTest.tick(mc);
     }
