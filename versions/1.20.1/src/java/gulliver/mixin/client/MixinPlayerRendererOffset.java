@@ -1,6 +1,6 @@
 package gulliver.mixin.client;
 
-import gulliver.api.IResizeableEntity;
+import gulliver.client.VisualSize;
 import net.minecraft.client.player.AbstractClientPlayer;
 import net.minecraft.client.renderer.entity.player.PlayerRenderer;
 import net.minecraft.world.phys.Vec3;
@@ -17,10 +17,10 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 public abstract class MixinPlayerRendererOffset {
 
     @Inject(method = "getRenderOffset(Lnet/minecraft/client/player/AbstractClientPlayer;F)Lnet/minecraft/world/phys/Vec3;",
-            at = @At("RETURN"), cancellable = true)
+            at = @At("RETURN"), cancellable = true, require = 0)
     private void gulliver$scaleCrouchOffset(AbstractClientPlayer player, float partialTick,
                                              CallbackInfoReturnable<Vec3> cir) {
-        float m = ((IResizeableEntity) player).getSizeMultiplier();
+        float m = VisualSize.renderScale(player, partialTick);
         if (m != 1.0F) cir.setReturnValue(cir.getReturnValue().scale(m));
     }
 }

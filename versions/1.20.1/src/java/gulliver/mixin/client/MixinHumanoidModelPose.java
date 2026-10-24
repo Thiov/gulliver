@@ -28,7 +28,7 @@ public abstract class MixinHumanoidModelPose {
     @Shadow @Final public ModelPart rightLeg;
     @Shadow @Final public ModelPart leftLeg;
 
-    @Inject(method = "setupAnim(Lnet/minecraft/world/entity/LivingEntity;FFFFF)V", at = @At("RETURN"))
+    @Inject(method = "setupAnim(Lnet/minecraft/world/entity/LivingEntity;FFFFF)V", at = @At("RETURN"), require = 0)
     private void gulliver$applyPose(LivingEntity entity, float pos, float speedRaw, float age,
                                      float netHeadYaw, float headPitch, CallbackInfo ci) {
         IResizeableLiving g = (IResizeableLiving) entity;

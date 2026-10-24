@@ -3,6 +3,7 @@ package gulliver.mixin.client;
 import com.mojang.blaze3d.vertex.PoseStack;
 import gulliver.api.IResizeableLiving;
 import gulliver.client.PropRender;
+import gulliver.client.VisualSize;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.entity.layers.ItemInHandLayer;
 import net.minecraft.world.entity.HumanoidArm;
@@ -22,7 +23,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Mixin(ItemInHandLayer.class)
 public abstract class MixinItemInHandLayer {
 
-    @Inject(method = "renderArmWithItem", at = @At("HEAD"), cancellable = true)
+    @Inject(method = "renderArmWithItem", at = @At("HEAD"), cancellable = true, require = 0)
     private void gulliver$hideLilyPad(LivingEntity entity, ItemStack stack, ItemDisplayContext ctx, HumanoidArm arm,
                                        PoseStack pose, MultiBufferSource buffers, int light, CallbackInfo ci) {
         IResizeableLiving g = (IResizeableLiving) entity;
@@ -31,7 +32,7 @@ public abstract class MixinItemInHandLayer {
 
     @Inject(method = "renderArmWithItem",
             at = @At(value = "INVOKE", target = "Lcom/mojang/blaze3d/vertex/PoseStack;translate(FFF)V",
-                     shift = At.Shift.AFTER, ordinal = 0))
+                     shift = At.Shift.AFTER, ordinal = 0), require = 0)
     private void gulliver$adjustItem(LivingEntity entity, ItemStack stack, ItemDisplayContext ctx, HumanoidArm arm,
                                       PoseStack pose, MultiBufferSource buffers, int light, CallbackInfo ci) {
         IResizeableLiving g = (IResizeableLiving) entity;
@@ -41,7 +42,8 @@ public abstract class MixinItemInHandLayer {
             pose.mulPose(com.mojang.math.Axis.ZP.rotationDegrees(90.0F * side));
             pose.translate(0.0F, 0.3F, -0.3F);
         }
-        float size = g.getSizeMultiplier();
+        // The size the body is drawn at (1 inside the inventory preview).
+        float size = VisualSize.renderScale(entity);
         if (size != 1.0F && !gulliver.common.GulliverConfig.INSTANCE.client.proportionalHeldItems()) {
             float invRoot = 1.0F / (float) Math.sqrt(size);
             pose.scale(invRoot, invRoot, invRoot);
