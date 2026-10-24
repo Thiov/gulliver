@@ -62,11 +62,14 @@ public final class ShoulderHelper {
     private static final float MAX_SIZE_RATIO = 0.4F;
 
     /**
-     * Fastest a throw can send a creature (blocks per tick). Clients clamp
-     * velocity packets at 3.9, so anything faster only made the server
-     * simulate a flight the carried player's own client never saw.
+     * Fastest a throw can send a creature (blocks per tick): 12 up to size 8,
+     * and growing with the square root of the carrier's size above that, so
+     * a 32x giant still outthrows an 8x one without sending anything
+     * absurdly fast.
      */
-    private static final float MAX_THROW_POWER = 3.9F;
+    private static float maxThrowPower(float carrierSize) {
+        return 12.0F * Math.max(1.0F, (float) Math.sqrt(carrierSize / 8.0F));
+    }
 
     /** Set while a claim-mod probe runs on this thread, so the probe event doesn't re-enter the carry handlers. */
     private static final ThreadLocal<Boolean> PROBING = ThreadLocal.withInitial(() -> Boolean.FALSE);
@@ -498,7 +501,7 @@ public final class ShoulderHelper {
      * Throw the HAND-carried entity along the carrier's look. Power grows
      * with the size ratio and the carrier's absolute size (a giant's throw
      * is mighty in world units): 1.5 x carrierSize / sqrt(targetSize),
-     * capped at what a velocity packet can carry.
+     * capped by {@link #maxThrowPower}.
      */
     public static boolean throwHeld(ServerPlayer carrier) {
         IGulliverShoulderInternal cs = (IGulliverShoulderInternal) carrier;
@@ -512,7 +515,7 @@ public final class ShoulderHelper {
         float carrierSize = ((IResizeableEntity) carrier).getSizeMultiplier();
         float targetRoot = ((IResizeableEntity) held).getSizeMultiplierRoot();
         if (targetRoot <= 0.0F) targetRoot = 1.0F;
-        float power = Math.min(MAX_THROW_POWER, 1.5F * carrierSize / targetRoot);
+        float power = Math.min(maxThrowPower(carrierSize), 1.5F * carrierSize / targetRoot);
         held.setDeltaMovement(look.x * power, look.y * power + 0.3F, look.z * power);
         held.hurtMarked = true;
         return true;
@@ -626,7 +629,8 @@ public final class ShoulderHelper {
 
     private static Entity lookup(Player carrier, UUID id) {
         if (carrier.level() instanceof ServerLevel sl) return sl.getEntity(id);
-        double r = Math.max(8.0D, carrier.getBbWidth() * 4.0D);
+        // The slots are within an arm's length of the body; capped so a 32x giant doesn't scan a 150-block box every tick.
+        double r = Math.min(Math.max(8.0D, carrier.getBbWidth() * 4.0D), 24.0D);
         for (Entity e : carrier.level().getEntities(carrier, carrier.getBoundingBox().inflate(r))) {
             if (e.getUUID().equals(id)) return e;
         }
