@@ -50,6 +50,7 @@ public final class CommonEvents {
     }
 
     public static void onPlayerJoin(ServerPlayer player) {
+        SizeSync.sendSettings(player);
         SizeSync.broadcast(player);
     }
 

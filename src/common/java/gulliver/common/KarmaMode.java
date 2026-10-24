@@ -46,7 +46,11 @@ public final class KarmaMode {
     public static void onRespawn(ServerPlayer player, boolean alive) {
         if (!alive && GulliverConfig.INSTANCE.general.enableKarmaMode) {
             // Karma: a real death resets you to the configured spawn size.
-            ((IResizeableLiving) player).setBaseSize(GulliverEnvoy.getNewBasePlayerSize());
+            // That is a spawn, not growth: no bursting through the ceiling.
+            float size = GulliverEnvoy.getNewBasePlayerSize();
+            if (!GulliverEnvoy.isInvalidSize(size)) {
+                GulliverEnvoy.withoutGrowthBurst(() -> ((IResizeableLiving) player).setBaseSize(size));
+            }
         }
         refresh(player);
         // Vanilla restores 20 HP before our max-health modifier is back, so a
@@ -56,14 +60,18 @@ public final class KarmaMode {
             player.setHealth(player.getMaxHealth());
             player.setAirSupply(player.getMaxAirSupply());
         }
+        // Vanilla found the spot for a normal-size body.
+        BodyFit.settle(player);
     }
 
     /**
      * Changing dimension (portal, /tp) rebuilds the client's LocalPlayer
-     * with default fields, so the size has to be sent again.
+     * with default fields, so the size has to be sent again. A giant that
+     * arrives in a frame made for normal bodies gets room (BodyFit).
      */
     public static void onChangedDimension(ServerPlayer player) {
         refresh(player);
+        BodyFit.settle(player);
     }
 
     private static void refresh(ServerPlayer player) {

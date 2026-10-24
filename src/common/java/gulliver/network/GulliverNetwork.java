@@ -40,6 +40,7 @@ public final class GulliverNetwork {
 
     public static final List<Spec<?>> CLIENTBOUND = List.of(
             new Spec<>(Payloads.EntitySize.ID, Payloads.EntitySize.class, Payloads.EntitySize::read),
+            new Spec<>(Payloads.ServerSettings.ID, Payloads.ServerSettings.class, Payloads.ServerSettings::read),
             new Spec<>(Payloads.AttachEntitySpecial.ID, Payloads.AttachEntitySpecial.class, Payloads.AttachEntitySpecial::read),
             new Spec<>(Payloads.GroundShock.ID, Payloads.GroundShock.class, Payloads.GroundShock::read),
             new Spec<>(Payloads.HookAnchor.ID, Payloads.HookAnchor.class, Payloads.HookAnchor::read));

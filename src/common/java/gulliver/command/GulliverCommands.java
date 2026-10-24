@@ -11,6 +11,7 @@ import gulliver.api.IResizeableEntity;
 import gulliver.api.IResizeableLiving;
 import gulliver.common.GulliverConfig;
 import gulliver.common.GulliverEnvoy;
+import gulliver.network.SizeSync;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.commands.arguments.EntityArgument;
@@ -162,7 +163,7 @@ public final class GulliverCommands {
                         .then(Commands.argument("targets", EntityArgument.entities())
                                 .then(Commands.argument("factor", FloatArgumentType.floatArg(0.0F))
                                         .executes(GulliverCommands::selectorScale))))
-                .then(Commands.literal("get")
+                .then(Commands.literal("get").requires(OP2)
                         .then(Commands.argument("target", EntityArgument.entity())
                                 .executes(ctx -> {
                                     Entity e = EntityArgument.getEntity(ctx, "target");
@@ -172,19 +173,27 @@ public final class GulliverCommands {
                                     return 1;
                                 })))
                 .then(Commands.literal("reload").requires(OP4)
-                        .executes(ctx -> {
-                            GulliverConfig.load();
-                            ctx.getSource().sendSuccess(() -> Component.literal("Reloading Gulliver configuration"), true);
-                            return 1;
-                        })));
+                        .executes(GulliverCommands::reloadConfig)));
 
         // /reloadgullivercfg  (perm 4, the 1.6.4 mod's reload)
         dispatcher.register(Commands.literal("reloadgullivercfg").requires(OP4)
-                .executes(ctx -> {
-                    GulliverConfig.load();
-                    ctx.getSource().sendSuccess(() -> Component.literal("Reloading Gulliver configuration"), true);
-                    return 1;
-                }));
+                .executes(GulliverCommands::reloadConfig));
+    }
+
+    private static int reloadConfig(CommandContext<CommandSourceStack> ctx) {
+        String error = GulliverConfig.load();
+        if (error != null) {
+            ctx.getSource().sendFailure(Component.literal("Could not read gulliver.json (" + error
+                    + "). Still using the previous settings; the file was left as it is and a copy saved as gulliver.json.broken-*."));
+            return 0;
+        }
+        // Clients follow the server's size range and dye switch.
+        SizeSync.sendSettingsToAll(ctx.getSource().getServer());
+        int fixes = GulliverConfig.lastFixes();
+        String note = fixes == 0 ? "" : " (" + fixes + " value" + (fixes == 1 ? "" : "s")
+                + " out of range corrected, see the log)";
+        ctx.getSource().sendSuccess(() -> Component.literal("Reloaded Gulliver configuration" + note), true);
+        return 1;
     }
 
     // ---- selector handlers ----
@@ -192,31 +201,40 @@ public final class GulliverCommands {
     private static int selectorSize(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
         String sizeStr = StringArgumentType.getString(ctx, "size");
         int n = 0;
+        int clamped = 0;
         for (Entity e : EntityArgument.getEntities(ctx, "targets")) {
             if (!(e instanceof LivingEntity living) || GulliverEnvoy.isDragonEntity(e)) continue;
             // Heights ("5'9\"", "120cm") are allowed for everyone; ranges roll per entity.
             float size = GulliverEnvoy.getSizeFromRangeStringStrict(sizeStr, true);
             if (GulliverEnvoy.isInvalidSize(size)) throw INVALID_SIZE.create();
             ((IResizeableLiving) living).setBaseSize(size);
+            if (limited(size, baseSize(living))) clamped++;
             n++;
         }
-        int count = n;
-        ctx.getSource().sendSuccess(() -> Component.literal("Resized " + count + " entit" + (count == 1 ? "y" : "ies")), true);
-        return count;
+        sendResult(ctx, "Resized", n, clamped);
+        return n;
     }
 
     private static int selectorScale(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
         float factor = FloatArgumentType.getFloat(ctx, "factor");
         if (GulliverEnvoy.isInvalidSize(factor)) throw INVALID_SIZE.create();
         int n = 0;
+        int clamped = 0;
         for (Entity e : EntityArgument.getEntities(ctx, "targets")) {
             if (!(e instanceof LivingEntity living) || GulliverEnvoy.isDragonEntity(e)) continue;
+            float asked = baseSize(living) * factor;
             ((IResizeableLiving) living).adjustBaseSize(factor);
+            if (limited(asked, baseSize(living))) clamped++;
             n++;
         }
-        int count = n;
-        ctx.getSource().sendSuccess(() -> Component.literal("Rescaled " + count + " entit" + (count == 1 ? "y" : "ies")), true);
-        return count;
+        sendResult(ctx, "Rescaled", n, clamped);
+        return n;
+    }
+
+    private static void sendResult(CommandContext<CommandSourceStack> ctx, String verb, int count, int clamped) {
+        String text = verb + " " + count + " entit" + (count == 1 ? "y" : "ies")
+                + (clamped == 0 ? "" : " (" + clamped + " held back by the size limits)");
+        ctx.getSource().sendSuccess(() -> Component.literal(text), true);
     }
 
     // ---- player-targeted handlers ----
@@ -228,7 +246,7 @@ public final class GulliverCommands {
         float size = GulliverEnvoy.getSizeFromRangeStringStrict(sizeStr, true);
         if (GulliverEnvoy.isInvalidSize(size)) throw INVALID_SIZE.create();
         ((IResizeableLiving) target).setBaseSize(size);
-        successSize(ctx, target);
+        successSize(ctx, target, size);
         return 1;
     }
 
@@ -238,8 +256,9 @@ public final class GulliverCommands {
             ctx.getSource().sendFailure(Component.literal("Invalid factor: " + factor));
             return 0;
         }
+        float asked = baseSize(target) * factor;
         ((IResizeableLiving) target).adjustBaseSize(factor);
-        successSize(ctx, target);
+        successSize(ctx, target, asked);
         return 1;
     }
 
@@ -247,14 +266,16 @@ public final class GulliverCommands {
         // MixinLivingEntity overrides halveSize to route through
         // setBaseSize, which already clamps, refreshes dimensions, and
         // broadcasts the size sync — no extra plumbing needed here.
+        float asked = baseSize(target) * 0.5F;
         ((IResizeableEntity) target).halveSize();
-        successSize(ctx, target);
+        successSize(ctx, target, asked);
         return 1;
     }
 
     private static int doubleSize(CommandContext<CommandSourceStack> ctx, ServerPlayer target) {
+        float asked = baseSize(target) * 2.0F;
         ((IResizeableEntity) target).doubleSize();
-        successSize(ctx, target);
+        successSize(ctx, target, asked);
         return 1;
     }
 
@@ -283,8 +304,13 @@ public final class GulliverCommands {
         // Manual one-off reset — always works regardless of enableKarmaMode
         // (the config flag only controls AUTOMATIC reset on death, not
         // this command).
-        ((IResizeableLiving) target).setBaseSize(GulliverEnvoy.getNewBasePlayerSize());
-        successSize(ctx, target);
+        float size = GulliverEnvoy.getNewBasePlayerSize();
+        if (GulliverEnvoy.isInvalidSize(size)) {
+            ctx.getSource().sendFailure(Component.literal("The configured player spawn size is not a valid size"));
+            return 0;
+        }
+        ((IResizeableLiving) target).setBaseSize(size);
+        successSize(ctx, target, size);
         return 1;
     }
 
@@ -305,7 +331,7 @@ public final class GulliverCommands {
         float size = GulliverEnvoy.getSizeFromRangeStringStrict(sizeStr, false);
         if (GulliverEnvoy.isInvalidSize(size)) throw INVALID_SIZE.create();
         ((IResizeableLiving) living).setBaseSize(size);
-        successEntity(ctx, living);
+        successEntity(ctx, living, size);
         return 1;
     }
 
@@ -325,8 +351,9 @@ public final class GulliverCommands {
             ctx.getSource().sendFailure(Component.literal("Invalid factor: " + factor));
             return 0;
         }
+        float asked = baseSize(living) * factor;
         ((IResizeableLiving) living).adjustBaseSize(factor);
-        successEntity(ctx, living);
+        successEntity(ctx, living, asked);
         return 1;
     }
 
@@ -343,9 +370,10 @@ public final class GulliverCommands {
         }
         // LivingEntity's halveSize/doubleSize route through setBaseSize
         // (clamp + refresh + broadcast) — see MixinLivingEntity.
+        float asked = baseSize(living) * (halve ? 0.5F : 2.0F);
         if (halve) ((IResizeableEntity) living).halveSize();
         else ((IResizeableEntity) living).doubleSize();
-        successEntity(ctx, living);
+        successEntity(ctx, living, asked);
         return 1;
     }
 
@@ -361,16 +389,31 @@ public final class GulliverCommands {
     // ---- helpers ----
 
     /**
-     * Human-friendly size formatting for chat feedback: max 3 decimals,
-     * trailing zeros stripped — "0.5" instead of "0.5000001".
+     * Human-friendly size formatting for chat feedback: up to 5 decimals
+     * (1/32 is 0.03125), trailing zeros stripped — "0.5" instead of "0.5000001".
      */
     private static String fmt(float v) {
-        String s = String.format(java.util.Locale.ROOT, "%.3f", v);
+        String s = String.format(java.util.Locale.ROOT, "%.5f", v);
         if (s.contains(".")) {
             s = s.replaceAll("0+$", "");
             if (s.endsWith(".")) s = s.substring(0, s.length() - 1);
         }
         return s;
+    }
+
+    /** The base size an entity is heading to (what the commands set). */
+    private static float baseSize(Entity entity) {
+        return ((gulliver.access.IGulliverEntityInternal) entity).gulliver$getSizeBaseDestMultiplier();
+    }
+
+    /** Whether the size limits kept an entity from the size it was asked for. */
+    private static boolean limited(float asked, float actual) {
+        return Math.abs(asked - actual) > 1.0E-4F * Math.max(1.0F, Math.abs(asked));
+    }
+
+    /** " (asked for X, held back by the size limits)" when the limits changed the result. */
+    private static String limitNote(float asked, float actual) {
+        return limited(asked, actual) ? " (asked for " + fmt(asked) + ", held back by the size limits)" : "";
     }
 
     private static Entity entityById(CommandContext<CommandSourceStack> ctx) {
@@ -385,26 +428,22 @@ public final class GulliverCommands {
         return null;
     }
 
-    private static void successSize(CommandContext<CommandSourceStack> ctx, ServerPlayer target) {
+    private static void successSize(CommandContext<CommandSourceStack> ctx, ServerPlayer target, float asked) {
         // Read the DESTINATION (the value the entity is tweening toward),
         // not the live mid-lerp base — otherwise users see ugly intermediate
         // floats like 0.508 right after pressing /halfsize.
-        gulliver.access.IGulliverEntityInternal access =
-                (gulliver.access.IGulliverEntityInternal) target;
-        float base = access.gulliver$getSizeBaseDestMultiplier();
-        float full = base * access.gulliver$getSizePotionMultiplier()
-                * access.gulliver$getSizeItemMultiplier();
+        float base = baseSize(target);
+        float full = ((gulliver.access.IGulliverEntityInternal) target).gulliver$getEffectiveDestSize();
+        String note = limitNote(asked, base);
         ctx.getSource().sendSuccess(() -> Component.literal(
-                target.getName().getString() + " base " + fmt(base) + " current " + fmt(full)), true);
+                target.getName().getString() + " base " + fmt(base) + " current " + fmt(full) + note), true);
     }
 
-    private static void successEntity(CommandContext<CommandSourceStack> ctx, LivingEntity living) {
-        gulliver.access.IGulliverEntityInternal access =
-                (gulliver.access.IGulliverEntityInternal) living;
-        float base = access.gulliver$getSizeBaseDestMultiplier();
-        float full = base * access.gulliver$getSizePotionMultiplier()
-                * access.gulliver$getSizeItemMultiplier();
+    private static void successEntity(CommandContext<CommandSourceStack> ctx, LivingEntity living, float asked) {
+        float base = baseSize(living);
+        float full = ((gulliver.access.IGulliverEntityInternal) living).gulliver$getEffectiveDestSize();
+        String note = limitNote(asked, base);
         ctx.getSource().sendSuccess(() -> Component.literal(
-                "Entity " + living.getId() + " base " + fmt(base) + " current " + fmt(full)), true);
+                "Entity " + living.getId() + " base " + fmt(base) + " current " + fmt(full) + note), true);
     }
 }

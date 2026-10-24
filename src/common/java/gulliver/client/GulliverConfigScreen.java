@@ -2,6 +2,7 @@ package gulliver.client;
 
 import gulliver.common.GulliverConfig;
 import gulliver.common.GulliverEnvoy;
+import gulliver.network.SizeSync;
 import net.minecraft.client.gui.components.AbstractSliderButton;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.components.Button;
@@ -13,12 +14,15 @@ import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.network.chat.Component;
 
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.DoubleConsumer;
 import java.util.function.DoubleFunction;
+import java.util.function.DoubleSupplier;
 
 /**
  * In-game settings, opened from Mod Menu (Fabric) or the mod list's
@@ -31,9 +35,12 @@ import java.util.function.DoubleFunction;
 public class GulliverConfigScreen extends Screen {
     private enum Page { GAMEPLAY, SPAWN, LIMITS, CLIENT }
 
-    /** Size-limit slider stops: finer below 1, coarser above. */
+    /** Size-limit slider stops, 1/32 to 32: finer around 1, coarser towards the ends. */
     private static final double[] LIMIT_SIZES = {
-            0.125, 0.25, 0.375, 0.5, 0.625, 0.75, 0.875, 1, 1.25, 1.5, 1.75, 2, 2.5, 3, 3.5, 4, 5, 6, 7, 8 };
+            1.0 / 32, 1.0 / 16, 0.125, 0.25, 0.375, 0.5, 0.625, 0.75, 0.875, 1, 1.25, 1.5, 1.75, 2, 2.5, 3, 3.5, 4,
+            5, 6, 7, 8, 10, 12, 16, 24, 32 };
+    /** The same for the per-class limits, plus 0 = "follow the general range". */
+    private static final double[] CLASS_LIMIT_SIZES = withDefault(LIMIT_SIZES);
 
     private static final int ROW = 24;
     private static final int COLUMN = 150;
@@ -44,6 +51,8 @@ public class GulliverConfigScreen extends Screen {
     /** Spawn-size fields that don't parse; Done stays disabled while any do. */
     private final Set<String> invalid = new HashSet<>();
     private Button done;
+    /** The per-class limit rows on the Size Limits page, so the range row can drag them along. */
+    private final List<ClassRow> classRows = new ArrayList<>();
 
     public GulliverConfigScreen(Screen parent) {
         super(Component.translatable("gulliver.config.title"));
@@ -53,6 +62,7 @@ public class GulliverConfigScreen extends Screen {
 
     @Override
     protected void init() {
+        classRows.clear();
         int cx = width / 2;
         int left = cx - COLUMN - 5;
         int right = cx + 5;
@@ -85,14 +95,17 @@ public class GulliverConfigScreen extends Screen {
         if (page != Page.CLIENT && minecraft != null && minecraft.getConnection() != null
                 && !minecraft.hasSingleplayerServer()) {
             note = Component.translatable("gulliver.config.note.server");
-        } else if (page == Page.SPAWN || page == Page.LIMITS) {
+        } else if (page == Page.LIMITS) {
+            note = Component.translatable("gulliver.config.note.limits");
+        } else if (page == Page.SPAWN) {
             note = Component.translatable("gulliver.config.note.overrides");
         }
         if (note != null) {
-            MultiLineTextWidget text = new MultiLineTextWidget(left, height - 56, note, font)
+            MultiLineTextWidget text = new MultiLineTextWidget(left, 0, note, font)
                     .setMaxWidth(2 * COLUMN + 10)
                     .setCentered(true);
             text.setX(cx - text.getWidth() / 2);
+            text.setY(height - 34 - text.getHeight());
             addRenderableWidget(text);
         }
 
@@ -119,6 +132,10 @@ public class GulliverConfigScreen extends Screen {
                 v -> v <= 0.0 ? Component.translatable("gulliver.config.trample.off")
                         : Component.translatable("gulliver.config.trample", fmt(v)),
                 v -> g.trampleSizeRatio = v, "trample"));
+        addRenderableWidget(toggle(right, y, "lootScaling", g.lootScaling, v -> g.lootScaling = v));
+        y += ROW;
+        addRenderableWidget(toggle(left, y, "giantBossBars", g.giantBossBars, v -> g.giantBossBars = v));
+        addRenderableWidget(toggle(right, y, "tinyMounts", g.tinyMounts, v -> g.tinyMounts = v));
     }
 
     private void initSpawn(int left, int right, int y) {
@@ -131,28 +148,41 @@ public class GulliverConfigScreen extends Screen {
     }
 
     private void initLimits(int left, int right, int y) {
+        GulliverConfig.General g = draft.general;
         GulliverConfig.SizeLimit l = draft.sizeLimit;
-        limitRow(left, right, y, "player", l.minPlayerSize, l.maxPlayerSize,
+        // The range everything lives in; the classes below can only narrow it.
+        generalRow(left, right, y, g);
+        y += ROW;
+        limitRow(left, right, y, "player", () -> l.minPlayerSize, () -> l.maxPlayerSize,
                 v -> l.minPlayerSize = v, v -> l.maxPlayerSize = v);
         y += ROW;
-        limitRow(left, right, y, "animal", l.minAnimalSize, l.maxAnimalSize,
+        limitRow(left, right, y, "animal", () -> l.minAnimalSize, () -> l.maxAnimalSize,
                 v -> l.minAnimalSize = v, v -> l.maxAnimalSize = v);
         y += ROW;
-        limitRow(left, right, y, "monster", l.minMonsterSize, l.maxMonsterSize,
+        limitRow(left, right, y, "monster", () -> l.minMonsterSize, () -> l.maxMonsterSize,
                 v -> l.minMonsterSize = v, v -> l.maxMonsterSize = v);
         y += ROW;
-        limitRow(left, right, y, "npc", l.minNpcSize, l.maxNpcSize,
+        limitRow(left, right, y, "npc", () -> l.minNpcSize, () -> l.maxNpcSize,
                 v -> l.minNpcSize = v, v -> l.maxNpcSize = v);
     }
 
     private void initClient(int left, int y) {
         GulliverConfig.Client c = draft.client;
+        int right = left + COLUMN + 10;
         Button held = Button.builder(heldItemsLabel(c.proportionalHeldItems()), b -> {
             c.heldItemScaling = c.proportionalHeldItems() ? "classic" : "proportional";
             b.setMessage(heldItemsLabel(c.proportionalHeldItems()));
         }).bounds(left, y, 2 * COLUMN + 10, 20).build();
         held.setTooltip(Tooltip.create(Component.translatable("gulliver.config.heldItems.tooltip")));
         addRenderableWidget(held);
+        y += ROW;
+        addRenderableWidget(slider(left, y, range(0.0, 1.0, 0.05), c.screenShake,
+                v -> v <= 0.0 ? Component.translatable("gulliver.config.screenShake.off")
+                        : Component.translatable("gulliver.config.screenShake", Math.round(v * 100) + "%"),
+                v -> c.screenShake = v, "screenShake"));
+        addRenderableWidget(toggle(right, y, "smoothResize", c.smoothResize, v -> c.smoothResize = v));
+        y += ROW;
+        addRenderableWidget(toggle(left, y, "sizeReadout", c.sizeReadout, v -> c.sizeReadout = v));
     }
 
     // ---- widgets ----
@@ -190,17 +220,54 @@ public class GulliverConfigScreen extends Screen {
         addRenderableWidget(box);
     }
 
-    private void limitRow(int left, int right, int y, String kind, double min, double max,
-                          DoubleConsumer setMin, DoubleConsumer setMax) {
-        Component name = Component.translatable("gulliver.config.spawn." + kind);
-        addRenderableWidget(slider(left, y, LIMIT_SIZES, min,
-                v -> Component.translatable("gulliver.config.limit.min", name, fmt(v)), setMin, null));
-        addRenderableWidget(slider(right, y, LIMIT_SIZES, max,
-                v -> Component.translatable("gulliver.config.limit.max", name, fmt(v)), setMax, null));
+    /**
+     * The range every creature lives in. Anything that was following it (the
+     * base-size range, a class limit with the same value) follows when it
+     * moves, so widening to 32 is one step; values someone set differently
+     * stay as they are.
+     */
+    private void generalRow(int left, int right, int y, GulliverConfig.General g) {
+        Component name = Component.translatable("gulliver.config.limit.all");
+        addRenderableWidget(slider(left, y, LIMIT_SIZES, g.minEntitySize,
+                v -> Component.translatable("gulliver.config.limit.min", name, fmt(v)),
+                v -> {
+                    double old = g.minEntitySize;
+                    if (g.minEntityBaseSize == old) g.minEntityBaseSize = v;
+                    g.minEntitySize = v;
+                    for (ClassRow row : classRows) {
+                        if (row.min.getAsDouble() == old) row.moveMin(v);
+                    }
+                }, "limitAll"));
+        addRenderableWidget(slider(right, y, LIMIT_SIZES, g.maxEntitySize,
+                v -> Component.translatable("gulliver.config.limit.max", name, fmt(v)),
+                v -> {
+                    double old = g.maxEntitySize;
+                    if (g.maxEntityBaseSize == old) g.maxEntityBaseSize = v;
+                    g.maxEntitySize = v;
+                    for (ClassRow row : classRows) {
+                        if (row.max.getAsDouble() == old) row.moveMax(v);
+                    }
+                }, "limitAll"));
     }
 
-    private AbstractWidget slider(int x, int y, double[] stops, double initial, DoubleFunction<Component> label,
-                                  DoubleConsumer set, String tooltipKey) {
+    private void limitRow(int left, int right, int y, String kind, DoubleSupplier min, DoubleSupplier max,
+                          DoubleConsumer setMin, DoubleConsumer setMax) {
+        Component name = Component.translatable("gulliver.config.spawn." + kind);
+        StopSlider minSlider = slider(left, y, CLASS_LIMIT_SIZES, min.getAsDouble(),
+                v -> Component.translatable("gulliver.config.limit.min", name, limitText(v)), setMin, "limitClass");
+        StopSlider maxSlider = slider(right, y, CLASS_LIMIT_SIZES, max.getAsDouble(),
+                v -> Component.translatable("gulliver.config.limit.max", name, limitText(v)), setMax, "limitClass");
+        addRenderableWidget(minSlider);
+        addRenderableWidget(maxSlider);
+        classRows.add(new ClassRow(min, max, setMin, setMax, minSlider, maxSlider));
+    }
+
+    private static Component limitText(double v) {
+        return v == 0.0 ? Component.translatable("gulliver.config.limit.default") : Component.literal(fmt(v));
+    }
+
+    private StopSlider slider(int x, int y, double[] stops, double initial, DoubleFunction<Component> label,
+                              DoubleConsumer set, String tooltipKey) {
         StopSlider s = new StopSlider(x, y, COLUMN, stops, initial, label, set);
         if (tooltipKey != null) {
             s.setTooltip(Tooltip.create(Component.translatable("gulliver.config." + tooltipKey + ".tooltip")));
@@ -216,14 +283,11 @@ public class GulliverConfigScreen extends Screen {
     // ---- closing ----
 
     private void saveAndClose() {
-        GulliverConfig.SizeLimit l = draft.sizeLimit;
-        // A min above its max would clamp everything to the min: follow it.
-        l.maxPlayerSize = Math.max(l.maxPlayerSize, l.minPlayerSize);
-        l.maxAnimalSize = Math.max(l.maxAnimalSize, l.minAnimalSize);
-        l.maxMonsterSize = Math.max(l.maxMonsterSize, l.minMonsterSize);
-        l.maxNpcSize = Math.max(l.maxNpcSize, l.minNpcSize);
-        GulliverConfig.INSTANCE = draft;
-        GulliverConfig.save();
+        // Validates (a min above its max follows it), goes live and is written out.
+        GulliverConfig.apply(draft);
+        // In singleplayer the client follows the world's settings: tell it now.
+        var server = minecraft.getSingleplayerServer();
+        if (server != null) server.execute(() -> SizeSync.sendSettingsToAll(server));
         back();
     }
 
@@ -278,10 +342,17 @@ public class GulliverConfigScreen extends Screen {
                         : "gulliver.config.heldItems.classic"));
     }
 
+    /** Up to 5 decimals, so 1/32 reads 0.03125; trailing zeros dropped. */
     private static String fmt(double v) {
-        String s = String.format(Locale.ROOT, "%.3f", v);
+        String s = String.format(Locale.ROOT, "%.5f", v);
         s = s.replaceAll("0+$", "");
         return s.endsWith(".") ? s.substring(0, s.length() - 1) : s;
+    }
+
+    private static double[] withDefault(double[] stops) {
+        double[] out = new double[stops.length + 1];
+        System.arraycopy(stops, 0, out, 1, stops.length);
+        return out;
     }
 
     private static double[] range(double from, double to, double step) {
@@ -289,6 +360,20 @@ public class GulliverConfigScreen extends Screen {
         double[] out = new double[n];
         for (int i = 0; i < n; i++) out[i] = Math.round((from + i * step) * 1000.0) / 1000.0;
         return out;
+    }
+
+    /** One per-class limit row: its values, where to put new ones, and the sliders showing them. */
+    private record ClassRow(DoubleSupplier min, DoubleSupplier max, DoubleConsumer setMin, DoubleConsumer setMax,
+                            StopSlider minSlider, StopSlider maxSlider) {
+        void moveMin(double v) {
+            setMin.accept(v);
+            minSlider.show(v);
+        }
+
+        void moveMax(double v) {
+            setMax.accept(v);
+            maxSlider.show(v);
+        }
     }
 
     /**
@@ -321,6 +406,13 @@ public class GulliverConfigScreen extends Screen {
 
         private double stop() {
             return stops[(int) Math.round(value * (stops.length - 1))];
+        }
+
+        /** Moves the slider to a value set from outside, without calling the setter. */
+        void show(double v) {
+            shown = v;
+            value = fraction(stops, v);
+            updateMessage();
         }
 
         @Override

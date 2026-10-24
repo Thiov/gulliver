@@ -1,5 +1,6 @@
 package gulliver.mixin;
 
+import gulliver.Gulliver;
 import gulliver.api.IResizeableEntity;
 import gulliver.api.IResizeableLiving;
 import gulliver.common.GulliverConfig;
@@ -20,11 +21,11 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
  * on the parent Entity via MixinEntity; this mixin reads/writes through the
  * IGulliverEntityInternal interface that MixinEntity also implements.
  *
- * setBaseSize / adjustBaseSize clamp to the per-entity bounds from the
- * config: GulliverEnvoy.getMin/MaxSizeForEntity (size-limit category) AND
- * the global min/maxEntityBaseSize (general category). The intersection of
- * both is applied — the same composition the 1.6.4 mod did via two layered
- * Forge config keys.
+ * setBaseSize / adjustBaseSize clamp to the entity's size range (its
+ * override, class or the general range; cached on the entity, see
+ * MixinEntity) AND the global min/maxEntityBaseSize (general category).
+ * The intersection of both is applied — the same composition the 1.6.4
+ * mod did via two layered Forge config keys.
  */
 @Mixin(LivingEntity.class)
 public abstract class MixinLivingEntity implements IResizeableLiving,
@@ -150,22 +151,34 @@ public abstract class MixinLivingEntity implements IResizeableLiving,
 
     @Unique
     private float gulliver$clampBase(float size) {
-        LivingEntity self = (LivingEntity) (Object) this;
+        IGulliverEntityInternal access = (IGulliverEntityInternal) this;
         GulliverConfig.General g = GulliverConfig.INSTANCE.general;
-        float lo = (float) Math.max(GulliverEnvoy.getMinSizeForEntity(self), g.minEntityBaseSize);
-        float hi = (float) Math.min(GulliverEnvoy.getMaxSizeForEntity(self), g.maxEntityBaseSize);
+        // The entity's own range (cached), narrowed by the base-size range
+        // when this is a server-side entity; clients take the server's word.
+        float lo = access.gulliver$getMinSize();
+        float hi = access.gulliver$getMaxSize();
+        if (!((LivingEntity) (Object) this).level().isClientSide()) {
+            lo = Math.max(lo, (float) g.minEntityBaseSize);
+            hi = Math.min(hi, (float) g.maxEntityBaseSize);
+            if (hi < lo) hi = lo;
+        }
         return Math.max(lo, Math.min(hi, size));
     }
 
     @Override
     @Unique
     public void setBaseSize(float size) {
+        if (Float.isNaN(size)) {
+            Gulliver.LOGGER.warn("Ignoring a NaN size for {}", this);
+            return;
+        }
         LivingEntity self = (LivingEntity) (Object) this;
         float clamped = gulliver$clampBase(size);
         IGulliverEntityInternal access = (IGulliverEntityInternal) this;
         // Bbox BEFORE the resize — breakBlocksViaGrowth needs it to
         // know which blocks are newly swept by the grown body.
         net.minecraft.world.phys.AABB oldBox = self.getBoundingBox();
+        float oldEffective = getSizeMultiplier();
 
         // Snap LIVE base AND dest to the new value (no tween). The tween
         // caused gradual HP drops that the HUD interpreted as damage,
@@ -173,16 +186,15 @@ public abstract class MixinLivingEntity implements IResizeableLiving,
         // is uglier but visually MUCH less disruptive — the entity's
         // hearts and stats update once, and the HUD renders correctly
         // because attribute MAX_HEALTH is updated in the same step.
-        float oldLive = access.gulliver$getSizeBaseMultiplier();
         access.gulliver$setSizeBaseMultiplier(clamped);
         access.gulliver$setSizeBaseDestMultiplier(clamped);
 
         // Apply size-based attribute modifiers (MAX_HEALTH, ARMOR) so
         // the HUD's heart count actually changes. The HUD reads MAX_HEALTH
-        // attribute directly, bypassing getMaxHealth() injects.
-        float potion = access.gulliver$getSizePotionMultiplier();
-        float item   = access.gulliver$getSizeItemMultiplier();
-        gulliver.common.SizeAttributes.applyForSize(self, clamped * potion * item);
+        // attribute directly, bypassing getMaxHealth() injects. They follow
+        // the effective size (potions and items included, limits applied).
+        float effective = getSizeMultiplier();
+        gulliver.common.SizeAttributes.applyForSize(self, effective);
 
         // Per user request: do NOT rescale current HP / air on resize.
         // Hearts stay full when shrinking (max scales but current stays
@@ -199,7 +211,7 @@ public abstract class MixinLivingEntity implements IResizeableLiving,
         // Growing bodies burst through weak blocks newly inside their
         // bounds (1.6.4 breakBlocksViaGrowth) — ceiling planks splinter
         // as the giant stands up. Shrinking never breaks anything.
-        if (clamped * potion * item > oldLive * potion * item) {
+        if (effective > oldEffective) {
             GulliverEnvoy.breakBlocksViaGrowth(self, oldBox);
         }
         SizeSync.broadcast(self);
@@ -215,7 +227,7 @@ public abstract class MixinLivingEntity implements IResizeableLiving,
     /**
      * Override halveSize / doubleSize on LivingEntity to honour the per-class
      * config bounds. Without this, /halfsize and /doublesize bypass the
-     * 0.125–8.0 limits because they bind to the raw Entity-level methods.
+     * size limits because they bind to the raw Entity-level methods.
      */
     @Override
     @Unique
