@@ -1,9 +1,9 @@
 package gulliver.mixin.client;
 
 import com.mojang.blaze3d.vertex.PoseStack;
-import gulliver.api.IResizeableEntity;
 import gulliver.api.IResizeableLiving;
 import gulliver.client.PropRender;
+import gulliver.client.VisualSize;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.entity.LivingEntityRenderer;
 import net.minecraft.world.entity.LivingEntity;
@@ -28,35 +28,37 @@ public abstract class MixinLivingEntityRenderer {
 
     @Inject(method = "render(Lnet/minecraft/world/entity/LivingEntity;FFLcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/MultiBufferSource;I)V",
             at = @At(value = "INVOKE",
-                     target = "Lnet/minecraft/client/renderer/entity/LivingEntityRenderer;setupRotations(Lnet/minecraft/world/entity/LivingEntity;Lcom/mojang/blaze3d/vertex/PoseStack;FFF)V"))
+                     target = "Lnet/minecraft/client/renderer/entity/LivingEntityRenderer;setupRotations(Lnet/minecraft/world/entity/LivingEntity;Lcom/mojang/blaze3d/vertex/PoseStack;FFF)V"),
+            require = 0)
     private void gulliver$applyScale(LivingEntity entity, float yaw, float partialTick, PoseStack pose,
                                       MultiBufferSource buffers, int light, CallbackInfo ci) {
-        float m = ((IResizeableEntity) entity).getSizeMultiplier();
+        // The drawn size, which glides to a new size (see VisualSize).
+        float m = VisualSize.renderScale(entity, partialTick);
         if (m != 1.0F) pose.scale(m, m, m);
     }
 
     @Inject(method = "setupRotations(Lnet/minecraft/world/entity/LivingEntity;Lcom/mojang/blaze3d/vertex/PoseStack;FFF)V",
-            at = @At("HEAD"))
+            at = @At("HEAD"), require = 0)
     private void gulliver$rememberScale(LivingEntity entity, PoseStack pose, float bob, float bodyRot,
                                          float partialTick, CallbackInfo ci) {
-        gulliver$rotationScale = ((IResizeableEntity) entity).getSizeMultiplier();
+        gulliver$rotationScale = VisualSize.renderScale(entity, partialTick);
     }
 
     /** Upside-down entities lift by their (already scaled) height: undo the model scale. */
     @ModifyArg(method = "setupRotations(Lnet/minecraft/world/entity/LivingEntity;Lcom/mojang/blaze3d/vertex/PoseStack;FFF)V",
                at = @At(value = "INVOKE", target = "Lcom/mojang/blaze3d/vertex/PoseStack;translate(FFF)V"),
-               index = 1)
+               index = 1, require = 0)
     private float gulliver$upsideDownLift(float y) {
         return gulliver$rotationScale > 0.0F ? y / gulliver$rotationScale : y;
     }
 
     @Inject(method = "render(Lnet/minecraft/world/entity/LivingEntity;FFLcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/MultiBufferSource;I)V",
-            at = @At("RETURN"))
+            at = @At("RETURN"), require = 0)
     private void gulliver$drawRaftLilypad(LivingEntity entity, float yaw, float partialTick, PoseStack pose,
                                            MultiBufferSource buffers, int light, CallbackInfo ci) {
         IResizeableLiving sized = (IResizeableLiving) entity;
         boolean raft = sized.isRafting();
         if (!raft && !sized.doesUmbrella()) return;
-        PropRender.lilyDisc(pose, buffers, entity, PropRender.bodyYaw(entity, partialTick), raft, light);
+        PropRender.lilyDisc(pose, buffers, entity, PropRender.bodyYaw(entity, partialTick), raft, light, partialTick);
     }
 }

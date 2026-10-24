@@ -1,6 +1,7 @@
 package gulliver.mixin;
 
 import gulliver.api.IResizeableEntity;
+import gulliver.common.SizeSound;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.world.entity.Entity;
 import org.spongepowered.asm.mixin.Mixin;
@@ -34,7 +35,9 @@ import org.spongepowered.asm.mixin.injection.ModifyArg;
  * giant long before you see it.
  *
  * Player overrides playSound without calling super, so it is hooked too
- * (otherwise a giant PLAYER's footsteps never carried further).
+ * (otherwise a giant PLAYER's footsteps never carried further). The local
+ * player overrides it once more, straight to the local sound engine:
+ * MixinLocalPlayerSound.
  *
  * playSound(SoundEvent) without volume/pitch defaults internally and
  * doesn't go through the (SoundEvent, float, float) overload — vanilla
@@ -54,14 +57,6 @@ public abstract class MixinEntitySound {
                         //#endif
                index = 6)
     private float gulliver$scaleVolume(float vol) {
-        IResizeableEntity sized = (IResizeableEntity) this;
-        float size = sized.getSizeMultiplier();
-        if (size == 1.0F) return vol;
-        if (size > 1.0F) {
-            // size^1.5 = size * root — see class doc for why the
-            // up-slope is steeper than the 1.6.4 sqrt.
-            return Math.min(vol * size * sized.getSizeMultiplierRoot(), 5.0F);
-        }
-        return vol * sized.getSizeMultiplierRoot();
+        return SizeSound.scaleVolume((IResizeableEntity) this, vol);
     }
 }

@@ -39,7 +39,7 @@ public abstract class MixinItemInHandLayer {
      * or held up as an umbrella (over the head), so the arm holding it
      * doesn't also draw it.
      */
-    @Inject(method = GULLIVER$ARM_WITH_ITEM, at = @At("HEAD"), cancellable = true)
+    @Inject(method = GULLIVER$ARM_WITH_ITEM, at = @At("HEAD"), cancellable = true, require = 0)
     private void gulliver$hideLilyPadWhileRafting(ArmedEntityRenderState state, ItemStackRenderState itemRender,
                                                     //#if MC >= 1.21.11
                                                     net.minecraft.world.item.ItemStack stack,
@@ -58,7 +58,7 @@ public abstract class MixinItemInHandLayer {
      */
     @Inject(method = GULLIVER$ARM_WITH_ITEM,
             at = @At(value = "INVOKE", target = "Lcom/mojang/blaze3d/vertex/PoseStack;translate(FFF)V",
-                     shift = At.Shift.AFTER, ordinal = 0))
+                     shift = At.Shift.AFTER, ordinal = 0), require = 0)
     private void gulliver$adjustItem(ArmedEntityRenderState state, ItemStackRenderState itemRender,
                                       //#if MC >= 1.21.11
                                       net.minecraft.world.item.ItemStack stack,
@@ -80,6 +80,12 @@ public abstract class MixinItemInHandLayer {
         // "proportional" option keeps items exactly in body proportion
         // (issue #5), matching tools rendered on the back by other mods.
         float size = g.gulliver$getSizeMultiplier();
+        // The body's scale at draw time may differ from the one extracted: a
+        // screen that normalises the player (the inventory preview) resets it
+        // to 1, and the held item must follow the body it is held by.
+        if (g.gulliver$getExtractScale() > 0.0F) {
+            size *= state.scale / g.gulliver$getExtractScale();
+        }
         if (size != 1.0F && !gulliver.common.GulliverConfig.INSTANCE.client.proportionalHeldItems()) {
             float invRoot = 1.0F / (float) Math.sqrt(size);
             pose.scale(invRoot, invRoot, invRoot);

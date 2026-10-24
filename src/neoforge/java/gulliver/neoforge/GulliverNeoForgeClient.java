@@ -3,11 +3,14 @@ package gulliver.neoforge;
 import gulliver.client.GulliverClient;
 import gulliver.client.GulliverConfigScreen;
 import gulliver.client.KeyInputHandler;
+import gulliver.client.SizeTooltips;
 import net.minecraft.client.KeyMapping;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.ModContainer;
 import net.neoforged.neoforge.client.gui.IConfigScreenFactory;
 import net.neoforged.neoforge.client.event.RegisterKeyMappingsEvent;
+import net.neoforged.neoforge.common.NeoForge;
+import net.neoforged.neoforge.event.entity.player.ItemTooltipEvent;
 
 final class GulliverNeoForgeClient {
     private GulliverNeoForgeClient() {}
@@ -25,5 +28,6 @@ final class GulliverNeoForgeClient {
         modBus.addListener((RegisterKeyMappingsEvent e) -> {
             for (KeyMapping key : KeyInputHandler.ALL) e.register(key);
         });
+        NeoForge.EVENT_BUS.addListener((ItemTooltipEvent e) -> SizeTooltips.add(e.getItemStack(), e.getToolTip()));
     }
 }

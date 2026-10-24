@@ -43,7 +43,7 @@ public abstract class MixinHumanoidModelPose {
     @Shadow public ModelPart body;
 
     @Inject(method = "setupAnim(Lnet/minecraft/client/renderer/entity/state/HumanoidRenderState;)V",
-            at = @At("RETURN"))
+            at = @At("RETURN"), require = 0)
     private void gulliver$applyPose(HumanoidRenderState state, CallbackInfo ci) {
         IGlideRenderState g = (IGlideRenderState) state;
         if (g.gulliver$isGliding()) {
