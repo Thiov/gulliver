@@ -4,18 +4,30 @@ import gulliver.access.IGulliverShoulderInternal;
 import gulliver.api.IResizeableEntity;
 import gulliver.network.Payloads;
 import gulliver.platform.Services;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+//#if MC >= 1.21.11
+import net.minecraft.server.permissions.Permissions;
+//#endif
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.Entity;
+//#if MC >= 1.21.5
+import net.minecraft.world.entity.EntityReference;
+//#endif
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.EntityTypes;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.OwnableEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.ClipContext;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
+import net.minecraft.world.phys.shapes.VoxelShape;
 
 import java.util.UUID;
 
@@ -40,8 +52,19 @@ public final class ShoulderHelper {
     /** Attachment byte RELEASED + slot: that slot was emptied (entity id may be -1). */
     public static final byte RELEASED = 4;
 
+
     /** 1.6.4 isQuiteSmallerThan: under 0.4x the carrier's size. */
     private static final float MAX_SIZE_RATIO = 0.4F;
+
+    /**
+     * Fastest a throw can send a creature (blocks per tick). Clients clamp
+     * velocity packets at 3.9, so anything faster only made the server
+     * simulate a flight the carried player's own client never saw.
+     */
+    private static final float MAX_THROW_POWER = 3.9F;
+
+    /** Set while a claim-mod probe runs, so the probe event doesn't re-enter the carry handlers. */
+    private static boolean probing;
 
     /** Widest body the hand can wrap around (1.6.4: 0.5-0.8x the carrier's width). */
     public static float maxHeldWidth(LivingEntity carrier) {
@@ -57,17 +80,19 @@ public final class ShoulderHelper {
 
     public static boolean canCarry(LivingEntity carrier, Entity target) {
         if (target == null || target == carrier || !target.isAlive()) return false;
-        if (carrier.isSpectator()) return false;
+        if (carrier.isSpectator() || carrier.isDeadOrDying()) return false;
         if (!(target instanceof LivingEntity)) return false;
         if (isUnholdable(target)) return false;
         if (target.isPassenger() || target.isVehicle()) return false;
-        if (((IGulliverShoulderInternal) target).gulliver$getHoldingEntity() != null) return false;
+        if (holderOf(target) != null) return false;
         float carrierSize = ((IResizeableEntity) carrier).getSizeMultiplier();
         float targetSize = ((IResizeableEntity) target).getSizeMultiplier();
         if (targetSize >= carrierSize * MAX_SIZE_RATIO) return false;
         if (target.getBbWidth() > maxHeldWidth(carrier)) return false;
         if (target instanceof Player p) {
-            if (p.isCreative() || p.isSpectator()) return false;
+            // Sneaking is how a carried player breaks free; it also keeps a
+            // player who is hiding from being grabbed at all.
+            if (p.isCreative() || p.isSpectator() || p.isShiftKeyDown()) return false;
             if (carrier instanceof Player cp && !cp.canHarmPlayer(p)) return false;
         }
         return true;
@@ -79,11 +104,86 @@ public final class ShoulderHelper {
     }
 
     /**
+     * Whether the HAND slot is in use. On a client a slot whose creature is
+     * gone (a lost release packet, a V-key race) is cleared on the spot,
+     * so it can't swallow every later attack and use click.
+     */
+    public static boolean handOccupied(Player carrier) {
+        IGulliverShoulderInternal cs = (IGulliverShoulderInternal) carrier;
+        UUID id = cs.gulliver$getHandEntity();
+        if (id == null) return false;
+        if (carrier.level().isClientSide() && lookup(carrier, id) == null) {
+            cs.gulliver$setHandEntity(null);
+            return false;
+        }
+        return true;
+    }
+
+    private static UUID holderOf(Entity e) {
+        return ((IGulliverShoulderInternal) e).gulliver$getHoldingEntity();
+    }
+
+    // ---- who may be grabbed: ownership and claims ----
+
+    /** The owner's UUID of a tamed animal, or null when it has none. */
+    public static UUID ownerOf(Entity e) {
+        if (!(e instanceof OwnableEntity o)) return null;
+        //#if MC >= 1.21.5
+        EntityReference<LivingEntity> ref = o.getOwnerReference();
+        return ref == null ? null : ref.getUUID();
+        //#else
+        //$$ return o.getOwnerUUID();
+        //#endif
+    }
+
+    private static boolean isOperator(ServerPlayer p) {
+        //#if MC >= 1.21.11
+        return p.permissions().hasPermission(Permissions.COMMANDS_MODERATOR);
+        //#else
+        //$$ return p.createCommandSourceStack().hasPermission(2);
+        //#endif
+    }
+
+    /** True while {@link #mayInteract} is asking the loader's claim hooks; the carry handlers stay out of it. */
+    public static boolean isProbing() {
+        return probing;
+    }
+
+    /**
+     * Gulliver's own inputs (V key, carry, tiny mounts) act on an entity the
+     * way a right-click would: claim and protection mods get a veto through
+     * the loader's interaction event. The probe fires that event, which
+     * Gulliver listens to as well, hence the re-entry guard.
+     */
+    public static boolean mayInteract(ServerPlayer player, Entity target) {
+        if (probing) return true;
+        probing = true;
+        try {
+            return Services.platform().mayInteractWithEntity(player, target, InteractionHand.MAIN_HAND);
+        } finally {
+            probing = false;
+        }
+    }
+
+    /** Ownership and claims for picking something up. */
+    private static boolean mayGrab(ServerPlayer carrier, Entity target) {
+        UUID owner = ownerOf(target);
+        // Someone else's pet is theirs to carry; an operator in creative may move it anyway.
+        if (owner != null && !owner.equals(carrier.getUUID())
+                && !(carrier.isCreative() && isOperator(carrier))) {
+            return false;
+        }
+        return mayInteract(carrier, target);
+    }
+
+    // ---- picking up and letting go ----
+
+    /**
      * Pick the target up into the HAND slot. A previous hand-held entity is
      * set down in place (swap); shoulder slots are never touched.
      */
     public static boolean pickUp(ServerPlayer carrier, Entity target) {
-        if (!canCarry(carrier, target)) return false;
+        if (!canCarry(carrier, target) || !mayGrab(carrier, target)) return false;
         IGulliverShoulderInternal cs = (IGulliverShoulderInternal) carrier;
         detachHand(carrier);
         cs.gulliver$setHandEntity(target.getUUID());
@@ -110,17 +210,15 @@ public final class ShoulderHelper {
      * Release one carried entity (by id) from an already-cleared slot and
      * tell everyone. The packet names the slot, so clients clear it even
      * when the entity is gone (disconnected, converted, changed dimension).
+     * Only an entity this carrier really holds is touched.
      */
     private static Entity release(ServerPlayer carrier, UUID id, byte slot) {
         Entity held = resolve((ServerLevel) carrier.level(), id);
-        if (held != null) {
+        if (held != null && carrier.getUUID().equals(holderOf(held))) {
             ((IGulliverShoulderInternal) held).gulliver$setHoldingEntity(null);
-            held.noPhysics = false;
-            // Never let go inside a wall: the carrier's own spot always fits
-            // something this much smaller.
-            if (!held.level().noCollision(held, held.getBoundingBox().deflate(1.0E-4D))) {
-                held.teleportTo(carrier.getX(), carrier.getY(), carrier.getZ());
-            }
+            settle(held, carrier);
+        } else {
+            held = null;
         }
         Services.platform().sendToTrackingAndSelf(carrier, new Payloads.AttachEntitySpecial(
                 held != null ? held.getId() : -1, carrier.getId(), (byte) (RELEASED + slot)));
@@ -128,10 +226,94 @@ public final class ShoulderHelper {
     }
 
     /**
-     * Server-side orphan check for a carried entity. While carried its
-     * move() is cancelled, so if the carrier vanishes without dropping it
-     * (disconnect, dimension change, kill command) it would stay frozen
-     * forever. Called (throttled) from the carried entity's move hook.
+     * Put a creature that was just let go somewhere it fits, on the
+     * carrier's side of every wall: where the slot was if that is clear,
+     * else pulled back toward the carrier's feet, which always fits
+     * something this much smaller.
+     *
+     * A carried player was placed by the server alone (client positions are
+     * ignored while carried), so the position settled here is the one the
+     * player continues from; it is sent down as a teleport, never read back
+     * from a client claim.
+     */
+    private static void settle(Entity held, Entity carrier) {
+        held.noPhysics = false;
+        if (!held.isAlive()) return;
+        Level level = held.level();
+        Vec3 slot = held.position();
+        Vec3 feet = carrier.position();
+        Vec3 body = new Vec3(feet.x, feet.y + carrier.getBbHeight() * 0.5D, feet.z);
+        double height = held.getBbHeight();
+        Vec3 at = feet;
+        for (int i = 0; i < 4; i++) {
+            Vec3 c = slot.lerp(feet, i / 4.0D);
+            if (!fits(level, held, c.x, c.y, c.z)) continue;
+            Vec3 middle = new Vec3(c.x, c.y + height * 0.5D, c.z);
+            if (level.clip(new ClipContext(body, middle, ClipContext.Block.COLLIDER,
+                    ClipContext.Fluid.NONE, carrier)).getType() != HitResult.Type.MISS) continue;
+            at = c;
+            break;
+        }
+        if (held instanceof ServerPlayer || at.distanceToSqr(slot) > 1.0E-6D) {
+            held.teleportTo(at.x, at.y, at.z);
+        }
+    }
+
+    private static boolean fits(Level level, Entity e, double x, double y, double z) {
+        double half = e.getBbWidth() * 0.5D;
+        AABB box = new AABB(x - half, y, z - half, x + half, y + e.getBbHeight(), z + half);
+        return level.noCollision(e, box.deflate(1.0E-4D));
+    }
+
+    /**
+     * Set a hand-held creature down on the face the carrier clicked: on top
+     * of the block (the collision top for fences and walls), beside it, or
+     * under it, with its body outside the block either way. Does nothing
+     * when the clicked face is not one the carrier can see, or nothing fits
+     * there; the creature then stays where the hand let go.
+     */
+    public static void setDownOn(ServerPlayer carrier, Entity held, BlockHitResult hit) {
+        Level level = carrier.level();
+        BlockPos pos = hit.getBlockPos();
+        Vec3 loc = hit.getLocation();
+        BlockHitResult seen = level.clip(new ClipContext(carrier.getEyePosition(), loc,
+                ClipContext.Block.OUTLINE, ClipContext.Fluid.NONE, carrier));
+        if (seen.getType() == HitResult.Type.BLOCK && !seen.getBlockPos().equals(pos)) return;
+
+        Direction face = hit.getDirection();
+        double x = loc.x;
+        double y = loc.y;
+        double z = loc.z;
+        double push = held.getBbWidth() * 0.5D + 1.0E-3D;
+        switch (face) {
+            case UP -> {
+                VoxelShape shape = level.getBlockState(pos).getCollisionShape(level, pos);
+                if (!shape.isEmpty()) y = Math.max(y, pos.getY() + shape.max(Direction.Axis.Y));
+            }
+            case DOWN -> y = loc.y - held.getBbHeight() - 1.0E-3D;
+            default -> {
+                x += face.getStepX() * push;
+                z += face.getStepZ() * push;
+            }
+        }
+        // A little slack upward for slabs, carpets and snow layers.
+        for (int i = 0; i < 5; i++) {
+            double at = y + i * 0.25D;
+            if (fits(level, held, x, at, z)) {
+                held.teleportTo(x, at, z);
+                held.setDeltaMovement(Vec3.ZERO);
+                held.fallDistance = 0.0F;
+                return;
+            }
+            if (face == Direction.DOWN) return;
+        }
+    }
+
+    /**
+     * Server-side orphan check for a carried entity, run from its own tick
+     * (so mobs without AI and players are covered too): if the carrier
+     * vanishes without dropping it (disconnect, dimension change, kill
+     * command) it would stay frozen forever.
      */
     public static void validateCarried(Entity carried) {
         if (!(carried.level() instanceof ServerLevel sl)) return;
@@ -147,6 +329,36 @@ public final class ShoulderHelper {
                 carried.getId(), carrier != null ? carrier.getId() : -1, SLOT_DETACH));
     }
 
+    /**
+     * The carried entity is about to leave its level (it changes dimension
+     * or logs out): let go of it quietly, clearing the carrier's slot.
+     */
+    public static void freeCarried(Entity carried) {
+        IGulliverShoulderInternal me = (IGulliverShoulderInternal) carried;
+        UUID carrierId = me.gulliver$getHoldingEntity();
+        if (carrierId == null) return;
+        me.gulliver$setHoldingEntity(null);
+        carried.noPhysics = false;
+        if (!(carried.level() instanceof ServerLevel sl)) return;
+        Entity carrier = sl.getEntity(carrierId);
+        if (!(carrier instanceof ServerPlayer cp)) return;
+        byte slot = slotOf(cp, carried.getUUID());
+        if (slot == SLOT_DETACH) return;
+        clearSlot(cp, slot);
+        Services.platform().sendToTrackingAndSelf(cp, new Payloads.AttachEntitySpecial(
+                carried.getId(), cp.getId(), (byte) (RELEASED + slot)));
+    }
+
+    /**
+     * A player is about to be removed from its level (dimension change,
+     * End exit, logout): everything it carries is released first, at the
+     * carrier's last position, and a player it is carried by is freed.
+     */
+    public static void onLeavingLevel(ServerPlayer player) {
+        if (((IGulliverShoulderInternal) player).gulliver$hasAnyCarry()) drop(player);
+        freeCarried(player);
+    }
+
     private static byte slotOf(Entity carrier, UUID id) {
         IGulliverShoulderInternal cs = (IGulliverShoulderInternal) carrier;
         if (id.equals(cs.gulliver$getHandEntity())) return SLOT_HAND;
@@ -155,12 +367,29 @@ public final class ShoulderHelper {
         return SLOT_DETACH;
     }
 
+    /** Clear every slot whose creature is gone or no longer held by this carrier, telling the clients. */
+    private static void pruneStale(ServerPlayer carrier) {
+        IGulliverShoulderInternal cs = (IGulliverShoulderInternal) carrier;
+        pruneSlot(carrier, cs.gulliver$getHandEntity(), SLOT_HAND);
+        pruneSlot(carrier, cs.gulliver$getRightShoulder(), SLOT_RIGHT);
+        pruneSlot(carrier, cs.gulliver$getLeftShoulder(), SLOT_LEFT);
+    }
+
+    private static void pruneSlot(ServerPlayer carrier, UUID id, byte slot) {
+        if (id == null) return;
+        Entity e = resolve((ServerLevel) carrier.level(), id);
+        if (e != null && e.isAlive() && carrier.getUUID().equals(holderOf(e))) return;
+        clearSlot(carrier, slot);
+        release(carrier, id, slot);
+    }
+
     /**
      * V keybind: move the hand-held to the first free shoulder (right, then
      * left), swapping with the right shoulder when both are full; with an
      * empty hand, pull a shoulder passenger back into it.
      */
     public static boolean toggleHandShoulder(ServerPlayer carrier) {
+        pruneStale(carrier);
         IGulliverShoulderInternal cs = (IGulliverShoulderInternal) carrier;
         UUID hand = cs.gulliver$getHandEntity();
         UUID right = cs.gulliver$getRightShoulder();
@@ -206,7 +435,7 @@ public final class ShoulderHelper {
      * never through a wall.
      */
     public static boolean cycleOrPickUp(ServerPlayer player) {
-        if (player.isSpectator()) return false;
+        if (player.isSpectator() || player.isDeadOrDying()) return false;
         if (((IGulliverShoulderInternal) player).gulliver$hasAnyCarry()) {
             return toggleHandShoulder(player);
         }
@@ -256,21 +485,23 @@ public final class ShoulderHelper {
      * Throw the HAND-carried entity along the carrier's look. Power grows
      * with the size ratio and the carrier's absolute size (a giant's throw
      * is mighty in world units): 1.5 x carrierSize / sqrt(targetSize),
-     * capped at 12.
+     * capped at what a velocity packet can carry.
      */
     public static boolean throwHeld(ServerPlayer carrier) {
         IGulliverShoulderInternal cs = (IGulliverShoulderInternal) carrier;
-        if (cs.gulliver$getHandEntity() == null || carrier.isSpectator()) return false;
+        if (cs.gulliver$getHandEntity() == null || carrier.isSpectator() || carrier.isDeadOrDying()) return false;
         Entity held = detachHand(carrier);
         if (held == null) return true;
+        carrier.swing(InteractionHand.MAIN_HAND, true);
+        // A player who ducked in the same tick as the pickup stays put.
+        if (held instanceof Player p && p.isShiftKeyDown()) return true;
         Vec3 look = carrier.getLookAngle();
         float carrierSize = ((IResizeableEntity) carrier).getSizeMultiplier();
         float targetRoot = ((IResizeableEntity) held).getSizeMultiplierRoot();
         if (targetRoot <= 0.0F) targetRoot = 1.0F;
-        float power = Math.min(12.0F, 1.5F * carrierSize / targetRoot);
+        float power = Math.min(MAX_THROW_POWER, 1.5F * carrierSize / targetRoot);
         held.setDeltaMovement(look.x * power, look.y * power + 0.3F, look.z * power);
         held.hurtMarked = true;
-        carrier.swing(InteractionHand.MAIN_HAND, true);
         return true;
     }
 
@@ -320,8 +551,7 @@ public final class ShoulderHelper {
     private static void place(Player carrier, UUID id, byte slot, double x, double y, double z) {
         Entity p = lookup(carrier, id);
         boolean server = carrier instanceof ServerPlayer;
-        if (p == null || !p.isAlive()
-                || !carrier.getUUID().equals(((IGulliverShoulderInternal) p).gulliver$getHoldingEntity())) {
+        if (p == null || !p.isAlive() || !carrier.getUUID().equals(holderOf(p))) {
             // Gone, dead, or a respawned twin with the same UUID: free the slot.
             if (server) {
                 clearSlot(carrier, slot);
@@ -331,8 +561,9 @@ public final class ShoulderHelper {
         }
         if (server) {
             // A carried player breaks free by sneaking; anything that grew too
-            // big for the hand slips out; a carrier turned spectator lets go.
-            boolean breakFree = p instanceof Player && p.isShiftKeyDown() || carrier.isSpectator();
+            // big for the hand slips out; a carrier turned spectator lets go;
+            // a carried creature that boarded something is no longer in hand.
+            boolean breakFree = p instanceof Player && p.isShiftKeyDown() || carrier.isSpectator() || p.isPassenger();
             boolean tooBig = ((IResizeableEntity) p).getSizeMultiplier()
                     >= ((IResizeableEntity) carrier).getSizeMultiplier() * MAX_SIZE_RATIO * 1.25F;
             if (breakFree || tooBig) {
@@ -401,7 +632,13 @@ public final class ShoulderHelper {
 
     private static void broadcastAttachByUuid(ServerPlayer carrier, UUID targetId, byte slot) {
         Entity e = resolve((ServerLevel) carrier.level(), targetId);
-        if (e != null) broadcastAttach(carrier, e, slot);
+        if (e != null) {
+            broadcastAttach(carrier, e, slot);
+        } else {
+            // Nothing to attach: tell the clients the slot is empty so none keeps a phantom.
+            Services.platform().sendToTrackingAndSelf(carrier,
+                    new Payloads.AttachEntitySpecial(-1, carrier.getId(), (byte) (RELEASED + slot)));
+        }
     }
 
     /**
