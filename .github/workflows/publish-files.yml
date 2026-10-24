@@ -1,0 +1,49 @@
+name: publish-files
+
+# Uploads the jars of a GitHub release of one of the other mods (see
+# mirror/projects.json) to its CurseForge and Modrinth project, using this
+# repository's CURSEFORGE_TOKEN and MODRINTH_TOKEN secrets.
+
+on:
+  workflow_dispatch:
+    inputs:
+      project:
+        description: Modrinth slug from mirror/projects.json
+        required: true
+      repos:
+        description: Comma-separated GitHub repos holding the release, e.g. Thiov/cave_dweller-fabric,Thiov/cave_dweller-neoforge
+        required: true
+      tag:
+        description: Release tag in those repos
+        required: true
+      changelog:
+        description: Release notes (optional)
+        required: false
+        default: ''
+      dry_run:
+        description: Only show what would be uploaded
+        type: boolean
+        default: true
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download release jars
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p dist
+          for repo in $(echo "${{ inputs.repos }}" | tr ',' ' '); do
+            gh release download "${{ inputs.tag }}" -R "$repo" -p '*.jar' -D dist --clobber
+          done
+          ls -1 dist
+      - name: Upload
+        env:
+          CURSEFORGE_TOKEN: ${{ secrets.CURSEFORGE_TOKEN }}
+          MODRINTH_TOKEN: ${{ secrets.MODRINTH_TOKEN }}
+          CHANGELOG: ${{ inputs.changelog }}
+        run: |
+          python3 scripts/publish_files.py --project "${{ inputs.project }}" --dir dist \
+            --changelog "$CHANGELOG" $([ "${{ inputs.dry_run }}" = true ] && echo --dry-run)
