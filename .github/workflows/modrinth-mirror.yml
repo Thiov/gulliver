@@ -20,6 +20,10 @@ on:
         description: Submit draft projects for Modrinth's review afterwards
         type: boolean
         default: false
+      hide_duplicates:
+        description: Unlist versions that repeat another version's jar
+        type: boolean
+        default: true
 
 jobs:
   mirror:
@@ -37,4 +41,5 @@ jobs:
           python3 scripts/modrinth_mirror.py \
             $([ -n "${{ inputs.only }}" ] && echo --only "${{ inputs.only }}") \
             $([ "${{ inputs.dry_run }}" = true ] && echo --dry-run) \
-            $([ "${{ inputs.submit }}" = true ] && echo --submit)
+            $([ "${{ inputs.submit }}" = true ] && echo --submit) \
+            $([ "${{ inputs.hide_duplicates }}" = true ] && echo --hide-duplicates)
