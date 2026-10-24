@@ -172,7 +172,7 @@ public final class SelfTest {
     /** Lets the next hit land at once (clears the post-hit invulnerability window). */
     static void clearHurtCooldown(LivingEntity entity) {
         //#if MC >= 26.3
-        entity.setInvulnerableTime(0);
+        entity.damageCooldownTime = 0; // invulnerableTime is a different (entity-level) field now
         //#else
         //$$ entity.invulnerableTime = 0;
         //#endif
