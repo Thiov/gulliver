@@ -19,12 +19,12 @@
 //$$
 //$$     @Inject(method = "attack", at = @At("HEAD"))
 //$$     private void gulliver$pushAttack(Entity target, CallbackInfo ci) {
-//$$         AttackContext.push((Entity) (Object) this);
+//$$         AttackContext.push((Entity) (Object) this, null); // any victim: the sweep hits others too
 //$$     }
 //$$
 //$$     @Inject(method = "attack", at = @At("RETURN"))
 //$$     private void gulliver$popAttack(Entity target, CallbackInfo ci) {
-//$$         AttackContext.pop();
+//$$         AttackContext.pop(null);
 //$$     }
 //$$ }
 //#endif

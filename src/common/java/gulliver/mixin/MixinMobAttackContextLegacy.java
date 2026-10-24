@@ -17,23 +17,23 @@
 //$$     @Inject(method = "doHurtTarget", at = @At("HEAD"))
 //$$     private void gulliver$pushHurt(net.minecraft.server.level.ServerLevel level, Entity target,
 //$$                                    CallbackInfoReturnable<Boolean> cir) {
-//$$         AttackContext.push((Entity) (Object) this);
+//$$         AttackContext.push((Entity) (Object) this, target);
 //$$     }
 //$$
 //$$     @Inject(method = "doHurtTarget", at = @At("RETURN"))
 //$$     private void gulliver$popHurt(net.minecraft.server.level.ServerLevel level, Entity target,
 //$$                                   CallbackInfoReturnable<Boolean> cir) {
-//$$         AttackContext.pop();
+//$$         AttackContext.pop(target);
 //$$     }
 //#else
 //$$     @Inject(method = "doHurtTarget", at = @At("HEAD"))
 //$$     private void gulliver$pushHurt(Entity target, CallbackInfoReturnable<Boolean> cir) {
-//$$         AttackContext.push((Entity) (Object) this);
+//$$         AttackContext.push((Entity) (Object) this, target);
 //$$     }
 //$$
 //$$     @Inject(method = "doHurtTarget", at = @At("RETURN"))
 //$$     private void gulliver$popHurt(Entity target, CallbackInfoReturnable<Boolean> cir) {
-//$$         AttackContext.pop();
+//$$         AttackContext.pop(target);
 //$$     }
 //#endif
 //$$ }

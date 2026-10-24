@@ -3,6 +3,7 @@ package gulliver.mixin;
 import gulliver.api.IResizeableEntity;
 import gulliver.common.AttackContext;
 import gulliver.common.GulliverEnvoy;
+import gulliver.common.SizeScaling;
 import gulliver.init.GulliverDamageTypes;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.tags.DamageTypeTags;
@@ -10,7 +11,6 @@ import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
-import net.minecraft.world.item.ItemStack;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -23,7 +23,13 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
  *
  *   - target side:   amount / sqrt(targetSize)  — small bodies take more
  *   - attacker side: amount * sqrt(attackerSize) — big bodies hit harder;
- *     a tiny wielding something pointy gets cbrt instead (weak but real)
+ *     a tiny wielding something pointy (either hand) gets cbrt instead
+ *     (weak but real)
+ *
+ * The combined factor is kept within 1/8x..8x, which the default size
+ * range (1/8..8) already stays inside; it only bites once the range is
+ * opened up, so a size-32 giant against a size-1/32 tiny is a hit 8x as
+ * hard, not 1000x.
  *
  * Two melee-only rules sit on top: a much larger mob attacker may whiff
  * over a tiny target (miss chance 1 - target/attacker, max 90%, unless it
@@ -50,7 +56,7 @@ public abstract class MixinLivingEntityDamage {
     //#endif
         LivingEntity self = (LivingEntity) (Object) this;
         Entity attacker = source.getEntity();
-        AttackContext.push(attacker);
+        AttackContext.push(attacker, self);
         if (!gulliver$isMelee(source, attacker, self)) return;
         LivingEntity attackerLiv = (LivingEntity) attacker;
         float targetSize = ((IResizeableEntity) self).getSizeMultiplier();
@@ -61,14 +67,14 @@ public abstract class MixinLivingEntityDamage {
         if (attackerLiv instanceof Mob && targetSize < attackerSize && !pointy) {
             float missChance = Math.min(0.9F, 1.0F - targetSize / attackerSize);
             if (self.getRandom().nextFloat() < missChance) {
-                AttackContext.pop();
+                AttackContext.pop(self);
                 cir.setReturnValue(false);
                 return;
             }
         }
         // A microscopic attacker can't hurt a giant without a weapon.
         if (!pointy && attackerSize / targetSize <= 0.125F) {
-            AttackContext.pop();
+            AttackContext.pop(self);
             cir.setReturnValue(false);
         }
     }
@@ -87,30 +93,29 @@ public abstract class MixinLivingEntityDamage {
         if (source.is(GulliverDamageTypes.PASSIVE)) return amount; // already size-scaled
         float targetSize = ((IResizeableEntity) self).getSizeMultiplier();
         float attackerSize = ((IResizeableEntity) attacker).getSizeMultiplier();
-        float scaled = amount;
-        if (targetSize != 1.0F) scaled /= (float) Math.sqrt(targetSize);
+        float ratio = 1.0F;
+        if (targetSize != 1.0F) ratio /= (float) Math.sqrt(targetSize);
         if (attackerSize != 1.0F) {
-            ItemStack hand = attackerLiv.getMainHandItem();
-            if (attackerSize < 1.0F && !hand.isEmpty() && GulliverEnvoy.isItemPointy(hand)
+            if (attackerSize < 1.0F && GulliverEnvoy.holdingPointyItem(attackerLiv)
                     && gulliver$isMelee(source, attacker, self)) {
-                scaled *= (float) Math.cbrt(attackerSize);
+                ratio *= (float) Math.cbrt(attackerSize);
             } else {
-                scaled *= (float) Math.sqrt(attackerSize);
+                ratio *= (float) Math.sqrt(attackerSize);
             }
         }
-        return scaled;
+        return amount * SizeScaling.clampRatio(ratio);
     }
 
     //#if MC >= 1.21.2
     @Inject(method = "hurtServer", at = @At("RETURN"))
     private void gulliver$popAttacker(ServerLevel level, DamageSource source, float amount,
                                        CallbackInfoReturnable<Boolean> cir) {
-        AttackContext.pop();
+        AttackContext.pop((LivingEntity) (Object) this);
     }
     //#else
     //$$ @Inject(method = "hurt", at = @At("RETURN"))
     //$$ private void gulliver$popAttacker(DamageSource source, float amount, CallbackInfoReturnable<Boolean> cir) {
-    //$$     if (!((LivingEntity) (Object) this).level().isClientSide()) AttackContext.pop();
+    //$$     if (!((LivingEntity) (Object) this).level().isClientSide()) AttackContext.pop((LivingEntity) (Object) this);
     //$$ }
     //#endif
 

@@ -3,6 +3,7 @@ package gulliver.mixin;
 
 import gulliver.api.IResizeableEntity;
 import gulliver.common.EatContext;
+import gulliver.common.SizeScaling;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.component.Consumable;
 import org.spongepowered.asm.mixin.Mixin;
@@ -24,7 +25,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
  *
  * Our logic, with size from EatContext (set by MixinItemStackUseDuration
  * around onUseTick):
- *   scaled = consumeTicks() / size
+ *   scaled = consumeTicks() / size   (clamped like the eating time itself)
  *   ticksUsed = scaled - remainingTicks
  *   threshold = scaled * 0.21875
  *   ... rest unchanged.
@@ -44,7 +45,7 @@ public abstract class MixinConsumableShouldEmit {
         if (size == 1.0F) return;
 
         Consumable self = (Consumable) (Object) this;
-        int scaledConsume = Math.max(1, Math.round(self.consumeTicks() / size));
+        int scaledConsume = SizeScaling.scaledTicks(self.consumeTicks(), size);
         int ticksUsed = scaledConsume - remainingTicks;
         int threshold = (int) (scaledConsume * 0.21875F);
         boolean fire = ticksUsed > threshold && (remainingTicks % 4) == 0;

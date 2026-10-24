@@ -434,6 +434,10 @@ public final class GulliverEnvoy {
      *
      * The original source short-circuited "mult >= 0.6F" before the loop —
      * this preserves that ordering exactly.
+     *
+     * The descent stops after three halvings (1/8 and below all count as
+     * 1/8), so with the size range opened up to 1/32 a pointy item still
+     * opens a door at any size instead of dropping below the threshold.
      */
     public static int smallBlockOpeningStrength(LivingEntity living) {
         float mult = ((IResizeableEntity) living).getSizeMultiplier();
@@ -441,7 +445,7 @@ public final class GulliverEnvoy {
         if (mult >= 0.6F) {
             return strengthadj;
         }
-        while (mult < 0.6F) {
+        for (int halvings = 0; mult < 0.6F && halvings < 3; halvings++) {
             strengthadj--;
             mult *= 2.0F;
         }
@@ -489,6 +493,7 @@ public final class GulliverEnvoy {
      * shears, and the cactus/thorny-flower block-items map to their
      * Items.* equivalents by identity. Behavior matches the 1.6.4
      * "pointy = yes" set as closely as the new item taxonomy allows.
+     * Tridents, maces (1.21+) and spears (1.21.11+) count too.
      */
     public static boolean isItemPointy(ItemStack stack) {
         if (stack == null || stack.isEmpty()) return false;
@@ -501,6 +506,13 @@ public final class GulliverEnvoy {
         if (stack.is(Items.SNOWBALL)) return true;
         if (stack.is(Items.CACTUS)) return true;
         if (stack.is(Items.STICK)) return true;
+        if (stack.is(Items.TRIDENT)) return true;
+        //#if MC >= 1.21
+        if (stack.is(Items.MACE)) return true;
+        //#endif
+        //#if MC >= 1.21.11
+        if (stack.is(ItemTags.SPEARS)) return true;
+        //#endif
         // Thorny-flower / scissors / magma-cream had no direct 26.x
         // equivalents in the 1.6.4 vanilla set the original referenced.
         return false;
@@ -557,28 +569,27 @@ public final class GulliverEnvoy {
 
     /** Game time a living entity smaller than normal last ticked on the server. */
     private static long smallBodySeen = Long.MIN_VALUE / 2;
+    /** Same for a tiny one (below 0.3); lets the spider scan skip worlds without any. */
+    private static long tinyBodySeen = Long.MIN_VALUE / 2;
 
     /** Called by every living entity's server tick; cheap trample gate. */
     public static void noteBodySize(net.minecraft.world.entity.LivingEntity entity) {
-        if (((IResizeableEntity) entity).getSizeMultiplier() < 1.0F) smallBodySeen = entity.level().getGameTime();
+        float size = ((IResizeableEntity) entity).getSizeMultiplier();
+        if (size < 1.0F) {
+            long now = entity.level().getGameTime();
+            smallBodySeen = now;
+            if (size < 0.3F) tinyBodySeen = now;
+        }
     }
 
-    /**
-     * 1.6.4 stepOnSmallerEntities verbatim. A huge entity walking in the
-     * world looks for small entities at its foot level and crushes them
-     * with PASSIVE damage equal to ceil(2 × stepperRoot / targetRoot).
-     *
-     * Original predicates:
-     *   - collideableRideEntity(other) — target is collidable, not the
-     *     stepper, not its passenger.
-     *   - canSquish(other) — stepper much larger than target. Modern
-     *     proxy: target's sizeMultiplier < stepper's / 2 (so a 4× giant
-     *     squishes only sub-2× targets, a normal-size player can't
-     *     squish another normal player just by walking near them).
-     *   - foot-level test: target's top ≥ stepper's bottom AND target's
-     *     bottom ≤ stepper's bottom + (1/16 × stepper's height). Target
-     *     is genuinely under the stepper's foot.
-     */
+    /** Whether some tiny creature has ticked on the server within the last couple of seconds. */
+    public static boolean tinySeenRecently(Level level) {
+        return level.getGameTime() - tinyBodySeen <= 40L;
+    }
+
+    /** Floor blocks one body may crack in a single tick. */
+    private static final int MAX_FLOOR_CRACKS = 32;
+
     /**
      * 1.6.4 checkSupportingBlocksForHuge: when a huge entity stands on
      * brittle materials (glass, wool, leaves), those blocks
@@ -594,11 +605,17 @@ public final class GulliverEnvoy {
      *     toward the center break at 1/10, edge blocks at 1/(10×count).
      *
      * Modern translation:
-     *   - "brittle" = BlockTags.WOOL OR class == GlassBlock /
-     *     StainedGlassBlock / TintedGlassBlock.
+     *   - "brittle" = the gulliver:brittle block tag (glass, panes, wool;
+     *     data packs can extend it). Portal frames, ice, lamps and
+     *     lanterns are deliberately not in it.
      *   - "flimsy" = BlockTags.LEAVES OR !state.isFaceSturdy(level, pos, UP)
      *     (the modern test for "supports an entity standing on it").
      *   - Edge width uses bbox-width / 3, same as 1.6.4 (Mth.ceil(O / 3)).
+     *
+     * The blocks go through CollateralBreaking (claim mods can veto,
+     * unbreakables are skipped) and at most {@link #MAX_FLOOR_CRACKS} give
+     * way per tick, so a size-32 body on a glass plaza doesn't shatter
+     * hundreds of blocks at once.
      */
     public static void checkSupportingBlocksForHuge(net.minecraft.world.entity.LivingEntity stepper,
                                                      java.util.Random rand) {
@@ -636,9 +653,11 @@ public final class GulliverEnvoy {
         // second pass — break brittle blocks per probability table
         float bboxWidth = (float) (box.maxX - box.minX);
         int edgew = (int) Math.ceil(bboxWidth / 3.0F);
+        net.minecraft.server.level.ServerLevel serverLevel = (net.minecraft.server.level.ServerLevel) level;
+        int cracked = 0;
 
-        for (int x = sx1; x <= sx2; x++) {
-            for (int z = sz1; z <= sz2; z++) {
+        for (int x = sx1; x <= sx2 && cracked < MAX_FLOOR_CRACKS; x++) {
+            for (int z = sz1; z <= sz2 && cracked < MAX_FLOOR_CRACKS; z++) {
                 net.minecraft.core.BlockPos pos = new net.minecraft.core.BlockPos(x, y, z);
                 net.minecraft.world.level.block.state.BlockState st = level.getBlockState(pos);
                 if (st.isAir() || !isBrittleSupport(st)) continue;
@@ -648,22 +667,16 @@ public final class GulliverEnvoy {
                 int p = center ? 10 : (10 * brittleCount);
                 if (rand.nextInt(p) != 0) continue;
 
-                level.destroyBlock(pos, true);
+                if (CollateralBreaking.breakBlock(serverLevel, pos, stepper, CollateralBreaking.Mode.BODY)
+                        != CollateralBreaking.Result.SKIPPED) {
+                    cracked++;
+                }
             }
         }
     }
 
     private static boolean isBrittleSupport(net.minecraft.world.level.block.state.BlockState st) {
-        if (st.is(net.minecraft.tags.BlockTags.WOOL)) return true;
-        net.minecraft.world.level.block.Block b = st.getBlock();
-        if (b instanceof net.minecraft.world.level.block.StainedGlassBlock
-                || b instanceof net.minecraft.world.level.block.TintedGlassBlock) {
-            return true;
-        }
-        // Plain glass uses the vanilla Block class (no specialized GlassBlock
-        // class in 26.x). Detect via sound type — it's the unifying signal
-        // across plain / stained / tinted glass and any modded glass.
-        return st.getSoundType() == net.minecraft.world.level.block.SoundType.GLASS;
+        return st.is(gulliver.init.GulliverTags.BRITTLE);
     }
 
     private static boolean isFlimsySupport(net.minecraft.world.level.block.state.BlockState st,
@@ -1135,6 +1148,11 @@ public final class GulliverEnvoy {
      * simply cramps you instead (vanilla suffocation handles that
      * pressure, exactly like the original).
      *
+     * Every block goes through CollateralBreaking: a player's burst can
+     * be vetoed by claim mods and drops with the held tool (a growing mob
+     * has no tool, so only blocks that drop bare-handed drop anything),
+     * and a big growth is spread over several ticks by a per-tick budget.
+     *
      * Call AFTER refreshDimensions with the bbox captured BEFORE the
      * size change. Server-side + size_griefing-gated.
      */
@@ -1156,37 +1174,7 @@ public final class GulliverEnvoy {
         net.minecraft.world.level.Level level = entity.level();
         if (level.isClientSide() || suppressGrowthBurst) return;
         if (!canSizeGrief(entity)) return;
-        net.minecraft.world.phys.AABB newBox = entity.getBoundingBox();
-        float sizeMult = ((IResizeableEntity) entity).getSizeMultiplier();
-        boolean huge = ((IResizeableEntity) entity).isHuge();
-
-        int x1 = net.minecraft.util.Mth.floor(newBox.minX);
-        int y1 = net.minecraft.util.Mth.floor(newBox.minY);
-        int z1 = net.minecraft.util.Mth.floor(newBox.minZ);
-        int x2 = net.minecraft.util.Mth.floor(newBox.maxX - 1.0E-7D);
-        int y2 = net.minecraft.util.Mth.floor(newBox.maxY - 1.0E-7D);
-        int z2 = net.minecraft.util.Mth.floor(newBox.maxZ - 1.0E-7D);
-        for (int x = x1; x <= x2; x++) {
-            for (int y = y1; y <= y2 && y > level.getMinY(); y++) {
-                for (int z = z1; z <= z2; z++) {
-                    net.minecraft.core.BlockPos pos = new net.minecraft.core.BlockPos(x, y, z);
-                    // Only the newly-swept shell: skip cubes the old
-                    // body already overlapped.
-                    if (oldBox.intersects(new net.minecraft.world.phys.AABB(pos))) continue;
-                    net.minecraft.world.level.block.state.BlockState st = level.getBlockState(pos);
-                    if (st.isAir()) continue;
-                    if (!st.getFluidState().isEmpty()) continue;
-                    if (level.getBlockEntity(pos) != null) continue;
-                    float h = st.getDestroySpeed(level, pos);
-                    if (h < 0.0F) continue;
-                    boolean burst = h < sizeMult
-                            || (huge && st.getBlock() instanceof net.minecraft.world.level.block.WebBlock);
-                    if (!burst) continue;
-                    if (entity instanceof Player p && !level.mayInteract(p, pos)) continue;
-                    level.destroyBlock(pos, true, entity);
-                }
-            }
-        }
+        CollateralBreaking.growthBurst(entity, oldBox);
     }
 
     /**
@@ -1267,6 +1255,23 @@ public final class GulliverEnvoy {
     }
 
     /**
+     * 1.6.4 stepOnSmallerEntities. A big entity walking in the world looks
+     * for small entities at its foot level and crushes them with PASSIVE
+     * damage of ceil(0.5 × stepperRoot / targetRoot), at most 8.
+     *
+     * Original predicates:
+     *   - collideableRideEntity(other) — target is collidable, not the
+     *     stepper, not its passenger.
+     *   - canSquish(other) — stepper much larger than target: the target
+     *     is under {@code trampleSizeRatio} of the stepper's size and the
+     *     stepper at least 1.5x taller.
+     *   - foot-level test: target's top ≥ stepper's bottom AND target's
+     *     bottom ≤ stepper's bottom + (1/16 × stepper's height). Target
+     *     is genuinely under the stepper's foot. Only that slab is
+     *     searched (a size-32 body is 57 blocks tall).
+     * Added: the stepper's own pets, teammates and armor stands are
+     * spared, and at most {@link #MAX_TRAMPLED} creatures are hurt per tick.
+     *
      * @param horizSqr squared horizontal distance the stepper moved this
      *                 tick (measured from its positions, since a server-side
      *                 player's delta movement is not kept up to date)
@@ -1289,18 +1294,22 @@ public final class GulliverEnvoy {
         if (horizSqr < 0.005D) return;
 
         net.minecraft.world.phys.AABB stepperBox = stepper.getBoundingBox();
-        net.minecraft.world.phys.AABB scan = stepperBox.inflate(0.2D, 0.0D, 0.2D);
+        double sBottom = stepperBox.minY;
+        double sHeight = stepperBox.maxY - stepperBox.minY;
+        // The foot slab: from just below the soles to 1/16 of the body height up.
+        net.minecraft.world.phys.AABB scan = new net.minecraft.world.phys.AABB(
+                stepperBox.minX - 0.2D, sBottom - 0.1D, stepperBox.minZ - 0.2D,
+                stepperBox.maxX + 0.2D, sBottom + sHeight * 0.0625D, stepperBox.maxZ + 0.2D);
         java.util.List<Entity> nearby = level.getEntities(stepper, scan);
         if (nearby == null || nearby.isEmpty()) return;
 
         float stepperMult = ((IResizeableEntity) stepper).getSizeMultiplier();
         float stepperRoot = ((IResizeableEntity) stepper).getSizeMultiplierRoot();
-        double sBottom = stepperBox.minY;
-        double sHeight = stepperBox.maxY - stepperBox.minY;
         // 1.6.4 nn.java:1273 canSquish height-ratio gate: stepper must
         // be at least 1.5x taller than target. Approximated here by
         // bbox-height ratio.
         float stepperHeight = stepper.getBbHeight();
+        int trampled = 0;
 
         for (Entity target : nearby) {
             if (!(target instanceof net.minecraft.world.entity.LivingEntity living)) continue;
@@ -1321,6 +1330,7 @@ public final class GulliverEnvoy {
             if (stepperHeight <= target.getBbHeight() * 1.5F) continue;
             if (target.isSpectator() || target.isPassenger()) continue;
             if (stepper instanceof Player sp && target instanceof Player tp && !sp.canHarmPlayer(tp)) continue;
+            if (GiantAoe.spares(stepper, target)) continue;
 
             net.minecraft.world.phys.AABB tBox = target.getBoundingBox();
             if (tBox.maxY < sBottom) continue;
@@ -1332,10 +1342,15 @@ public final class GulliverEnvoy {
             // that's 24 dmg/sec — instant kill on a normal-HP tiny. User
             // reported this as "crazy damage" in 4(343). Cut the multiplier
             // to 0.5 (0.25× the original): same scaling shape, but a giant
-            // step is now ~3 dmg, which the tiny can flee from.
+            // step is now ~3 dmg, which the tiny can flee from. The root
+            // ratio reaches 32 at the ends of the 1/32..32 range, hence the cap.
             float dmg = (float) Math.ceil(0.5F * stepperRoot / tsized.getSizeMultiplierRoot());
-            if (dmg < 1.0F) dmg = 1.0F;
+            dmg = Math.max(1.0F, Math.min(MAX_TRAMPLE_DAMAGE, dmg));
             living.hurt(gulliver.init.GulliverDamageTypes.passive(level, stepper), dmg);
+            if (++trampled >= MAX_TRAMPLED) break;
         }
     }
+
+    private static final float MAX_TRAMPLE_DAMAGE = 8.0F;
+    private static final int MAX_TRAMPLED = 24;
 }

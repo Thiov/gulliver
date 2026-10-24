@@ -65,15 +65,13 @@ public abstract class MixinTntBlock {
     //$$     ItemStack stack = player.getItemInHand(hand);
     //#endif
         if (!((IResizeableEntity) player).isHuge()) return;
-        // Don't override the vanilla flint/steel / fire charge path.
-        if (stack.is(Items.FLINT_AND_STEEL) || stack.is(Items.FIRE_CHARGE)) return;
-        // Don't override pointy-tool right-click — the player might be poking
-        // at the block with intent.
-        if (GulliverEnvoy.isItemPointy(stack)) return;
-        // Don't hijack block placement: a huge builder clicking TNT with a
-        // block in hand wants to build against it, not detonate it. The
-        // 1.6.4 original only primed on a truly EMPTY hand.
-        if (stack.getItem() instanceof net.minecraft.world.item.BlockItem) return;
+        // Both hands count: with a sword in the other hand the click is about
+        // that item, and an igniter or block there gets its own turn after
+        // this hand passes.
+        if (gulliver$spokenFor(stack) || gulliver$spokenFor(player.getMainHandItem())
+                || gulliver$spokenFor(player.getOffhandItem())) {
+            return;
+        }
         // Sneak = the universal "suppress special interaction" gesture.
         if (player.isShiftKeyDown()) return;
 
@@ -88,5 +86,19 @@ public abstract class MixinTntBlock {
             //#endif
         }
         cir.setReturnValue(InteractionResult.SUCCESS);
+    }
+
+    /**
+     * An item that makes this click not a bare-handed one:
+     *  - the vanilla flint/steel / fire charge path stays untouched;
+     *  - a pointy tool: the player might be poking at the block with intent;
+     *  - a block: a huge builder clicking TNT with a block in hand wants to
+     *    build against it, not detonate it (the 1.6.4 original only primed
+     *    on a truly EMPTY hand).
+     */
+    private static boolean gulliver$spokenFor(ItemStack stack) {
+        return stack.is(Items.FLINT_AND_STEEL) || stack.is(Items.FIRE_CHARGE)
+                || GulliverEnvoy.isItemPointy(stack)
+                || stack.getItem() instanceof net.minecraft.world.item.BlockItem;
     }
 }

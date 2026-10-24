@@ -1,7 +1,11 @@
 package gulliver.mixin;
 
+import gulliver.access.IGulliverBossBar;
 import gulliver.api.IResizeableEntity;
+import gulliver.common.GiantBossBars;
 import gulliver.common.GulliverEnvoy;
+import net.minecraft.server.level.ServerBossEvent;
+import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.LivingEntity;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
@@ -18,6 +22,10 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
  * Movement is measured from the entity's own positions between ticks —
  * a server-side player's delta movement stays near zero, which used to
  * stop giant PLAYERS from ever trampling anything.
+ *
+ * Also drives the boss bar of a giant mob (GiantBossBars): created and
+ * updated here every tick, taken down when the entity dies (and, through
+ * MixinEntityBossBar, whenever it leaves the world).
  */
 @Mixin(LivingEntity.class)
 public abstract class MixinLivingEntityHugeEffects {
@@ -41,6 +49,20 @@ public abstract class MixinLivingEntityHugeEffects {
         if (((IResizeableEntity) self).isHuge()) {
             GulliverEnvoy.leaveHugeFootprints(self, moved);
             GulliverEnvoy.checkSupportingBlocksForHuge(self, GulliverEnvoy.getRand());
+        }
+        IGulliverBossBar holder = (IGulliverBossBar) self;
+        ServerBossEvent bar = holder.gulliver$getBossBar();
+        if (bar != null || GiantBossBars.wants(self)) {
+            holder.gulliver$setBossBar(GiantBossBars.update(self, bar));
+        }
+    }
+
+    @Inject(method = "die", at = @At("HEAD"))
+    private void gulliver$dropBossBarOnDeath(DamageSource source, CallbackInfo ci) {
+        IGulliverBossBar holder = (IGulliverBossBar) this;
+        if (holder.gulliver$getBossBar() != null) {
+            GiantBossBars.discard(holder.gulliver$getBossBar());
+            holder.gulliver$setBossBar(null);
         }
     }
 }
