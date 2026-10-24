@@ -77,6 +77,12 @@ def multipart(fields, files):
     return bytes(out), f"multipart/form-data; boundary={boundary}"
 
 
+def env_token(name):
+    """A token from the environment, without the quotes or spaces a copy-paste can bring along."""
+    value = os.environ.get(name, "").strip().strip("\"'").strip()
+    return value or None
+
+
 def jars(dist, version):
     found = []
     for name in sorted(os.listdir(dist)):
@@ -97,7 +103,7 @@ def jars(dist, version):
 
 
 def curseforge(args, files, changelog):
-    token = os.environ.get("CURSEFORGE_TOKEN")
+    token = env_token("CURSEFORGE_TOKEN")
     if not token:
         print("CurseForge: no CURSEFORGE_TOKEN, skipped")
         return
@@ -146,7 +152,7 @@ def curseforge(args, files, changelog):
 
 
 def modrinth(args, files, changelog):
-    token = os.environ.get("MODRINTH_TOKEN")
+    token = env_token("MODRINTH_TOKEN")
     if not token:
         print("Modrinth: no MODRINTH_TOKEN, skipped")
         return
