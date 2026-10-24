@@ -121,6 +121,7 @@ public final class SelfTest {
             pig.discard();
         }
 
+        SelfTestMovement.run(level, failures);
         SelfTestExtras.run(level, failures);
     }
 
