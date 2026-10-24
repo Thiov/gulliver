@@ -98,14 +98,19 @@ def jar_icon(jar):
             if path is None:
                 return None
         data = z.read(path)
-    if len(data) <= ICON_LIMIT:
+    return shrink_icon(data)
+
+
+def shrink_icon(data):
+    """PNG under Modrinth's 256 KiB icon limit (any input format Pillow reads)."""
+    if len(data) <= ICON_LIMIT and data[:8] == b"\x89PNG\r\n\x1a\n":
         return data
     try:
         from PIL import Image
     except ImportError:
         print("  icon over 256 KiB and Pillow is missing: project created without an icon")
         return None
-    img = Image.open(io.BytesIO(data))
+    img = Image.open(io.BytesIO(data)).convert("RGBA")
     for size in (512, 384, 256, 128):
         out = io.BytesIO()
         img.copy().resize((size, size), Image.LANCZOS).save(out, "PNG", optimize=True)
@@ -156,7 +161,16 @@ def mirror(mr, project):
     else:
         have = set()
         jar = get_bytes(f"{CF_WEB}/{project['curseforge_id']}/files/{files[-1]['id']}/download") if files else None
-        icon = jar_icon(jar) if jar else None
+        icon = None
+        if project.get("icon"):
+            icon_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", project["icon"])
+            if os.path.isfile(icon_path):
+                with open(icon_path, "rb") as fh:
+                    icon = shrink_icon(fh.read())
+            else:
+                print(f"  icon file {project['icon']} is missing, using the jar's icon")
+        if icon is None and jar:
+            icon = jar_icon(jar)
         data = {
             "slug": slug, "title": project["title"], "description": project["summary"],
             "categories": project["categories"], "additional_categories": [],

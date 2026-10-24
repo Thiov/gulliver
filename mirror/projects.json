@@ -6,52 +6,129 @@
       "slug": "gulliver-unbound",
       "title": "Gulliver Unbound",
       "summary": "Shrink to an ant's-eye view or grow into a world-crushing giant. Movement, reach, combat, sound and the world itself scale with your size.",
-      "categories": ["game-mechanics", "mobs", "adventure"],
+      "categories": [
+        "game-mechanics",
+        "mobs",
+        "adventure"
+      ],
       "license_id": "LicenseRef-All-Rights-Reserved",
       "source_url": "https://github.com/Thiov/gulliver",
       "issues_url": "https://github.com/Thiov/gulliver/issues",
       "body_from": "Thiov/gulliver",
-      "exclude": ["^gulliver-0\\.", "^gulliver-1\\.0\\.0\\.jar$"],
-      "dependencies": {"fabric": [["fabric-api", "required"], ["modmenu", "optional"]]}
+      "exclude": [
+        "^gulliver-0\\.",
+        "^gulliver-1\\.0\\.0\\.jar$"
+      ],
+      "dependencies": {
+        "fabric": [
+          [
+            "fabric-api",
+            "required"
+          ],
+          [
+            "modmenu",
+            "optional"
+          ]
+        ]
+      }
     },
     {
       "curseforge_id": 1590315,
       "slug": "alexs-caves-fabric-neoforge-port",
       "title": "Alex's Caves (Fabric/NeoForge Port)",
       "summary": "Unofficial Fabric and NeoForge port of Alex's Caves: rare, hand-crafted hidden cave biomes. Needs Citadel.",
-      "categories": ["worldgen", "adventure", "mobs", "equipment"],
+      "categories": [
+        "worldgen",
+        "adventure",
+        "mobs",
+        "equipment"
+      ],
       "license_id": "LGPL-3.0-only",
       "source_url": "https://github.com/Thiov/alexscaves-fabric",
       "issues_url": "https://github.com/Thiov/alexscaves-fabric/issues",
       "body_from": "Thiov/alexscaves-fabric",
       "exclude": [],
-      "dependencies": {"fabric": [["fabric-api", "required"], ["citadel", "required"]], "neoforge": [["citadel", "required"]]}
+      "dependencies": {
+        "fabric": [
+          [
+            "fabric-api",
+            "required"
+          ],
+          [
+            "citadel",
+            "required"
+          ]
+        ],
+        "neoforge": [
+          [
+            "citadel",
+            "required"
+          ]
+        ]
+      }
     },
     {
       "curseforge_id": 1590916,
       "slug": "twixxels-stalker-fabric-neoforge-port",
       "title": "Twixxel's Stalker (Fabric/NeoForge Port)",
       "summary": "Unofficial Fabric and NeoForge port of Twixxel's Stalker: a silent hunter that only moves when you look away.",
-      "categories": ["mobs", "adventure"],
+      "categories": [
+        "mobs",
+        "adventure"
+      ],
       "license_id": "MIT",
       "source_url": "https://github.com/Thiov/twixxels-stalker-fabric",
       "issues_url": "https://github.com/Thiov/twixxels-stalker-fabric/issues",
       "body_from": "Thiov/twixxels-stalker-fabric",
       "exclude": [],
-      "dependencies": {"fabric": [["fabric-api", "required"]]}
+      "dependencies": {
+        "fabric": [
+          [
+            "fabric-api",
+            "required"
+          ]
+        ]
+      }
     },
     {
       "curseforge_id": 1524879,
       "slug": "cave-dweller-fabric-neoforge-port",
       "title": "Cave Dweller (Fabric/NeoForge Port)",
       "summary": "Unofficial Fabric and NeoForge port of Cave Dweller Evolved: a tall, pale creature that stalks you underground.",
-      "categories": ["mobs", "adventure"],
+      "categories": [
+        "mobs",
+        "adventure"
+      ],
       "license_id": "MIT",
       "source_url": "https://github.com/Thiov/cave_dweller-fabric",
       "issues_url": "https://github.com/Thiov/cave_dweller-fabric/issues",
       "body_from": "Thiov/cave_dweller-fabric",
       "exclude": [],
-      "dependencies": {"fabric": [["fabric-api", "required"], ["geckolib", "required"]], "neoforge": [["geckolib", "required"]], "forge": [["geckolib", "required"]]}
+      "dependencies": {
+        "fabric": [
+          [
+            "fabric-api",
+            "required"
+          ],
+          [
+            "geckolib",
+            "required"
+          ]
+        ],
+        "neoforge": [
+          [
+            "geckolib",
+            "required"
+          ]
+        ],
+        "forge": [
+          [
+            "geckolib",
+            "required"
+          ]
+        ]
+      },
+      "icon": "mirror/icons/cave-dweller.png"
     }
   ]
 }
