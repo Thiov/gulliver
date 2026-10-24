@@ -3,10 +3,13 @@ package gulliver.common;
 import gulliver.api.IResizeableEntity;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.OwnableEntity;
 import net.minecraft.world.entity.ai.attributes.Attributes;
+import net.minecraft.world.entity.decoration.ArmorStand;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
@@ -36,16 +39,19 @@ import net.minecraft.world.phys.AABB;
  *     collateral — deliberate breaks only.
  *   - Unbreakables and fluids are untouched.
  *   - SNEAK = precision mode: exactly one block, no spread.
- *   - Respects the gulliver:size_griefing gamerule.
+ *   - Respects the gulliver:size_griefing gamerule, and every neighbour
+ *     goes through CollateralBreaking: claim mods can veto it, drops use
+ *     the held tool (Silk Touch, Fortune), the tool wears.
  *
  * MELEE SPLASH — a huge attacker's punch is an area of effect: other
- * creatures within 0.35 × size blocks of the struck target take 40%
- * of the attack damage with distance falloff, scaled by the attack-
- * cooldown charge (spam-clicking splashes nothing). SNEAK again means
- * a precise single-target hit. The splash routes through the normal
- * player-attack damage source, so per-target size scaling and armor
- * apply as usual; the attacker's own carried pets, creative players,
- * and spectators are never splashed.
+ * creatures within 0.35 × size blocks (at most 4) of the struck target
+ * take 40% of the attack damage with distance falloff, scaled by the
+ * attack-cooldown charge (spam-clicking splashes nothing). SNEAK again
+ * means a precise single-target hit. The splash routes through the
+ * normal player-attack damage source, so per-target size scaling and
+ * armor apply as usual; the attacker's own carried creatures and pets,
+ * teammates, armor stands, creative players and spectators are never
+ * splashed.
  */
 public final class GiantAoe {
     private GiantAoe() {}
@@ -118,9 +124,8 @@ public final class GiantAoe {
         float centerHardness = Math.max(0.0F, state.getDestroySpeed(level, pos));
         float hardnessCap = Math.max(centerHardness * 1.5F, centerHardness + 0.5F);
         double mask = (r + 0.5D) * (r + 0.5D);
-        boolean drops = !player.isCreative();
 
-        crater:
+        if (!(level instanceof ServerLevel serverLevel)) return;
         for (int a = -r; a <= r; a++) {
             for (int b = -r; b <= r; b++) {
                 if (a == 0 && b == 0) continue;
@@ -132,22 +137,12 @@ public final class GiantAoe {
                 };
                 BlockState st = level.getBlockState(p);
                 if (st.isAir()) continue;
-                if (!st.getFluidState().isEmpty()) continue;
                 float h = st.getDestroySpeed(level, p);
                 if (h < 0.0F || h > hardnessCap) continue;
-                if (level.getBlockEntity(p) != null) continue;
-                // Spawn protection / world border, like a normal break.
-                if (!level.mayInteract(player, p)) continue;
-                // Collateral only drops what the held tool could harvest, and
-                // wears the tool like mining it would (no free ore).
-                boolean harvest = drops && player.hasCorrectToolForDrops(st);
-                if (level.destroyBlock(p, harvest, player) && drops) {
-                    net.minecraft.world.item.ItemStack tool = player.getMainHandItem();
-                    if (!tool.isEmpty()) {
-                        tool.mineBlock(level, st, p, player);
-                        if (tool.isEmpty()) break crater; // the tool broke mid-swing
-                    }
-                }
+                // Veto, drops with the held tool, tool wear: all in the shared helper.
+                CollateralBreaking.Result result = CollateralBreaking.breakBlock(serverLevel, p, player,
+                        CollateralBreaking.Mode.CRATER);
+                if (result == CollateralBreaking.Result.BROKEN_TOOL_LOST) return; // the tool broke mid-swing
             }
         }
     }
@@ -162,13 +157,14 @@ public final class GiantAoe {
         if (!(target instanceof LivingEntity)) return InteractionResult.PASS;
 
         float size = sized.getSizeMultiplier();
-        double radius = 0.35D * size;
+        double radius = Math.min(MAX_SPLASH_RADIUS, 0.35D * size);
         // Attack-cooldown charge: a spam-click splashes nothing.
         float charge = player.getAttackStrengthScale(0.5F);
         float base = (float) player.getAttributeValue(Attributes.ATTACK_DAMAGE)
                 * 0.4F * charge * charge;
         if (base < 0.5F) return InteractionResult.PASS;
 
+        int splashed = 0;
         AABB zone = target.getBoundingBox().inflate(radius);
         for (Entity e : level.getEntities(player, zone)) {
             if (e == target) continue;
@@ -177,13 +173,29 @@ public final class GiantAoe {
             if (player.getUUID().equals(((gulliver.access.IGulliverShoulderInternal) e)
                     .gulliver$getHoldingEntity())) continue;
             if (e instanceof Player p && (p.isCreative() || p.isSpectator())) continue;
+            if (spares(player, e)) continue;
 
             double dist = e.distanceTo(target);
             double falloff = 1.0D - Math.min(1.0D, dist / (radius + 1.0E-3D));
             float dmg = (float) (base * falloff);
             if (dmg < 0.5F) continue;
             victim.hurt(level.damageSources().playerAttack(player), dmg);
+            if (++splashed >= MAX_SPLASH_VICTIMS) break;
         }
         return InteractionResult.PASS;
+    }
+
+    /** Splash reaches at most this far from the struck target, however huge the attacker. */
+    private static final double MAX_SPLASH_RADIUS = 4.0D;
+    private static final int MAX_SPLASH_VICTIMS = 16;
+
+    /**
+     * Whom a huge body never hurts by accident (splash and trampling): the
+     * actor's own pets, its teammates, and armor stands (markers included).
+     */
+    public static boolean spares(Entity actor, Entity victim) {
+        if (victim instanceof ArmorStand) return true;
+        if (victim instanceof OwnableEntity pet && pet.getOwner() == actor) return true;
+        return actor.isAlliedTo(victim);
     }
 }

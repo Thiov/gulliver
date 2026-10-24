@@ -2,6 +2,7 @@ package gulliver.mixin;
 
 import gulliver.api.IResizeableEntity;
 import gulliver.common.EatContext;
+import gulliver.common.SizeScaling;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
@@ -16,8 +17,9 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
  *
  *  1. Scale getUseDuration(LivingEntity) by 1/size — FOR CONSUMABLES
  *     ONLY — so eating/drinking takes longer for tinies and shorter
- *     for giants. Vanilla then decrements useItemRemaining by 1 per
- *     tick — animation interpolates smoothly over the extended
+ *     for giants (never under 4 ticks, never over 8x vanilla; see
+ *     SizeScaling.scaledTicks). Vanilla then decrements useItemRemaining
+ *     by 1 per tick — animation interpolates smoothly over the extended
  *     duration.
  *
  *     The consumable gate is load-bearing: bows, crossbows, tridents,
@@ -55,7 +57,7 @@ public abstract class MixinItemStackUseDuration {
         //#endif
         float size = ((IResizeableEntity) entity).getSizeMultiplier();
         if (size == 1.0F) return;
-        cir.setReturnValue(Math.max(1, Math.round(base / size)));
+        cir.setReturnValue(SizeScaling.scaledTicks(base, size));
     }
     //#else
     //$$ // 1.20.1: ItemStack.getUseDuration() has no entity; the eater is found

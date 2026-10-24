@@ -9,6 +9,7 @@ import gulliver.platform.Services;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionResult;
+import net.neoforged.bus.api.EventPriority;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.common.Mod;
@@ -49,7 +50,8 @@ public final class GulliverNeoForge {
         //#endif
         bus.addListener((PlayerInteractEvent.RightClickItem e) ->
                 apply(e, CommonEvents.onUseItem(e.getEntity(), e.getLevel(), e.getHand())));
-        bus.addListener((AttackEntityEvent e) ->
+        // Last, and not for cancelled attacks: a claim mod that vetoes the attack also stops the giant's splash.
+        bus.addListener(EventPriority.LOWEST, (AttackEntityEvent e) ->
                 CommonEvents.onAttackEntity(e.getEntity(), e.getEntity().level(), e.getTarget()));
         bus.addListener((PlayerEvent.Clone e) -> {
             if (e.getOriginal() instanceof ServerPlayer oldP && e.getEntity() instanceof ServerPlayer newP) {

@@ -1,6 +1,7 @@
 package gulliver.mixin;
 
 import gulliver.api.IResizeableEntity;
+import gulliver.common.SizeScaling;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TridentItem;
@@ -19,7 +20,9 @@ import org.spongepowered.asm.mixin.injection.Redirect;
  *                many times your body length takes a moment)
  *   size 0.5   → 20 ticks (1 s)
  *   vanilla    → 10 ticks
- *   size 4     → ~3 ticks (a giant flicks it)
+ *   size 4     → 4 ticks (a giant flicks it)
+ *
+ * Like the bow, never under 4 ticks and never over 8x vanilla.
  *
  * This also carries the fix for the "tinies can't throw tridents at
  * all" bug: the old blanket ItemStack.getUseDuration scaling seeded
@@ -43,7 +46,7 @@ public abstract class MixinTridentItem {
         float size = ((IResizeableEntity) entity).getSizeMultiplier();
         if (size == 1.0F) return duration;
         int held = duration - remaining;
-        return remaining + Math.round(held * size);
+        return remaining + Math.round(held * SizeScaling.chargeFactor(size, 10));
     }
     //#else
     //$$ @Redirect(method = "releaseUsing",
@@ -54,7 +57,7 @@ public abstract class MixinTridentItem {
     //$$     int duration = item.getUseDuration(stack);
     //$$     float size = ((IResizeableEntity) user).getSizeMultiplier();
     //$$     if (size == 1.0F) return duration;
-    //$$     return remaining + Math.round((duration - remaining) * size);
+    //$$     return remaining + Math.round((duration - remaining) * SizeScaling.chargeFactor(size, 10));
     //$$ }
     //#endif
 }

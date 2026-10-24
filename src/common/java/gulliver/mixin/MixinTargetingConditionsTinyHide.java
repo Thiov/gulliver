@@ -1,5 +1,6 @@
 package gulliver.mixin;
 
+import gulliver.access.IGulliverTargeting;
 import gulliver.api.IResizeableEntity;
 //#if MC >= 1.21.2
 import net.minecraft.server.level.ServerLevel;
@@ -9,6 +10,7 @@ import net.minecraft.world.entity.EntityTypes;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ai.targeting.TargetingConditions;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
@@ -32,6 +34,9 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
  * size disparity, matching 1.6.4 og.java line 108-114 (arthropods get
  * minTargetSize=0.1 instead of 0.3).
  *
+ * Fleeing is exempt: AvoidEntityGoal's conditions are marked
+ * (MixinAvoidEntityGoal) so a creeper still sees, and runs from, a tiny cat.
+ *
  * HurtByTargetGoal compat: when the attacker has been hit by this
  * target (attacker.lastHurtByMob == target), retaliation is allowed
  * regardless of size. Without this branch, a tiny attacking a zombie
@@ -39,10 +44,19 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
  * TargetingConditions.test on the lastHurtBy target, and we'd block it.
  */
 @Mixin(TargetingConditions.class)
-public abstract class MixinTargetingConditionsTinyHide {
+public abstract class MixinTargetingConditionsTinyHide implements IGulliverTargeting {
 
     /** Only hostile targeting ignores tinies; tempting, breeding and fleeing still see them. */
     @org.spongepowered.asm.mixin.Shadow @org.spongepowered.asm.mixin.Final private boolean isCombat;
+
+    /** Set for the conditions of a fleeing goal, which are combat conditions but must see small threats. */
+    @Unique private boolean gulliver$seesSmall;
+
+    @Override
+    @Unique
+    public void gulliver$setSeesSmall(boolean seesSmall) {
+        gulliver$seesSmall = seesSmall;
+    }
 
     @Inject(method = "test", at = @At("HEAD"), cancellable = true)
     private void gulliver$tinyInvisibleToMobs(
@@ -52,7 +66,7 @@ public abstract class MixinTargetingConditionsTinyHide {
                                                 LivingEntity attacker,
                                                 LivingEntity target,
                                                 CallbackInfoReturnable<Boolean> cir) {
-        if (target == null || attacker == null || !isCombat) return;
+        if (target == null || attacker == null || !isCombat || gulliver$seesSmall) return;
         float targetSize = ((IResizeableEntity) target).getSizeMultiplier();
         float attackerSize = ((IResizeableEntity) attacker).getSizeMultiplier();
         // Relative size threshold: target is "invisible" to this attacker
