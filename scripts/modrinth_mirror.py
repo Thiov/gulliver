@@ -22,7 +22,7 @@ import urllib.request
 import zipfile
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from publish import MR_API, UA, env_token, multipart, request  # noqa: E402
+from publish import MR_API, MR_API_V3, UA, env_token, multipart, request, set_environment  # noqa: E402
 
 CF_WEB = "https://www.curseforge.com/api/v1/mods"
 CF_PAGE = "https://www.curseforge.com/minecraft/mc-mods"
@@ -249,16 +249,29 @@ def mirror(mr, project):
             "project_id": project_id, "file_parts": ["file"], "primary_file": "file",
         }
         body, ctype = multipart({"data": json.dumps(data)}, {"file": (f["fileName"], jar, "application/java-archive")})
-        request("POST", f"{MR_API}/version", {**mr.h, "Content-Type": ctype}, body)
+        _, res = request("POST", f"{MR_API}/version", {**mr.h, "Content-Type": ctype}, body)
+        set_environment(mr.h, res["id"], project.get("environment", "client_and_server"))
         print(f"  uploaded {number}")
 
 
-def submit(mr, slug):
+def fill_environments(mr, project_id, environment):
+    """Sets the environment on every version that has none yet (required before review)."""
+    _, versions = request("GET", f"{MR_API_V3}/project/{project_id}/version", mr.h)
+    missing = [v for v in versions if not v.get("environment") or v.get("environment") == "unknown"]
+    for v in missing:
+        if not mr.dry_run:
+            set_environment(mr.h, v["id"], environment)
+    if missing:
+        print(f"  environment {environment} {'would be ' if mr.dry_run else ''}set on {len(missing)} versions")
+
+
+def submit(mr, slug, environment="client_and_server"):
     """Asks Modrinth's moderators to review a draft (it goes public once approved)."""
     p = mr.project(slug)
     if p is None or p["status"] != "draft":
         print(f"  {slug}: {'missing' if p is None else p['status']}, nothing to submit")
         return
+    fill_environments(mr, p["id"], environment)
     if mr.dry_run:
         print(f"  (dry run) would submit {slug} for review")
         return
@@ -286,7 +299,7 @@ def main():
             continue
         mirror(mr, project)
         if args.submit:
-            submit(mr, project["slug"])
+            submit(mr, project["slug"], project.get("environment", "client_and_server"))
 
 
 if __name__ == "__main__":

@@ -26,6 +26,15 @@ import uuid
 UA = "Thiov/gulliver release script (github.com/Thiov/gulliver)"
 CF_API = "https://minecraft.curseforge.com/api"
 MR_API = "https://api.modrinth.com/v2"
+MR_API_V3 = "https://api.modrinth.com/v3"
+# Gulliver runs on both sides. Modrinth needs this per version before review.
+MR_ENVIRONMENT = "client_and_server"
+
+
+def set_environment(headers, version_id, environment=MR_ENVIRONMENT):
+    """Modrinth's per-version environment (v3 field, not in the v2 upload)."""
+    request("PATCH", f"{MR_API_V3}/version/{version_id}", {**headers, "Content-Type": "application/json"},
+            json.dumps({"environment": environment}).encode())
 
 # Minecraft versions each target's jar runs on (see versions/*/*/gradle.properties).
 GAME_VERSIONS = {
@@ -218,6 +227,7 @@ def modrinth(args, files, changelog):
         with open(f["path"], "rb") as fh:
             body, ctype = multipart({"data": json.dumps(data)}, {"file": (f["name"], fh.read(), "application/java-archive")})
         _, res = request("POST", f"{MR_API}/version", {**h, "Content-Type": ctype}, body)
+        set_environment(h, res["id"])
         print(f"Modrinth: uploaded {number} (version id {res.get('id')})")
 
 
