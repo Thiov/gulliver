@@ -436,6 +436,7 @@ public final class GulliverEnvoy {
      * shears, and the cactus/thorny-flower block-items map to their
      * Items.* equivalents by identity. Behavior matches the 1.6.4
      * "pointy = yes" set as closely as the new item taxonomy allows.
+     * Tridents, maces (1.21+) and spears (1.21.11+) count too.
      */
     public static boolean isItemPointy(ItemStack stack) {
         if (stack == null || stack.isEmpty()) return false;
