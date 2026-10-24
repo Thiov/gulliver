@@ -205,6 +205,7 @@ public final class ShoulderHelper {
         cs.gulliver$setHandEntity(target.getUUID());
         ((IGulliverShoulderInternal) target).gulliver$setHoldingEntity(carrier.getUUID());
         broadcastAttach(carrier, target, SLOT_HAND);
+        GulliverAdvancements.award(carrier, GulliverAdvancements.POCKET_FRIEND);
         return true;
     }
 

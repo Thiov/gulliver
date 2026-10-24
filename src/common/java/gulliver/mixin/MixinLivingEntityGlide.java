@@ -46,6 +46,10 @@ public abstract class MixinLivingEntityGlide {
         LivingEntity self = (LivingEntity) (Object) this;
         IResizeableLiving sized = (IResizeableLiving) this;
         if (!sized.isGliding() || !GulliverEnvoy.isMovingFreely(self)) return;
+        if (self instanceof net.minecraft.server.level.ServerPlayer player && player.tickCount % 20 == 0
+                && !self.onGround()) {
+            gulliver.common.GulliverAdvancements.award(player, gulliver.common.GulliverAdvancements.PAPER_PLANE);
+        }
 
         float size = sized.getSizeMultiplier();
         Vec3 dm = self.getDeltaMovement();

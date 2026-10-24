@@ -97,5 +97,21 @@
   "gulliver.config.heldItems.tooltip": "Classic: items look bigger the smaller you are, as in the original mod. Proportional: items stay in proportion to your body.",
   "gulliver.config.note.overrides": "Per-creature sizes and limits: config/gulliver.json",
   "gulliver.config.note.limits": "Sizes outside 1/8 to 8 are experimental: expect odd physics, lag and glitches. More: config/gulliver.json",
-  "gulliver.config.note.server": "You are on a server: its own settings decide gameplay. These apply to worlds you open yourself."
+  "gulliver.config.note.server": "You are on a server: its own settings decide gameplay. These apply to worlds you open yourself.",
+  "advancements.gulliver.root.title": "Gulliver",
+  "advancements.gulliver.root.description": "Shrink, grow, and see the world from a new size",
+  "advancements.gulliver.small_world.title": "Ant's-Eye View",
+  "advancements.gulliver.small_world.description": "Shrink to 1/8 of your size or smaller",
+  "advancements.gulliver.head_in_the_clouds.title": "Head in the Clouds",
+  "advancements.gulliver.head_in_the_clouds.description": "Grow to 8 times your size or bigger",
+  "advancements.gulliver.paper_plane.title": "Paper Plane",
+  "advancements.gulliver.paper_plane.description": "Glide on a sheet of paper while tiny",
+  "advancements.gulliver.up_we_go.title": "Up We Go",
+  "advancements.gulliver.up_we_go.description": "Pull yourself up with a fishing rod while tiny",
+  "advancements.gulliver.tiny_rider.title": "Tiny Rider",
+  "advancements.gulliver.tiny_rider.description": "Ride a small animal while tiny",
+  "advancements.gulliver.pocket_friend.title": "Pocket Friend",
+  "advancements.gulliver.pocket_friend.description": "Pick up a creature and carry it in your hand",
+  "advancements.gulliver.watch_your_step.title": "Watch Your Step",
+  "advancements.gulliver.watch_your_step.description": "Trample a creature far smaller than you"
 }

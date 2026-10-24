@@ -1,0 +1,25 @@
+//#if MC >= 1.21
+{
+  "parent": "gulliver:root",
+  "display": {
+    "icon": {
+      "id": "minecraft:cyan_dye"
+    },
+    "title": {
+      "translate": "advancements.gulliver.small_world.title"
+    },
+    "description": {
+      "translate": "advancements.gulliver.small_world.description"
+    },
+    "frame": "goal",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "criteria": {
+    "code": {
+      "trigger": "minecraft:impossible"
+    }
+  }
+}
+//#endif

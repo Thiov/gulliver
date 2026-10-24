@@ -1,0 +1,25 @@
+//#if MC >= 1.21
+{
+  "parent": "gulliver:root",
+  "display": {
+    "icon": {
+      "id": "minecraft:leather_boots"
+    },
+    "title": {
+      "translate": "advancements.gulliver.watch_your_step.title"
+    },
+    "description": {
+      "translate": "advancements.gulliver.watch_your_step.description"
+    },
+    "frame": "task",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "criteria": {
+    "code": {
+      "trigger": "minecraft:impossible"
+    }
+  }
+}
+//#endif

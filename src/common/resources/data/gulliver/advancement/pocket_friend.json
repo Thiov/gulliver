@@ -1,0 +1,25 @@
+//#if MC >= 1.21
+{
+  "parent": "gulliver:root",
+  "display": {
+    "icon": {
+      "id": "minecraft:lead"
+    },
+    "title": {
+      "translate": "advancements.gulliver.pocket_friend.title"
+    },
+    "description": {
+      "translate": "advancements.gulliver.pocket_friend.description"
+    },
+    "frame": "task",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "criteria": {
+    "code": {
+      "trigger": "minecraft:impossible"
+    }
+  }
+}
+//#endif
