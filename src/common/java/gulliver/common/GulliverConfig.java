@@ -112,6 +112,12 @@ public final class GulliverConfig {
          * own size tramples it (1.6.4 "quite smaller"). 0 disables trampling.
          */
         public double trampleSizeRatio = 0.4D;
+        /** Mob loot grows with the mob's size (a giant cow drops more beef). */
+        public boolean lootScaling = true;
+        /** Mobs at size 4 and above show a boss bar to nearby players. */
+        public boolean giantBossBars = false;
+        /** Tinies can ride small animals (chickens, cats, wolves, foxes, rabbits). */
+        public boolean tinyMounts = true;
     }
 
     /** Client-only look and feel; ignored by dedicated servers. */
@@ -124,6 +130,12 @@ public final class GulliverConfig {
          *                   in proportion (matches tools worn on your back)
          */
         public String heldItemScaling = "classic";
+        /** Screen shake strength, 0 (off) to 1 (full). Also scaled by vanilla's Damage Tilt option. */
+        public double screenShake = 1.0D;
+        /** Animate size changes on screen (the hitbox still changes at once). */
+        public boolean smoothResize = true;
+        /** Show your new size on the action bar when it changes. */
+        public boolean sizeReadout = true;
 
         public boolean proportionalHeldItems() {
             return "proportional".equalsIgnoreCase(heldItemScaling);

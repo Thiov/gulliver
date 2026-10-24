@@ -31,6 +31,27 @@ public interface Platform {
      */
     boolean sendToServer(GulliverPayload payload);
 
+    /**
+     * Whether a player may break this block as collateral of a size power
+     * (giant fist crater, growth burst, floor cracking). Implementations
+     * fire the loader's own break event so claim and protection mods can
+     * veto it.
+     */
+    default boolean mayBreakBlock(net.minecraft.server.level.ServerLevel level, net.minecraft.core.BlockPos pos,
+                                  net.minecraft.world.level.block.state.BlockState state, ServerPlayer player) {
+        return true;
+    }
+
+    /**
+     * Whether a player may grab, carry or mount this entity through
+     * Gulliver's own input (V key, carry, tiny mounts). Implementations
+     * fire the loader's entity-interaction event so claim mods can veto it.
+     */
+    default boolean mayInteractWithEntity(ServerPlayer player, Entity target,
+                                          net.minecraft.world.InteractionHand hand) {
+        return true;
+    }
+
     //#if MC < 1.20.5
     //$$ /** {block reach, entity reach} attributes where the loader has them (Forge), else null. */
     //$$ default net.minecraft.world.entity.ai.attributes.Attribute[] reachAttributes() {
