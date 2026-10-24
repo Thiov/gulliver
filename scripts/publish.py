@@ -151,7 +151,14 @@ def modrinth(args, files, changelog):
         print("Modrinth: no MODRINTH_TOKEN, skipped")
         return
     h = {"Authorization": token}
-    _, project = request("GET", f"{MR_API}/project/{args.modrinth_project}", h)
+    try:
+        _, project = request("GET", f"{MR_API}/project/{args.modrinth_project}", h, raise_on={404})
+    except LookupError:
+        msg = f"Modrinth project {args.modrinth_project} doesn't exist yet (create it with the modrinth-mirror workflow)"
+        if args.dry_run:
+            print(msg)
+            return
+        raise SystemExit(msg)
     project_id = project["id"]
     _, tags = request("GET", f"{MR_API}/tag/game_version")
     known = {t["version"] for t in tags}

@@ -12,7 +12,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: Existing tag to publish, e.g. v1.2.0
+        description: Tag to publish, e.g. v1.2.0 (any branch works for a dry run)
         required: true
       dry_run:
         description: Only check tokens, versions and files; upload nothing
@@ -44,13 +44,20 @@ jobs:
           merge-multiple: true
       - name: Release notes
         run: |
-          VERSION="${TAG#v}"
+          # The jars' version is the source of truth; a real release must be tagged v<version>.
+          VERSION=$(grep '^mod_version=' versions/26.2/fabric/gradle.properties | cut -d= -f2)
           echo "VERSION=$VERSION" >> "$GITHUB_ENV"
-          awk -v v="$VERSION" '
+          if [ "$DRY_RUN" != true ] && [ "$TAG" != "v$VERSION" ]; then
+            echo "Tag $TAG does not match mod_version $VERSION"; exit 1
+          fi
+          [ -f CHANGELOG.md ] && awk -v v="$VERSION" '
             /^## / { if (found) exit; if ($2 == v) { found = 1; next } }
             found { print }
           ' CHANGELOG.md > notes.md
-          if [ ! -s notes.md ]; then echo "CHANGELOG.md has no '## $VERSION' section"; exit 1; fi
+          if [ ! -s notes.md ]; then
+            if [ "$DRY_RUN" = true ]; then echo "(dry run: no changelog section for $VERSION)" > notes.md
+            else echo "CHANGELOG.md has no '## $VERSION' section"; exit 1; fi
+          fi
           ls -1 dist
       - name: GitHub release
         if: env.DRY_RUN != 'true'
