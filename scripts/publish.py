@@ -48,13 +48,16 @@ MR_MOD_MENU = "mOgUt4GM"
 JAR_RE = re.compile(r"^gulliver-(?P<version>[^+]+)\+(?P<loader>fabric|neoforge|forge)-(?P<mc>[0-9.]+)\.jar$")
 
 
-def request(method, url, headers=None, data=None):
+def request(method, url, headers=None, data=None, raise_on=()):
+    """JSON request; HTTP errors exit, except codes in raise_on, which raise LookupError."""
     req = urllib.request.Request(url, data=data, method=method, headers={"User-Agent": UA, **(headers or {})})
     try:
         with urllib.request.urlopen(req, timeout=120) as r:
             body = r.read()
             return r.status, (json.loads(body) if body else None)
     except urllib.error.HTTPError as e:
+        if e.code in raise_on:
+            raise LookupError(e.code)
         detail = e.read().decode("utf-8", "replace")[:500]
         raise SystemExit(f"{method} {url} failed: HTTP {e.code}: {detail}")
 
