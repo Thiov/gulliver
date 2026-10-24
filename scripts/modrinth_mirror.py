@@ -18,6 +18,7 @@ import os
 import re
 import sys
 import urllib.error
+import urllib.parse
 import urllib.request
 import zipfile
 
@@ -271,32 +272,44 @@ def fill_environments(mr, project_id, environment):
         print(f"  environment {environment} {'would be ' if mr.dry_run else ''}set on {len(missing)} versions")
 
 
+def all_versions(mr, project):
+    """Every version of a project, hidden (unlisted) ones included."""
+    ids = project.get("versions") or []
+    out = []
+    for i in range(0, len(ids), 50):
+        query = urllib.parse.quote(json.dumps(ids[i:i + 50]))
+        _, chunk = request("GET", f"{MR_API}/versions?ids={query}", mr.h)
+        out += chunk
+    return out
+
+
 def duplicates(mr, slug):
-    """(project, [later versions whose primary jar has the same SHA-1 as an earlier one])."""
+    """(project, all versions, [(later version, earlier one)] with the same jar, loaders and game versions)."""
     p = mr.project(slug)
     if p is None:
-        return None, []
-    _, versions = request("GET", f"{MR_API}/project/{p['id']}/version", mr.h)
+        return None, [], []
+    versions = all_versions(mr, p)
     first, dupes = {}, []
     for v in sorted(versions, key=lambda v: v["date_published"]):
         primary = next((f for f in v.get("files", []) if f.get("primary")), (v.get("files") or [None])[0])
         sha1 = primary and primary.get("hashes", {}).get("sha1")
         if not sha1:
             continue
-        if sha1 in first:
-            dupes.append((v, first[sha1]))
+        # Forge and NeoForge 1.20.1 can share one jar: different loaders are not duplicates.
+        key = (sha1, tuple(sorted(v["loaders"])), tuple(sorted(v["game_versions"])))
+        if key in first:
+            dupes.append((v, first[key]))
         else:
-            first[sha1] = v
-    return p, dupes
+            first[key] = v
+    return p, versions, dupes
 
 
 def hide_duplicates(mr, slug, delete=False):
     """Unlists (or, with delete, removes) exact re-uploads of a jar; re-lists unique ones."""
-    p, dupes = duplicates(mr, slug)
+    p, versions, dupes = duplicates(mr, slug)
     if p is None:
         return
     dupe_ids = {v["id"] for v, _ in dupes}
-    _, versions = request("GET", f"{MR_API}/project/{p['id']}/version", mr.h)
     for v in versions:
         if v["id"] not in dupe_ids and v.get("status") == "unlisted":
             # Hidden by an earlier, name-based check although it is a jar of its own.
