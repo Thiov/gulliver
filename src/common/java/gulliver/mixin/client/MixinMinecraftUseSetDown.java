@@ -32,7 +32,11 @@ public abstract class MixinMinecraftUseSetDown {
         if (gulliver.platform.Services.platform().sendToServer(
                 new Payloads.CarryAction(Payloads.CarryAction.SET_DOWN))) {
             rightClickDelay = 4;
-            player.swing(InteractionHand.MAIN_HAND);
+            //#if MC >= 26.3
+            player.swing(InteractionHand.MAIN_HAND, net.minecraft.world.item.component.SwingAnimation.DEFAULT, false);
+            //#else
+            //$$ player.swing(InteractionHand.MAIN_HAND);
+            //#endif
             ci.cancel();
         }
     }

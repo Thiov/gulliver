@@ -42,7 +42,7 @@ final class SelfTestExtras {
             GulliverEnvoy.stepOnSmallerEntities(zombie, 0.1D);
             check(failures, pig.getHealth() < before, "size-1 zombie tramples a 0.25 pig");
             ((IResizeableLiving) pig).setBaseSize(0.5F);
-            pig.invulnerableTime = 0;
+            SelfTest.clearHurtCooldown(pig);
             float before2 = pig.getHealth();
             GulliverEnvoy.stepOnSmallerEntities(zombie, 0.1D);
             check(failures, pig.getHealth() == before2, "size-1 zombie leaves a 0.5 pig alone");
@@ -51,7 +51,7 @@ final class SelfTestExtras {
             zombie.setItemSlot(EquipmentSlot.MAINHAND, new ItemStack(Items.IRON_SWORD));
             ((IResizeableLiving) pig).setBaseSize(0.25F);
             pig.setHealth(pig.getMaxHealth());
-            pig.invulnerableTime = 0;
+            SelfTest.clearHurtCooldown(pig);
             float hp = pig.getHealth();
             //#if MC >= 1.21.2
             pig.hurtServer(level, level.damageSources().mobAttack(zombie), 2.0F);
