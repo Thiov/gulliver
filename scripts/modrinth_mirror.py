@@ -22,7 +22,7 @@ import urllib.request
 import zipfile
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from publish import MR_API, UA, multipart, request  # noqa: E402
+from publish import MR_API, UA, env_token, multipart, request  # noqa: E402
 
 CF_WEB = "https://www.curseforge.com/api/v1/mods"
 CF_PAGE = "https://www.curseforge.com/minecraft/mc-mods"
@@ -235,7 +235,7 @@ def main():
     p.add_argument("--only", help="mirror just this slug")
     p.add_argument("--dry-run", action="store_true")
     args = p.parse_args()
-    token = os.environ.get("MODRINTH_TOKEN")
+    token = env_token("MODRINTH_TOKEN")
     if not token:
         raise SystemExit("MODRINTH_TOKEN is not set")
     with open(args.manifest, encoding="utf-8") as fh:
