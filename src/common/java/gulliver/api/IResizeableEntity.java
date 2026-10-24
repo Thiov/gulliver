@@ -1,6 +1,12 @@
 package gulliver.api;
 
 public interface IResizeableEntity {
+    /**
+     * The effective size: base x potion x item, clamped to this entity's
+     * limits (its per-entity override, its class, the general range; between
+     * 1/32 and 32 whatever the config says). Always finite and positive,
+     * and cheap enough to call every frame.
+     */
     float getSizeMultiplier();
 
     float getSizeMultiplierRoot();

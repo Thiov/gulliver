@@ -31,6 +31,8 @@ public abstract class MixinMultiPlayerGameModeUseItem {
     @Inject(method = "useItem", at = @At("HEAD"), cancellable = true)
     private void gulliver$consumeResizing(Player player, InteractionHand hand,
                                            CallbackInfoReturnable<InteractionResult> cir) {
+        // The server switched dye resizing off: leave these items to vanilla.
+        if (!gulliver.common.SyncedSettings.dyeResizing()) return;
         ItemStack stack = player.getItemInHand(hand);
         if (stack.is(Items.DYE.cyan()) || stack.is(Items.DYE.purple())
          || stack.is(Items.RED_MUSHROOM) || stack.is(Items.BROWN_MUSHROOM)) {

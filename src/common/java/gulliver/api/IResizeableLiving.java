@@ -5,6 +5,11 @@ public interface IResizeableLiving extends IResizeableEntity {
 
     float getSizeItemMultiplier();
 
+    /**
+     * Sets the base size, clamped to the entity's limits and the base-size
+     * range; NaN is ignored. Applies attributes, refreshes the dimensions and
+     * tells the clients. Server side only.
+     */
     void setBaseSize(float size);
 
     void adjustBaseSize(float factor);

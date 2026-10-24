@@ -2,6 +2,8 @@ package gulliver.mixin;
 
 import gulliver.api.IResizeableEntity;
 import gulliver.access.IGulliverEntityInternal;
+import gulliver.common.GulliverConfig;
+import gulliver.common.GulliverEnvoy;
 import gulliver.access.IGulliverShoulderInternal;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityDimensions;
@@ -32,6 +34,14 @@ public abstract class MixinEntity implements IResizeableEntity, IGulliverEntityI
     @Unique private float gulliver$sizePotionMultiplier = 1.0F;
     @Unique private float gulliver$sizeItemMultiplier = 1.0F;
     @Unique private boolean gulliver$sizeInitialized = false;
+    /** base x potion x item clamped to the entity's limits; what getSizeMultiplier() answers. */
+    @Unique private float gulliver$effectiveSize = 1.0F;
+    @Unique private float gulliver$minSize = GulliverConfig.MIN_SIZE;
+    @Unique private float gulliver$maxSize = GulliverConfig.MAX_SIZE;
+    /** GulliverConfig.generation() the cached limits were resolved against; -1 = not yet. */
+    @Unique private int gulliver$limitsGeneration = -1;
+    @Unique private float gulliver$appliedSize = 1.0F;
+    @Unique private int gulliver$settleTicks = 0;
     @Unique private java.util.UUID gulliver$holdingEntity = null;
     @Unique private java.util.UUID gulliver$handEntity = null;
     @Unique private java.util.UUID gulliver$rightShoulder = null;
@@ -40,19 +50,89 @@ public abstract class MixinEntity implements IResizeableEntity, IGulliverEntityI
     @Override @Unique public boolean gulliver$isSizeInitialized() { return gulliver$sizeInitialized; }
     @Override @Unique public void gulliver$setSizeInitialized(boolean v) { gulliver$sizeInitialized = v; }
 
+    /**
+     * One rule for every consumer (dimensions, attributes, sync, saving):
+     * base x potion x item, clamped to this entity's [min, max]. The result
+     * is cached; it is recomputed when one of the multipliers is set and
+     * when the config (or the limits a server announced) change, so the hot
+     * path is a field read and one counter compare.
+     */
     @Override
     @Unique
     public float getSizeMultiplier() {
-        float composed = gulliver$sizeBaseMultiplier
-                * gulliver$sizePotionMultiplier
-                * gulliver$sizeItemMultiplier;
-        // Hard floor / ceiling regardless of which multiplier (base,
-        // potion, item) drove us out of range. /halfsize-ing on top of
-        // ensmallening II should not produce 0.0625 — clamp at 0.125.
-        if (composed < 0.125F) return 0.125F;
-        if (composed > 8.0F) return 8.0F;
-        return composed;
+        if (gulliver$limitsGeneration != GulliverConfig.generation()) gulliver$ensureLimits();
+        return gulliver$effectiveSize;
     }
+
+    @Unique
+    private void gulliver$recomputeSize() {
+        gulliver$ensureLimits();
+        gulliver$effectiveSize = gulliver$clampRaw(gulliver$sizeBaseMultiplier
+                * gulliver$sizePotionMultiplier
+                * gulliver$sizeItemMultiplier);
+    }
+
+    /**
+     * Resolves the per-entity limits again when the config generation moved
+     * on, and with them the cached size.
+     */
+    @Unique
+    private void gulliver$ensureLimits() {
+        int generation = GulliverConfig.generation();
+        if (gulliver$limitsGeneration == generation) return;
+        float[] limits = { GulliverConfig.MIN_SIZE, GulliverConfig.MAX_SIZE };
+        try {
+            GulliverEnvoy.sizeLimitsFor((Entity) (Object) this, limits);
+        } catch (RuntimeException e) {
+            // A half-built entity or an unregistered type: the full range will do.
+        }
+        gulliver$minSize = limits[0];
+        gulliver$maxSize = limits[1];
+        gulliver$limitsGeneration = generation;
+        gulliver$effectiveSize = gulliver$clampRaw(gulliver$sizeBaseMultiplier
+                * gulliver$sizePotionMultiplier
+                * gulliver$sizeItemMultiplier);
+    }
+
+    @Unique
+    private float gulliver$clampRaw(float size) {
+        if (Float.isNaN(size)) size = 1.0F;
+        return Math.max(gulliver$minSize, Math.min(gulliver$maxSize, size));
+    }
+
+    @Override
+    @Unique
+    public float gulliver$clampSize(float size) {
+        gulliver$ensureLimits();
+        return gulliver$clampRaw(size);
+    }
+
+    @Override
+    @Unique
+    public float gulliver$getEffectiveDestSize() {
+        return gulliver$clampSize(gulliver$sizeBaseDestMultiplier
+                * gulliver$sizePotionMultiplier
+                * gulliver$sizeItemMultiplier);
+    }
+
+    @Override
+    @Unique
+    public float gulliver$getMinSize() {
+        gulliver$ensureLimits();
+        return gulliver$minSize;
+    }
+
+    @Override
+    @Unique
+    public float gulliver$getMaxSize() {
+        gulliver$ensureLimits();
+        return gulliver$maxSize;
+    }
+
+    @Override @Unique public float gulliver$getAppliedSize() { return gulliver$appliedSize; }
+    @Override @Unique public void gulliver$setAppliedSize(float size) { gulliver$appliedSize = size; }
+    @Override @Unique public int gulliver$getSettleTicks() { return gulliver$settleTicks; }
+    @Override @Unique public void gulliver$setSettleTicks(int ticks) { gulliver$settleTicks = ticks; }
 
     @Override
     @Unique
@@ -149,10 +229,10 @@ public abstract class MixinEntity implements IResizeableEntity, IGulliverEntityI
     @Override @Unique public float gulliver$getSizePotionMultiplier() { return gulliver$sizePotionMultiplier; }
     @Override @Unique public float gulliver$getSizeItemMultiplier() { return gulliver$sizeItemMultiplier; }
 
-    @Override @Unique public void gulliver$setSizeBaseMultiplier(float v) { gulliver$sizeBaseMultiplier = v; }
+    @Override @Unique public void gulliver$setSizeBaseMultiplier(float v) { gulliver$sizeBaseMultiplier = v; gulliver$recomputeSize(); }
     @Override @Unique public void gulliver$setSizeBaseDestMultiplier(float v) { gulliver$sizeBaseDestMultiplier = v; }
-    @Override @Unique public void gulliver$setSizePotionMultiplier(float v) { gulliver$sizePotionMultiplier = v; }
-    @Override @Unique public void gulliver$setSizeItemMultiplier(float v) { gulliver$sizeItemMultiplier = v; }
+    @Override @Unique public void gulliver$setSizePotionMultiplier(float v) { gulliver$sizePotionMultiplier = v; gulliver$recomputeSize(); }
+    @Override @Unique public void gulliver$setSizeItemMultiplier(float v) { gulliver$sizeItemMultiplier = v; gulliver$recomputeSize(); }
 
     @Override @Unique public java.util.UUID gulliver$getHoldingEntity() { return gulliver$holdingEntity; }
     @Override @Unique public void gulliver$setHoldingEntity(java.util.UUID id) { gulliver$holdingEntity = id; }
@@ -207,8 +287,10 @@ public abstract class MixinEntity implements IResizeableEntity, IGulliverEntityI
         if (m == 1.0F) return;
         float f = cir.getReturnValue();
         float norm = 1.0F;
-        while (norm * m < 0.5F) { norm *= 2.0F; f /= 2.0F; }
-        while (norm * m > 1.0F) { norm /= 2.0F; f *= 2.0F; }
+        // Bounded: 1/32..32 needs at most five halvings or doublings, so even
+        // a size that slipped past the clamp can't spin here.
+        for (int i = 0; i < 12 && norm * m < 0.5F; i++) { norm *= 2.0F; f /= 2.0F; }
+        for (int i = 0; i < 12 && norm * m > 1.0F; i++) { norm /= 2.0F; f *= 2.0F; }
         if (norm * m < 0.65F) { f *= norm * m; }
         cir.setReturnValue(f);
     }

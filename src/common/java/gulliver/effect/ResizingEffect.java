@@ -1,6 +1,7 @@
 package gulliver.effect;
 
 import gulliver.access.IGulliverEntityInternal;
+import gulliver.api.IResizeableEntity;
 import gulliver.common.GulliverEnvoy;
 import gulliver.network.SizeSync;
 import net.minecraft.world.effect.MobEffect;
@@ -20,8 +21,11 @@ import net.minecraft.server.level.ServerLevel;
  * effect bursts weak blocks overhead (breakBlocksViaGrowth), shrinking
  * never breaks anything.
  *
- *   Huge: 4x, 8x, 16x ... per amplifier (clamped by the size limits)
+ *   Huge: 4x, 8x, 16x ... per amplifier
  *   Tiny: 1/4x, 1/8x ... per amplifier
+ * and the product with the base size is clamped to the entity's size
+ * limits (IResizeableEntity.getSizeMultiplier), so an amplifier never takes
+ * a creature past what the server allows.
  */
 public abstract class ResizingEffect extends MobEffect {
 
@@ -48,16 +52,24 @@ public abstract class ResizingEffect extends MobEffect {
         return mult;
     }
 
-    /** Recompute and apply the potion multiplier; returns true if it changed. */
+    /**
+     * Recompute and apply the potion multiplier; returns true if it changed.
+     * The multiplier itself is stored raw (an amplifier-8 potion says 1024x);
+     * what the body actually does is the entity's limits applied on top, so
+     * nothing is redone, burst or broadcast when the limits swallow the change.
+     */
     public static boolean refreshPotionMultiplier(LivingEntity entity, MobEffectInstance ignored) {
         IGulliverEntityInternal sized = (IGulliverEntityInternal) entity;
         float mult = combinedMultiplier(entity, ignored);
         float old = sized.gulliver$getSizePotionMultiplier();
         if (old == mult) return false;
         net.minecraft.world.phys.AABB oldBox = entity.getBoundingBox();
+        float oldSize = ((IResizeableEntity) entity).getSizeMultiplier();
         sized.gulliver$setSizePotionMultiplier(mult);
+        float newSize = ((IResizeableEntity) entity).getSizeMultiplier();
+        if (newSize == oldSize) return true;
         entity.refreshDimensions();
-        if (mult > old) GulliverEnvoy.breakBlocksViaGrowth(entity, oldBox);
+        if (newSize > oldSize) GulliverEnvoy.breakBlocksViaGrowth(entity, oldBox);
         SizeSync.broadcast(entity);
         return true;
     }

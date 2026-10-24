@@ -3,6 +3,7 @@ package gulliver.client;
 import gulliver.access.IGulliverEntityInternal;
 import gulliver.access.IGulliverShoulderInternal;
 import gulliver.common.ShoulderHelper;
+import gulliver.common.SyncedSettings;
 import gulliver.network.GulliverPayload;
 import gulliver.network.Payloads;
 import net.minecraft.client.Minecraft;
@@ -18,6 +19,8 @@ public final class ClientPacketHandlers {
     public static void handle(GulliverPayload payload) {
         if (payload instanceof Payloads.EntitySize p) {
             onEntitySize(p);
+        } else if (payload instanceof Payloads.ServerSettings p) {
+            SyncedSettings.apply(p.dyeResizing(), p.minSize(), p.maxSize());
         } else if (payload instanceof Payloads.GroundShock p) {
             TremorHandler.groundShock(p.x(), p.y(), p.z(), p.sourceSize(), p.strength());
         } else if (payload instanceof Payloads.AttachEntitySpecial p) {
@@ -34,8 +37,10 @@ public final class ClientPacketHandlers {
     private static void onEntitySize(Payloads.EntitySize payload) {
         Entity e = entityById(payload.entityId());
         if (e == null) return;
-        IGulliverEntityInternal sized = (IGulliverEntityInternal) e;
         float newSize = payload.sizeMult();
+        // The server sends the effective size; a damaged packet is not one.
+        if (!(newSize > 0.0F) || Float.isInfinite(newSize)) return;
+        IGulliverEntityInternal sized = (IGulliverEntityInternal) e;
         float oldSize = ((gulliver.api.IResizeableEntity) e).getSizeMultiplier();
         sized.gulliver$setSizeBaseDestMultiplier(newSize);
         sized.gulliver$setSizePotionMultiplier(1.0F);
@@ -47,6 +52,7 @@ public final class ClientPacketHandlers {
         if (sized.gulliver$getSizeBaseMultiplier() == 1.0F && newSize != 1.0F) {
             sized.gulliver$setSizeBaseMultiplier(newSize);
             e.refreshDimensions();
+            sized.gulliver$setAppliedSize(((gulliver.api.IResizeableEntity) e).getSizeMultiplier());
         } else {
             SizeChangeFx.onSizeChanged(e, oldSize, newSize);
         }
