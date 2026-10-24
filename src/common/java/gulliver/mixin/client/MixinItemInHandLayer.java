@@ -79,13 +79,10 @@ public abstract class MixinItemInHandLayer {
         // leaves items at sqrt(size) — a tiny's sword looks big. The
         // "proportional" option keeps items exactly in body proportion
         // (issue #5), matching tools rendered on the back by other mods.
+        // Always the body's own size, also in the inventory preview (which
+        // draws the body normalised): the item keeps the same proportion to
+        // the body there as in the world.
         float size = g.gulliver$getSizeMultiplier();
-        // The body's scale at draw time may differ from the one extracted: a
-        // screen that normalises the player (the inventory preview) resets it
-        // to 1, and the held item must follow the body it is held by.
-        if (g.gulliver$getExtractScale() > 0.0F) {
-            size *= state.scale / g.gulliver$getExtractScale();
-        }
         if (size != 1.0F && !gulliver.common.GulliverConfig.INSTANCE.client.proportionalHeldItems()) {
             float invRoot = 1.0F / (float) Math.sqrt(size);
             pose.scale(invRoot, invRoot, invRoot);

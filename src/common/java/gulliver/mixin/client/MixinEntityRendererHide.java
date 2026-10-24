@@ -13,7 +13,8 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 /**
  * 1.6.4 hide-in-flower: an extra-tiny standing inside a flower, sapling
- * or flower pot isn't drawn at all. (shouldRender lives on
+ * or flower pot isn't drawn for anyone else (the camera's own entity
+ * stays visible, so a third-person tiny doesn't vanish from itself). (shouldRender lives on
  * EntityRenderer; the old hook on LivingEntityRenderer never matched.)
  */
 @Mixin(EntityRenderer.class)
@@ -25,7 +26,9 @@ public abstract class MixinEntityRendererHide {
                                         float partialTick,
                                         //#endif
                                         CallbackInfoReturnable<Boolean> cir) {
+        // Hidden from everyone else; your own body stays drawn in third person.
         if (entity instanceof LivingEntity
+                && entity != net.minecraft.client.Minecraft.getInstance().getCameraEntity()
                 && ((IResizeableEntity) entity).isExtraTiny()
                 && GulliverEnvoy.isEntityIntersectingPlant(entity)) {
             cir.setReturnValue(false);
