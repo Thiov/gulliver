@@ -27,7 +27,10 @@ import org.spongepowered.asm.mixin.injection.Redirect;
 @Mixin(ServerExplosion.class)
 public abstract class MixinServerExplosionWind {
 
-    @Redirect(method = "hurtEntities",
+    // NeoForge and Forge add an overload, hurtEntities(List), that holds the body and leave the
+    // no-argument one as a stub; a bare name is ambiguous between the two there. Vanilla has
+    // only the first. Mixin takes whichever of the listed methods exist.
+    @Redirect(method = {"hurtEntities()V", "hurtEntities(Ljava/util/List;)V"},
               at = @At(value = "INVOKE",
                        target = "Lnet/minecraft/world/level/ExplosionDamageCalculator;getKnockbackMultiplier(Lnet/minecraft/world/entity/Entity;)F"))
     private float gulliver$scaleWindBurst(ExplosionDamageCalculator calculator, Entity entity) {

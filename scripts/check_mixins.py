@@ -373,9 +373,12 @@ for root, _, files in os.walk(os.path.join(src, "gulliver", "mixin")):
             if len(targets) == 1:
                 for ann_m in re.finditer(INJECTORS, live):
                     ann = live[ann_m.start():balanced(live, ann_m.end() - 1)]
-                    for spec in method_specs(ann):
-                        checked += 1
-                        if not candidates(info, spec):
+                    specs = method_specs(ann)
+                    checked += len(specs)
+                    # Mixin resolves every listed method and only fails when none exists, so a
+                    # list may name alternatives (a loader that adds an overload, say).
+                    if specs and not any(candidates(info, spec) for spec in specs):
+                        for spec in specs:
                             have = sorted(d for n, d in info.methods if n == spec.split("(")[0])
                             bad(f"{cls}.{spec} missing; have {have or 'none'}")
             for sh in re.findall(r'@Shadow[^;{]*?\s([A-Za-z_$][\w$]*)\s*\(', live):
