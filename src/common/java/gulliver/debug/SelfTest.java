@@ -16,6 +16,10 @@ import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.EntityTypes;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
+//#if MC >= 26.3
+import net.minecraft.world.item.Items;
+import net.minecraft.world.item.alchemy.Potions;
+//#endif
 import org.spongepowered.asm.mixin.MixinEnvironment;
 
 import java.util.ArrayList;
@@ -67,9 +71,14 @@ public final class SelfTest {
         // 2. Registries.
         check(failures, BuiltInRegistries.MOB_EFFECT.getKey(GulliverEffects.TINY) != null, "tiny effect registered");
         check(failures, BuiltInRegistries.POTION.getKey(GulliverPotions.TINY) != null, "tiny potion registered");
-        //#if MC >= 1.20.5
-        check(failures, level.getServer().potionBrewing().isBrewablePotion(GulliverPotions.holder(GulliverPotions.TINY)),
+        //#if MC >= 26.3
+        check(failures, brews(level, Items.POTION, Potions.AWKWARD, Items.RED_MUSHROOM, Items.POTION, GulliverPotions.TINY),
                 "tiny potion brewable");
+        check(failures, brews(level, Items.POTION, GulliverPotions.holder(GulliverPotions.STRONG_HUGE), Items.GUNPOWDER,
+                Items.SPLASH_POTION, GulliverPotions.STRONG_HUGE), "strong huge potion becomes a splash potion");
+        //#elif MC >= 1.20.5
+        //$$ check(failures, level.getServer().potionBrewing().isBrewablePotion(GulliverPotions.holder(GulliverPotions.TINY)),
+        //$$         "tiny potion brewable");
         //#endif
         check(failures, GulliverGameRules.sizeGriefing(level), "size_griefing defaults to true");
 
@@ -139,6 +148,34 @@ public final class SelfTest {
                 at.getX(), at.getZ()), at.getZ() + 0.5D);
         level.addFreshEntity(mob);
         return mob;
+    }
+
+    //#if MC >= 26.3
+    /** Whether a brewing recipe turns {@code reagent} added to a {@code from} {@code container} into the potion {@code to} in {@code outContainer}. */
+    private static boolean brews(ServerLevel level, net.minecraft.world.item.Item container,
+                                 net.minecraft.core.Holder<net.minecraft.world.item.alchemy.Potion> from,
+                                 net.minecraft.world.item.Item reagent, net.minecraft.world.item.Item outContainer,
+                                 net.minecraft.world.item.alchemy.Potion to) {
+        var input = new net.minecraft.world.item.crafting.BrewingInput(
+                net.minecraft.world.item.alchemy.PotionContents.createItemStack(container, from),
+                new net.minecraft.world.item.ItemStack(reagent));
+        return level.getServer().getRecipeManager()
+                .getRecipeFor(net.minecraft.world.item.crafting.RecipeType.BREWING, input, level)
+                .map(r -> r.value().assemble(input))
+                .map(out -> out.is(outContainer)
+                        && out.getOrDefault(net.minecraft.core.component.DataComponents.POTION_CONTENTS,
+                                net.minecraft.world.item.alchemy.PotionContents.EMPTY).is(GulliverPotions.holder(to)))
+                .orElse(false);
+    }
+    //#endif
+
+    /** Lets the next hit land at once (clears the post-hit invulnerability window). */
+    static void clearHurtCooldown(LivingEntity entity) {
+        //#if MC >= 26.3
+        entity.setInvulnerableTime(0);
+        //#else
+        //$$ entity.invulnerableTime = 0;
+        //#endif
     }
 
     public static void runCommand(ServerLevel level, String command) {

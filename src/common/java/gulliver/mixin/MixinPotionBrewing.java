@@ -1,4 +1,4 @@
-//#if MC >= 1.20.5
+//#if MC >= 1.20.5 && MC < 26.3
 package gulliver.mixin;
 
 import gulliver.init.GulliverPotions;
@@ -16,6 +16,9 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
  *   awkward + red mushroom   -> Ensmallening
  *   awkward + brown mushroom -> Embiggening
  *   + redstone -> long, + glowstone -> strong
+ * From 26.3 on brewing is data-driven: the same mixes (and the gunpowder /
+ * dragon's breath container changes) are recipe JSONs under
+ * versions/26.3/src/resources/data/gulliver/recipe/brewing.
  */
 @Mixin(PotionBrewing.class)
 public abstract class MixinPotionBrewing {

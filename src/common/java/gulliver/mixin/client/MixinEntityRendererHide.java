@@ -21,6 +21,9 @@ public abstract class MixinEntityRendererHide {
 
     @Inject(method = "shouldRender", at = @At("HEAD"), cancellable = true, require = 0)
     private void gulliver$hideInFlower(Entity entity, Frustum frustum, double camX, double camY, double camZ,
+                                        //#if MC >= 26.3
+                                        float partialTick,
+                                        //#endif
                                         CallbackInfoReturnable<Boolean> cir) {
         if (entity instanceof LivingEntity
                 && ((IResizeableEntity) entity).isExtraTiny()

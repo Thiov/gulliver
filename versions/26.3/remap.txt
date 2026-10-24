@@ -1,0 +1,9 @@
+# Sources use 26.2 names; these are the 26.3 spellings ("26.2-name 26.3-name").
+# Entity.hurtMarked became syncVelocity.
+hurtMarked syncVelocity
+# InputConstants.Type.SCANCODE was dropped and KEYSYM renamed.
+InputConstants.Type.KEYSYM InputConstants.Type.KEYBOARD
+# Entity.setInvulnerable -> setPermanentlyInvulnerable.
+setInvulnerable setPermanentlyInvulnerable
+# PoseStack.mulPose(Quaternionf) -> rotate(Quaternionfc); mulPose(Matrix4fc) is unchanged.
+.mulPose(com.mojang.math.Axis. .rotate(com.mojang.math.Axis.

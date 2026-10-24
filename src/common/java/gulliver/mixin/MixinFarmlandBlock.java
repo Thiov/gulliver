@@ -75,7 +75,11 @@ public abstract class MixinFarmlandBlock {
                         || !Services.platform().mayBreakBlock(sl, pos, state, player))) {
                 return;
             }
-            FarmlandBlock.turnToDirt(entity, state, level, pos);
+            //#if MC >= 26.3
+            ((FarmlandBlock) (Object) this).turnToBaseBlock(entity, state, level, pos);
+            //#else
+            //$$ FarmlandBlock.turnToDirt(entity, state, level, pos);
+            //#endif
             gulliver$fallDamage(entity, fallDistance);
             ci.cancel();
         }
