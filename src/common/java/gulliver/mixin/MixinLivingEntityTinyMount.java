@@ -1,5 +1,6 @@
 package gulliver.mixin;
 
+import gulliver.api.IResizeableEntity;
 import gulliver.common.TinyMounts;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.LivingEntity;
@@ -69,22 +70,24 @@ public abstract class MixinLivingEntityTinyMount {
         if (!controller.isLocalPlayer() || !onGround || gulliver$hopDelay > 0) return;
 
         boolean jump = ((LivingEntityJumpAccessor) controller).gulliver$isJumping();
+        // A bigger or smaller animal jumps in proportion (kept within sane bounds).
+        float scale = Mth.clamp(((IResizeableEntity) self).getSizeMultiplierRoot(), 0.5F, 2.0F);
         if (spec.hopper()) {
-            gulliver$hop(self, riddenInput, jump);
+            gulliver$hop(self, riddenInput, jump, scale);
         } else if (jump) {
             Vec3 motion = self.getDeltaMovement();
-            self.setDeltaMovement(motion.x, 0.42D * spec.jump(), motion.z);
+            self.setDeltaMovement(motion.x, 0.42D * spec.jump() * scale, motion.z);
             gulliver$hopDelay = 10;
         }
     }
 
     /** A rabbit has no walk: it hops where the rider steers, higher and further when the jump key is held. */
     @Unique
-    private void gulliver$hop(LivingEntity self, Vec3 input, boolean leap) {
+    private void gulliver$hop(LivingEntity self, Vec3 input, boolean leap, float scale) {
         boolean steering = input.x * input.x + input.z * input.z > 0.0025D;
         if (!leap && !steering) return;
-        double forward = leap ? TinyMounts.LEAP_FORWARD : TinyMounts.HOP_FORWARD;
-        double power = leap ? TinyMounts.LEAP_POWER : TinyMounts.HOP_POWER;
+        double forward = (leap ? TinyMounts.LEAP_FORWARD : TinyMounts.HOP_FORWARD) * scale;
+        double power = (leap ? TinyMounts.LEAP_POWER : TinyMounts.HOP_POWER) * scale;
         double dx = 0.0D;
         double dz = 0.0D;
         if (steering) {

@@ -42,8 +42,12 @@ public abstract class MixinServerGamePacketCarried {
         MinecraftServer server = player.level().getServer();
         if (server == null || !server.isSameThread()) return;
         ci.cancel();
-        player.setYRot(Mth.wrapDegrees(packet.getYRot(player.getYRot())));
-        player.setXRot(Mth.wrapDegrees(packet.getXRot(player.getXRot())));
+        float yRot = packet.getYRot(player.getYRot());
+        float xRot = packet.getXRot(player.getXRot());
+        if (Float.isFinite(yRot) && Float.isFinite(xRot)) {
+            player.setYRot(Mth.wrapDegrees(yRot));
+            player.setXRot(Mth.clamp(Mth.wrapDegrees(xRot), -90.0F, 90.0F));
+        }
         ((ServerLevel) player.level()).getChunkSource().move(player);
         clientIsFloating = false;
         aboveGroundTickCount = 0;
