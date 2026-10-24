@@ -5,6 +5,7 @@ import gulliver.api.IResizeableLiving;
 import gulliver.common.TinyMounts;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.network.ServerGamePacketListenerImpl;
 import net.minecraft.world.entity.EntityTypes;
 import net.minecraft.world.entity.Mob;
 
@@ -26,6 +27,13 @@ final class SelfTestCarry {
 
     static void run(ServerLevel level, List<String> failures) {
         BlockPos at = new BlockPos(24, 0, 24);
+
+        // Only a connected player makes the server load its packet listener, so
+        // its mixins would not be applied (or audited) on this player-less server.
+        // Loading the class here applies them now; a bad injection throws instead
+        // of crashing the first player who joins.
+        check(failures, ServerGamePacketListenerImpl.class.getName().length() > 0,
+                "packet listener mixins apply (carried players)");
 
         // Riding by size: a giant can't board something much smaller than itself.
         Mob chicken = SelfTest.spawnMob(level, EntityTypes.CHICKEN, at);
