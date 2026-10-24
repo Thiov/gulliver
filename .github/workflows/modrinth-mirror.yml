@@ -8,6 +8,10 @@ name: modrinth-mirror
 on:
   workflow_dispatch:
     inputs:
+      set_status:
+        description: Only change version statuses, e.g. ID=listed,ID2=unlisted (empty = normal mirror)
+        required: false
+        default: ''
       only:
         description: Mirror only this Modrinth slug (empty = all projects)
         required: false
@@ -43,6 +47,7 @@ jobs:
           MODRINTH_TOKEN: ${{ secrets.MODRINTH_TOKEN }}
         run: |
           python3 scripts/modrinth_mirror.py \
+            $([ -n "${{ inputs.set_status }}" ] && echo --set-status "${{ inputs.set_status }}") \
             $([ -n "${{ inputs.only }}" ] && echo --only "${{ inputs.only }}") \
             $([ "${{ inputs.dry_run }}" = true ] && echo --dry-run) \
             $([ "${{ inputs.submit }}" = true ] && echo --submit) \
