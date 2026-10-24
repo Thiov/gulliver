@@ -19,10 +19,11 @@ import java.util.ArrayList;
  * creeper announces itself. Players, and the mobs that already have a bar
  * of their own (Ender Dragon, Wither), don't get one.
  *
- * The bar lives in a field of the entity (MixinLivingEntityHugeEffects), so
- * it can't outlive it, and is dropped when the entity dies, is removed
- * (unloaded, changed dimension, discarded), shrinks below 4, or the option
- * is switched off.
+ * The bar lives in a field of the entity (MixinEntityBossBar), so it can't
+ * outlive it. MixinLivingEntityHugeEffects creates and updates it every
+ * tick; it is dropped when the entity dies, leaves the world (unloaded,
+ * changed dimension, discarded), shrinks below 4, or the option is
+ * switched off.
  */
 public final class GiantBossBars {
     private GiantBossBars() {}
