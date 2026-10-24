@@ -73,6 +73,16 @@ def select_files(project, files):
     return sorted(newest.values(), key=lambda f: f["dateCreated"])
 
 
+def project_body(project):
+    """The description: mirror/descriptions/<slug>.md when there is one, else the repo's README."""
+    path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "mirror", "descriptions",
+                        project["slug"] + ".md")
+    if os.path.isfile(path):
+        with open(path, encoding="utf-8") as fh:
+            return fh.read().strip()
+    return readme_body(project["body_from"])
+
+
 def readme_body(repo):
     text = get_bytes(f"https://raw.githubusercontent.com/{repo}/HEAD/README.md").decode("utf-8")
     m = CUT_RE.search(text)
@@ -158,6 +168,15 @@ def mirror(mr, project):
         _, versions = request("GET", f"{MR_API}/project/{project_id}/version", mr.h)
         have = {v["version_number"] for v in versions}
         print(f"  project exists ({existing['status']}), {len(have)} versions")
+        body = project_body(project)
+        if existing.get("body", "").strip() != body or existing.get("description") != project["summary"]:
+            if mr.dry_run:
+                print("  (dry run) would update the description")
+            else:
+                request("PATCH", f"{MR_API}/project/{project_id}",
+                        {**mr.h, "Content-Type": "application/json"},
+                        json.dumps({"body": body, "description": project["summary"]}).encode())
+                print("  description updated")
     else:
         have = set()
         jar = get_bytes(f"{CF_WEB}/{project['curseforge_id']}/files/{files[-1]['id']}/download") if files else None
@@ -176,7 +195,7 @@ def mirror(mr, project):
             # Modrinth takes at most three main categories; the rest are secondary.
             "categories": project["categories"][:3], "additional_categories": project["categories"][3:],
             "client_side": "required", "server_side": "required",
-            "body": readme_body(project["body_from"]),
+            "body": project_body(project),
             "license_id": project["license_id"],
             "source_url": project["source_url"], "issues_url": project["issues_url"],
             "project_type": "mod", "initial_versions": [], "is_draft": True,
