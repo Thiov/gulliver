@@ -188,6 +188,24 @@ public final class GulliverConfig {
             fixes.add("general.maxEntitySize " + g.maxEntitySize + " is below minEntitySize; raised to " + g.minEntitySize);
             g.maxEntitySize = g.minEntitySize;
         }
+        // The general range is only the outer clamp: a class or entity limit
+        // beyond it widens it (with the base-size range), so allowing 1/32
+        // players is one change, not two.
+        double wantLo = g.minEntitySize;
+        double wantHi = g.maxEntitySize;
+        for (double v : explicitLimits()) {
+            if (Double.isNaN(v) || v <= 0.0D || v < MIN_SIZE || v > MAX_SIZE) continue;
+            wantLo = Math.min(wantLo, v);
+            wantHi = Math.max(wantHi, v);
+        }
+        if (wantLo < g.minEntitySize) {
+            if (g.minEntityBaseSize <= g.minEntitySize) g.minEntityBaseSize = wantLo;
+            g.minEntitySize = wantLo;
+        }
+        if (wantHi > g.maxEntitySize) {
+            if (g.maxEntityBaseSize >= g.maxEntitySize) g.maxEntityBaseSize = wantHi;
+            g.maxEntitySize = wantHi;
+        }
         double lo = g.minEntitySize;
         double hi = g.maxEntitySize;
         g.minEntityBaseSize = sizeValue(g.minEntityBaseSize, lo, lo, hi, "general.minEntityBaseSize", fixes);
@@ -245,6 +263,17 @@ public final class GulliverConfig {
 
         for (String fix : fixes) Gulliver.LOGGER.warn("gulliver.json: {}", fix);
         return fixes.size();
+    }
+
+    /** Every per-class and per-entity limit that is set (0 = follows the general range). */
+    private java.util.List<Double> explicitLimits() {
+        SizeLimit l = sizeLimit;
+        java.util.List<Double> out = new ArrayList<>(java.util.List.of(
+                l.minPlayerSize, l.maxPlayerSize, l.minAnimalSize, l.maxAnimalSize,
+                l.minMonsterSize, l.maxMonsterSize, l.minNpcSize, l.maxNpcSize));
+        if (l.minOverrides != null) for (Double v : l.minOverrides.values()) if (v != null) out.add(v);
+        if (l.maxOverrides != null) for (Double v : l.maxOverrides.values()) if (v != null) out.add(v);
+        return out;
     }
 
     /** A size: finite, inside [lo, hi]; the default when it is not a number. */
