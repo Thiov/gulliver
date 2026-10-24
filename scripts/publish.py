@@ -1,0 +1,215 @@
+#!/usr/bin/env python3
+"""Upload a release's jars to CurseForge and Modrinth.
+
+Every jar in the dist folder named `gulliver-<version>+<loader>-<minecraft>.jar`
+becomes one file on CurseForge and one version on Modrinth, tagged with its
+loader and the Minecraft versions it runs on. Game versions a platform does
+not know (yet) are dropped with a warning instead of failing the upload.
+
+Usage:
+  publish.py --dist dist --version 1.2.0 --changelog notes.md [--dry-run]
+             [--curseforge-project 1539752] [--modrinth-project gulliver-unbound]
+
+Tokens come from the environment (CURSEFORGE_TOKEN, MODRINTH_TOKEN). A
+platform without a token is skipped. --dry-run resolves everything (and
+checks the tokens with read-only calls) but uploads nothing.
+"""
+import argparse
+import json
+import os
+import re
+import sys
+import urllib.error
+import urllib.request
+import uuid
+
+UA = "Thiov/gulliver release script (github.com/Thiov/gulliver)"
+CF_API = "https://minecraft.curseforge.com/api"
+MR_API = "https://api.modrinth.com/v2"
+
+# Minecraft versions each target's jar runs on (see versions/*/*/gradle.properties).
+GAME_VERSIONS = {
+    "1.20.1": ["1.20.1"],
+    "1.21.10": ["1.21.10"],
+    "1.21.11": ["1.21.11"],
+    "26.1.2": ["26.1", "26.1.1", "26.1.2"],
+    "26.2": ["26.2"],
+    "26.3": ["26.3"],
+}
+# The Fabric 26.1.2 jar also runs on 26.1 and 26.1.1; the others only on 26.1.2.
+FABRIC_ONLY_EXTRA = {"26.1.2": {"26.1", "26.1.1"}}
+
+LOADER_NAMES = {"fabric": "Fabric", "neoforge": "NeoForge", "forge": "Forge"}
+
+# Modrinth project ids of dependencies (Fabric builds only).
+MR_FABRIC_API = "P7dR8mSH"
+MR_MOD_MENU = "mOgUt4GM"
+
+JAR_RE = re.compile(r"^gulliver-(?P<version>[^+]+)\+(?P<loader>fabric|neoforge|forge)-(?P<mc>[0-9.]+)\.jar$")
+
+
+def request(method, url, headers=None, data=None):
+    req = urllib.request.Request(url, data=data, method=method, headers={"User-Agent": UA, **(headers or {})})
+    try:
+        with urllib.request.urlopen(req, timeout=120) as r:
+            body = r.read()
+            return r.status, (json.loads(body) if body else None)
+    except urllib.error.HTTPError as e:
+        detail = e.read().decode("utf-8", "replace")[:500]
+        raise SystemExit(f"{method} {url} failed: HTTP {e.code}: {detail}")
+
+
+def multipart(fields, files):
+    """fields: {name: str}, files: {name: (filename, bytes, content_type)}."""
+    boundary = uuid.uuid4().hex
+    out = bytearray()
+    for name, value in fields.items():
+        out += f"--{boundary}\r\nContent-Disposition: form-data; name=\"{name}\"\r\n\r\n".encode()
+        out += value.encode() + b"\r\n"
+    for name, (filename, content, ctype) in files.items():
+        out += (f"--{boundary}\r\nContent-Disposition: form-data; name=\"{name}\"; filename=\"{filename}\"\r\n"
+                f"Content-Type: {ctype}\r\n\r\n").encode()
+        out += content + b"\r\n"
+    out += f"--{boundary}--\r\n".encode()
+    return bytes(out), f"multipart/form-data; boundary={boundary}"
+
+
+def jars(dist, version):
+    found = []
+    for name in sorted(os.listdir(dist)):
+        m = JAR_RE.match(name)
+        if not m:
+            continue
+        if m["version"] != version:
+            raise SystemExit(f"{name}: version {m['version']} does not match --version {version}")
+        mc, loader = m["mc"], m["loader"]
+        if mc not in GAME_VERSIONS:
+            raise SystemExit(f"{name}: no game-version mapping for Minecraft {mc}")
+        games = [g for g in GAME_VERSIONS[mc]
+                 if loader == "fabric" or g not in FABRIC_ONLY_EXTRA.get(mc, set())]
+        found.append({"path": os.path.join(dist, name), "name": name, "loader": loader, "mc": mc, "games": games})
+    if not found:
+        raise SystemExit(f"no gulliver-{version}+*.jar files in {dist}")
+    return found
+
+
+def curseforge(args, files, changelog):
+    token = os.environ.get("CURSEFORGE_TOKEN")
+    if not token:
+        print("CurseForge: no CURSEFORGE_TOKEN, skipped")
+        return
+    h = {"X-Api-Token": token}
+    _, types = request("GET", f"{CF_API}/game/version-types", h)
+    mc_types = {t["id"] for t in types if t["slug"].startswith("minecraft-")}
+    loader_types = {t["id"] for t in types if t["slug"] == "modloader"}
+    _, versions = request("GET", f"{CF_API}/game/versions", h)
+    by_name = {}
+    for v in versions:
+        if v["gameVersionTypeID"] in mc_types:
+            by_name.setdefault(("mc", v["name"]), v["id"])
+        elif v["gameVersionTypeID"] in loader_types:
+            by_name.setdefault(("loader", v["name"]), v["id"])
+    for f in files:
+        ids, missing = [], []
+        for g in f["games"]:
+            (ids.append(by_name[("mc", g)]) if ("mc", g) in by_name else missing.append(g))
+        loader_id = by_name.get(("loader", LOADER_NAMES[f["loader"]]))
+        if loader_id is None:
+            raise SystemExit(f"CurseForge does not list the loader {LOADER_NAMES[f['loader']]}")
+        if not ids:
+            raise SystemExit(f"CurseForge knows none of {f['games']} for {f['name']}")
+        if missing:
+            print(f"CurseForge: {f['name']}: unknown game versions {missing}, left out")
+        meta = {
+            "changelog": changelog,
+            "changelogType": "markdown",
+            "displayName": f["name"][:-4],
+            "gameVersions": ids + [loader_id],
+            "releaseType": args.release_type,
+        }
+        if f["loader"] == "fabric":
+            meta["relations"] = {"projects": [
+                {"slug": "fabric-api", "type": "requiredDependency"},
+                {"slug": "modmenu", "type": "optionalDependency"},
+            ]}
+        if args.dry_run:
+            print(f"CurseForge (dry run): {f['name']} -> games {f['games']} loader {f['loader']}")
+            continue
+        with open(f["path"], "rb") as fh:
+            body, ctype = multipart({"metadata": json.dumps(meta)}, {"file": (f["name"], fh.read(), "application/java-archive")})
+        _, res = request("POST", f"{CF_API}/projects/{args.curseforge_project}/upload-file",
+                         {**h, "Content-Type": ctype}, body)
+        print(f"CurseForge: uploaded {f['name']} (file id {res.get('id')})")
+
+
+def modrinth(args, files, changelog):
+    token = os.environ.get("MODRINTH_TOKEN")
+    if not token:
+        print("Modrinth: no MODRINTH_TOKEN, skipped")
+        return
+    h = {"Authorization": token}
+    _, project = request("GET", f"{MR_API}/project/{args.modrinth_project}", h)
+    project_id = project["id"]
+    _, tags = request("GET", f"{MR_API}/tag/game_version")
+    known = {t["version"] for t in tags}
+    _, existing = request("GET", f"{MR_API}/project/{project_id}/version", h)
+    existing_numbers = {v["version_number"] for v in existing}
+    newest = max((f["mc"] for f in files), key=lambda v: [int(x) for x in v.split(".")])
+    for f in files:
+        games = [g for g in f["games"] if g in known]
+        missing = [g for g in f["games"] if g not in known]
+        if missing:
+            print(f"Modrinth: {f['name']}: unknown game versions {missing}, left out")
+        if not games:
+            raise SystemExit(f"Modrinth knows none of {f['games']} for {f['name']}")
+        number = f"{args.version}+{f['loader']}-{f['mc']}"
+        if number in existing_numbers:
+            print(f"Modrinth: {number} already exists, skipped")
+            continue
+        data = {
+            "name": f"Gulliver {args.version} ({LOADER_NAMES[f['loader']]} {f['mc']})",
+            "version_number": number,
+            "changelog": changelog,
+            "dependencies": [],
+            "game_versions": games,
+            "version_type": args.release_type,
+            "loaders": [f["loader"]],
+            "featured": f["mc"] == newest,
+            "project_id": project_id,
+            "file_parts": ["file"],
+            "primary_file": "file",
+        }
+        if f["loader"] == "fabric":
+            data["dependencies"] = [
+                {"project_id": MR_FABRIC_API, "dependency_type": "required"},
+                {"project_id": MR_MOD_MENU, "dependency_type": "optional"},
+            ]
+        if args.dry_run:
+            print(f"Modrinth (dry run): {number} -> games {games} loader {f['loader']}")
+            continue
+        with open(f["path"], "rb") as fh:
+            body, ctype = multipart({"data": json.dumps(data)}, {"file": (f["name"], fh.read(), "application/java-archive")})
+        _, res = request("POST", f"{MR_API}/version", {**h, "Content-Type": ctype}, body)
+        print(f"Modrinth: uploaded {number} (version id {res.get('id')})")
+
+
+def main():
+    p = argparse.ArgumentParser()
+    p.add_argument("--dist", default="dist")
+    p.add_argument("--version", required=True)
+    p.add_argument("--changelog", required=True, help="markdown file with this release's notes")
+    p.add_argument("--curseforge-project", default="1539752")
+    p.add_argument("--modrinth-project", default="gulliver-unbound")
+    p.add_argument("--release-type", default="release", choices=["release", "beta", "alpha"])
+    p.add_argument("--dry-run", action="store_true")
+    args = p.parse_args()
+    with open(args.changelog, encoding="utf-8") as fh:
+        changelog = fh.read().strip()
+    files = jars(args.dist, args.version)
+    print(f"{len(files)} jars for Gulliver {args.version}")
+    curseforge(args, files, changelog)
+    modrinth(args, files, changelog)
+
+
+if __name__ == "__main__":
+    sys.exit(main())

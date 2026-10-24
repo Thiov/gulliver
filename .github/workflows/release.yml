@@ -1,0 +1,71 @@
+name: release
+
+# Push a tag like v1.2.0 (or run this workflow by hand on an existing tag)
+# to build every target and publish the jars to GitHub, CurseForge and
+# Modrinth. The release notes are the matching "## <version>" section of
+# CHANGELOG.md. Tokens live in the repository secrets CURSEFORGE_TOKEN and
+# MODRINTH_TOKEN; a platform whose secret is missing is skipped.
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing tag to publish, e.g. v1.2.0
+        required: true
+      dry_run:
+        description: Only check tokens, versions and files; upload nothing
+        type: boolean
+        default: true
+
+jobs:
+  build:
+    uses: ./.github/workflows/build.yml
+    with:
+      ref: ${{ inputs.tag || github.ref }}
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      TAG: ${{ inputs.tag || github.ref_name }}
+      DRY_RUN: ${{ inputs.dry_run && 'true' || 'false' }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag || github.ref }}
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: gulliver-*
+          path: dist
+          merge-multiple: true
+      - name: Release notes
+        run: |
+          VERSION="${TAG#v}"
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+          awk -v v="$VERSION" '
+            /^## / { if (found) exit; if ($2 == v) { found = 1; next } }
+            found { print }
+          ' CHANGELOG.md > notes.md
+          if [ ! -s notes.md ]; then echo "CHANGELOG.md has no '## $VERSION' section"; exit 1; fi
+          ls -1 dist
+      - name: GitHub release
+        if: env.DRY_RUN != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view "$TAG" > /dev/null 2>&1; then
+            gh release upload "$TAG" dist/*.jar --clobber
+          else
+            gh release create "$TAG" dist/*.jar --title "Gulliver $VERSION" --notes-file notes.md --latest
+          fi
+      - name: CurseForge and Modrinth
+        env:
+          CURSEFORGE_TOKEN: ${{ secrets.CURSEFORGE_TOKEN }}
+          MODRINTH_TOKEN: ${{ secrets.MODRINTH_TOKEN }}
+        run: |
+          python3 scripts/publish.py --dist dist --version "$VERSION" --changelog notes.md \
+            $([ "$DRY_RUN" = true ] && echo --dry-run)
