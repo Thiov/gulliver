@@ -119,9 +119,8 @@ public abstract class MixinEntity implements IResizeableEntity, IGulliverEntityI
     @Override
     @Unique
     public float getSizeMovementMultiplier() {
-        // 1.6.4 nn.java line 316-325
-        if (!isWeighted()) return getSizeMultiplierRoot();
-        return getSizeMultiplier();
+        // 1.6.4 nn.java line 316-325 (curve and its large-size cap: Movement)
+        return gulliver.common.Movement.speedMultiplier(getSizeMultiplier(), isWeighted());
     }
 
     @Override
