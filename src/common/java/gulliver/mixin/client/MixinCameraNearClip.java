@@ -1,12 +1,10 @@
 //#if MC >= 26.1
 package gulliver.mixin.client;
 
-import gulliver.api.IResizeableEntity;
+import gulliver.client.VisualSize;
 import net.minecraft.client.Camera;
 import net.minecraft.world.entity.Entity;
-import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.ModifyArg;
 
@@ -23,8 +21,10 @@ import org.spongepowered.asm.mixin.injection.ModifyArg;
  *
  * Modern equivalent: Camera.setupPerspective(near, far, fov, w, h) is
  * called from Camera.update once per frame for the level projection.
- * Multiplying its near argument by the camera's entity sizeMultiplier
- * is byte-equivalent to the 1.6.4 patch.
+ * The near argument follows the viewer's drawn size (VisualSize.nearScale
+ * bounds it: not below 1/16 of vanilla's, which a 32-bit depth buffer
+ * could no longer tell apart at distance, and not above 0.4, so a giant
+ * neither cuts away nearby blocks nor its own hands).
  *
  * The HUD/hand projection uses GameRenderer.hudProjection.setupPerspective
  * directly (not via Camera) so this mixin doesn't affect it.
@@ -36,14 +36,14 @@ public abstract class MixinCameraNearClip {
         method = "update",
         at = @At(value = "INVOKE",
                  target = "Lnet/minecraft/client/Camera;setupPerspective(FFFFF)V"),
-        index = 0
+        index = 0,
+        require = 0
     )
     private float gulliver$scaleNearPlane(float near) {
         Entity entity = ((net.minecraft.client.Camera) (Object) this).entity();
         if (entity == null) return near;
-        float m = ((IResizeableEntity) entity).getSizeMultiplier();
-        if (m == 1.0F) return near;
-        return near * m;
+        float size = VisualSize.of(entity);
+        return size == 1.0F ? near : near * VisualSize.nearScale(size);
     }
 }
 //#endif

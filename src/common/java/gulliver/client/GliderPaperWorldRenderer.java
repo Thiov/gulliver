@@ -2,6 +2,7 @@ package gulliver.client;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import gulliver.api.IResizeableLiving;
+import gulliver.common.GulliverConfig;
 import net.minecraft.client.CameraType;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
@@ -29,6 +30,13 @@ import net.minecraft.world.phys.Vec3;
  * In 3rd person, the existing MixinItemInHandLayer also bone-attaches
  * a paper to the right arm — we render this WORLD paper only in 1st
  * person to avoid double-rendering.
+ *
+ * Everything follows the player's size, as the bone-attached paper does:
+ * the offsets over the head scale with the body, and the paper itself is
+ * drawn at the held-item scale of the chosen style (classic: x sqrt(size),
+ * proportional: x size). The position is interpolated from the same
+ * previous-tick fields and the same partial tick as the camera, so the
+ * paper neither lags nor smears for a frame after a teleport.
  */
 public final class GliderPaperWorldRenderer {
     private GliderPaperWorldRenderer() {}
@@ -49,30 +57,37 @@ public final class GliderPaperWorldRenderer {
 
         net.minecraft.client.Camera cam = mc.gameRenderer.mainCamera();
         Vec3 camPos = cam.position();
-        float pt = mc.getDeltaTracker().getGameTimeDeltaPartialTick(false);
+        float pt = VisualSize.viewPartial();
 
-        double px = Mth.lerp(pt, player.xOld, player.getX());
-        double py = Mth.lerp(pt, player.yOld, player.getY());
-        double pz = Mth.lerp(pt, player.zOld, player.getZ());
+        double px = Mth.lerp(pt, player.xo, player.getX());
+        double py = Mth.lerp(pt, player.yo, player.getY());
+        double pz = Mth.lerp(pt, player.zo, player.getZ());
+
+        float size = VisualSize.of(player, pt);
+        float height = player.getBbHeight() * size / VisualSize.logical(player);
+        float bodyYaw = Mth.rotLerp(pt, player.yBodyRotO, player.yBodyRot);
 
         // World-space offsets for "above and to player's right".
         // Sign was reversed last build (paper went left); flip to -cos/-sin.
-        double yawRad = Math.toRadians(player.yBodyRot);
+        double yawRad = Math.toRadians(bodyYaw);
         double rightX = -Math.cos(yawRad);
         double rightZ = -Math.sin(yawRad);
-        double rightShift = 0.5D;  // wider shift to actually appear right
-        double upShift = 0.7D;     // higher above head
+        double rightShift = 0.5D * size;  // wider shift to actually appear right
+        double upShift = 0.7D * size;     // higher above head
 
         pose.pushPose();
         // World-relative-to-camera convention: translate by (world - camera).
         pose.translate(
                 (float) (px - camPos.x + rightX * rightShift),
-                (float) (py + player.getBbHeight() + upShift - camPos.y),
+                (float) (py + height + upShift - camPos.y),
                 (float) (pz - camPos.z + rightZ * rightShift));
         // Body yaw — paper rotates with body when player turns.
-        pose.mulPose(com.mojang.math.Axis.YP.rotationDegrees(180.0F - player.yBodyRot));
+        pose.mulPose(com.mojang.math.Axis.YP.rotationDegrees(180.0F - bodyYaw));
         // Lay flat (90° around X tips item face down).
         pose.mulPose(com.mojang.math.Axis.XP.rotationDegrees(90.0F));
+        // The paper's size, about its own centre (before the recentre below).
+        float paper = GulliverConfig.INSTANCE.client.proportionalHeldItems() ? size : (float) Math.sqrt(size);
+        pose.scale(paper, paper, paper);
         // Recenter (NONE-context model has corner at origin).
         pose.translate(-0.5F, 0.0F, 0.5F);
 

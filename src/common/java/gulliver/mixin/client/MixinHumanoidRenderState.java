@@ -20,6 +20,7 @@ public abstract class MixinHumanoidRenderState implements IGlideRenderState {
     @Unique private boolean gulliver$isRafting;
     @Unique private boolean gulliver$hasHandPassenger;
     @Unique private float gulliver$sizeMultiplier = 1.0F;
+    @Unique private float gulliver$extractScale = 1.0F;
     @Unique private net.minecraft.world.entity.HumanoidArm gulliver$propArm;
 
     @Override @Unique public boolean gulliver$isGliding() { return gulliver$isGliding; }
@@ -27,11 +28,13 @@ public abstract class MixinHumanoidRenderState implements IGlideRenderState {
     @Override @Unique public boolean gulliver$isRafting() { return gulliver$isRafting; }
     @Override @Unique public boolean gulliver$hasHandPassenger() { return gulliver$hasHandPassenger; }
     @Override @Unique public float gulliver$getSizeMultiplier() { return gulliver$sizeMultiplier; }
+    @Override @Unique public float gulliver$getExtractScale() { return gulliver$extractScale; }
     @Override @Unique public void gulliver$setGliding(boolean v) { gulliver$isGliding = v; }
     @Override @Unique public void gulliver$setDoesUmbrella(boolean v) { gulliver$doesUmbrella = v; }
     @Override @Unique public void gulliver$setRafting(boolean v) { gulliver$isRafting = v; }
     @Override @Unique public void gulliver$setHandPassenger(boolean v) { gulliver$hasHandPassenger = v; }
     @Override @Unique public void gulliver$setSizeMultiplier(float v) { gulliver$sizeMultiplier = v; }
+    @Override @Unique public void gulliver$setExtractScale(float v) { gulliver$extractScale = v; }
     @Override @Unique public net.minecraft.world.entity.HumanoidArm gulliver$getPropArm() { return gulliver$propArm; }
     @Override @Unique public void gulliver$setPropArm(net.minecraft.world.entity.HumanoidArm arm) { gulliver$propArm = arm; }
 }

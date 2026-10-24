@@ -27,7 +27,9 @@ import net.minecraft.world.phys.Vec3;
  * the flat lily-pad relative to the camera anchor in world coords.
  * Offsets/scales match the 3rd-person path exactly (raft: 0.4×size
  * lift, 1.5×size disc; umbrella: 2.0×size lift, 1.1×size disc) so the
- * visual is identical across camera modes.
+ * visual is identical across camera modes. The position comes from the
+ * same previous-tick fields and partial tick as the camera, so the disc
+ * does not smear for a frame after a teleport.
  */
 public final class LilyRaftWorldRenderer {
     private LilyRaftWorldRenderer() {}
@@ -46,26 +48,27 @@ public final class LilyRaftWorldRenderer {
         boolean umbrella = !raft && sized.doesUmbrella();
         if (!raft && !umbrella) return;
 
-        renderDisc(pose, buf, player, sized, raft);
+        renderDisc(pose, buf, player, raft);
     }
 
-    private static void renderDisc(PoseStack pose, SubmitNodeCollector buf,
-                            LocalPlayer player, IResizeableLiving sized, boolean raft) {
+    private static void renderDisc(PoseStack pose, SubmitNodeCollector buf, LocalPlayer player, boolean raft) {
         Minecraft mc = Minecraft.getInstance();
         net.minecraft.client.Camera cam = mc.gameRenderer.mainCamera();
         Vec3 camPos = cam.position();
-        float pt = mc.getDeltaTracker().getGameTimeDeltaPartialTick(false);
+        float pt = VisualSize.viewPartial();
 
-        double px = Mth.lerp(pt, player.xOld, player.getX());
-        double py = Mth.lerp(pt, player.yOld, player.getY());
-        double pz = Mth.lerp(pt, player.zOld, player.getZ());
+        // Same previous-tick fields and partial tick as the camera.
+        double px = Mth.lerp(pt, player.xo, player.getX());
+        double py = Mth.lerp(pt, player.yo, player.getY());
+        double pz = Mth.lerp(pt, player.zo, player.getZ());
 
         // Anchor at player feet — bbox bottom is player.getY(). Raft
         // disc sits at the waterline (player is snapped 0.4×size below
         // it); umbrella disc hugs the top of the head (user-tuned:
         // 2.2 floated too high; keep in sync with the 3rd-person path).
-        float scale = sized.getSizeMultiplier();
+        float scale = VisualSize.of(player, pt);
         float lift = (raft ? 0.4F : 2.0F) * scale;
+        float bodyYaw = Mth.rotLerp(pt, player.yBodyRotO, player.yBodyRot);
 
         pose.pushPose();
         pose.translate(
@@ -73,7 +76,7 @@ public final class LilyRaftWorldRenderer {
                 (float) (py + lift - camPos.y),
                 (float) (pz - camPos.z));
         // Body yaw — disc rotates with body.
-        pose.mulPose(com.mojang.math.Axis.YP.rotationDegrees(180.0F - player.yBodyRot));
+        pose.mulPose(com.mojang.math.Axis.YP.rotationDegrees(180.0F - bodyYaw));
         // Lay flat: lily-pad item is a vertical 2D quad in NONE display
         // context. Rotate +90° around X so the quad lies horizontal.
         pose.mulPose(com.mojang.math.Axis.XP.rotationDegrees(90.0F));

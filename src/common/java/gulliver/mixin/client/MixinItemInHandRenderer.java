@@ -2,6 +2,7 @@ package gulliver.mixin.client;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import gulliver.api.IResizeableLiving;
+import gulliver.client.VisualSize;
 import net.minecraft.client.renderer.ItemInHandRenderer;
 import net.minecraft.client.renderer.SubmitNodeCollector;
 import net.minecraft.world.entity.LivingEntity;
@@ -14,43 +15,26 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 /**
  * First-person held-item path. ItemInHandRenderer.renderItem is called
- * after the camera-attached arm pose has been set up. We hook RETURN of
- * renderItem and apply scale/glide-pose modifications BEFORE the actual
- * draw — actually wait: we hook HEAD because renderItem itself calls
- * the item-model submission. Easier path: hook HEAD, push pose, scale
- * and glide-pose translate, the inner submission then runs scaled.
+ * after the camera-attached arm pose has been set up, at the end of
+ * vanilla's own pushPose / popPose around the arm, so a scale applied at
+ * its HEAD reaches the item draw and is dropped again with that scope.
  *
  * For 1st-person glide we don't try to mimic the 1.6.4 GL11 rotations
  * (those were authored against a pre-rotation OpenGL state that doesn't
- * map cleanly to PoseStack pre-multiply order). Instead we translate
- * the item to a fixed overhead-and-forward position (above and slightly
- * in front of the camera origin), which visually places the paper as
- * if held above the player's head — same effective look as the original.
+ * map cleanly to PoseStack pre-multiply order). The paper is drawn in
+ * the world instead (GliderPaperWorldRenderer), above the player's head,
+ * and the hand-held copy is cancelled here.
  */
 @Mixin(ItemInHandRenderer.class)
 public abstract class MixinItemInHandRenderer {
 
-    /**
-     * One bit per first-person renderItem call in flight: did HEAD push?
-     * RETURN pops exactly what HEAD pushed, even if the size or the config
-     * (reloaded on the server thread) changed in between.
-     */
-    @org.spongepowered.asm.mixin.Unique private int gulliver$pushedBits;
-
-    /**
-     * 1st-person glide paper rendering. Cancels vanilla renderItem and
-     * submits the item ourselves with ItemDisplayContext.FIXED — that
-     * context lays the item flat (item-frame transform), avoiding the
-     * upright FIRST_PERSON_RIGHT_HAND display rotation that was making
-     * the paper "stand up to the right" in 1st person.
-     */
     /**
      * Hide both hands (and held items) in 1st person while the local
      * player is rafting. The lily-pad becomes the raft, so the hands
      * shouldn't appear cradling air or the un-rendered lily-pad.
      */
     @Inject(method = "submitHandsWithItems(FLcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/SubmitNodeCollector;Lnet/minecraft/client/player/LocalPlayer;I)V",
-            at = @At("HEAD"), cancellable = true)
+            at = @At("HEAD"), cancellable = true, require = 0)
     private void gulliver$hideHandsWhileRafting(float partialTicks, PoseStack pose,
                                                   SubmitNodeCollector buf,
                                                   net.minecraft.client.player.LocalPlayer player,
@@ -61,7 +45,7 @@ public abstract class MixinItemInHandRenderer {
     }
 
     @Inject(method = "renderItem(Lnet/minecraft/world/entity/LivingEntity;Lnet/minecraft/world/item/ItemStack;Lnet/minecraft/world/item/ItemDisplayContext;Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/SubmitNodeCollector;I)V",
-            at = @At("HEAD"), cancellable = true)
+            at = @At("HEAD"), cancellable = true, require = 0)
     private void gulliver$replaceFirstPersonGlide(LivingEntity entity, ItemStack stack,
                                                     ItemDisplayContext ctx, PoseStack pose,
                                                     SubmitNodeCollector buf, int light, CallbackInfo ci) {
@@ -79,17 +63,20 @@ public abstract class MixinItemInHandRenderer {
             // 1st-person item scale: tiny → BIG, giant → small (matches
             // 3rd-person where the item looks oversized relative to a
             // tiny body). User wants this exact relative direction in
-            // 1st person too. Use 1/sqrt(size):
+            // 1st person too. Use 1/sqrt(size), kept to the 1/8..8 range
+            // of factors (VisualSize.heldItemScale):
             //   tiny  0.125 → 2.83× (item appears big in tiny POV)
             //   vanilla     → 1.0×
             //   giant 8     → 0.354× (item appears small in giant POV)
-            float size = sized.getSizeMultiplier();
-            boolean push = size != 1.0F && !gulliver$proportional();
-            gulliver$pushedBits = (gulliver$pushedBits << 1) | (push ? 1 : 0);
-            if (!push) return;
-            pose.pushPose();
-            float invRoot = 1.0F / (float) Math.sqrt(size);
-            pose.scale(invRoot, invRoot, invRoot);
+            // The scale is not pushed and popped around the draw: vanilla
+            // already wraps every renderItem call in its own pushPose /
+            // popPose, so nothing here can leave the stack unbalanced when
+            // another mod cancels the draw after this point.
+            float size = VisualSize.of(entity);
+            if (size != 1.0F && !gulliver$proportional()) {
+                float scale = VisualSize.heldItemScale(size);
+                pose.scale(scale, scale, scale);
+            }
             return;
         }
         // 1st person paper: rendering matrix conventions in modern MC
@@ -100,18 +87,6 @@ public abstract class MixinItemInHandRenderer {
         // person bone-attached rendering still works correctly.
         // Press F5 to see the parachute pose visually.
         ci.cancel();
-    }
-
-    @Inject(method = "renderItem(Lnet/minecraft/world/entity/LivingEntity;Lnet/minecraft/world/item/ItemStack;Lnet/minecraft/world/item/ItemDisplayContext;Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/SubmitNodeCollector;I)V",
-            at = @At("RETURN"))
-    private void gulliver$popFirstPerson(LivingEntity entity, ItemStack stack,
-                                          ItemDisplayContext ctx, PoseStack pose,
-                                          SubmitNodeCollector buf, int light, CallbackInfo ci) {
-        // Only calls HEAD let through reach here (cancelled ones return early).
-        if (!ctx.firstPerson()) return;
-        boolean pushed = (gulliver$pushedBits & 1) != 0;
-        gulliver$pushedBits >>>= 1;
-        if (pushed) pose.popPose();
     }
 
     /**
