@@ -168,8 +168,10 @@ def mirror(mr, project):
         _, versions = request("GET", f"{MR_API}/project/{project_id}/version", mr.h)
         have = {v["version_number"] for v in versions}
         # The same jar may already be there under another version number
-        # (e.g. uploaded by the release workflow): match by file name too.
-        have_files = {f["filename"] for v in versions for f in v.get("files", [])}
+        # (e.g. uploaded by the release workflow): match file name and
+        # Minecraft versions (two different jars can share a name).
+        have_files = {(f["filename"], tuple(sorted(v["game_versions"])))
+                      for v in versions for f in v.get("files", [])}
         print(f"  project exists ({existing['status']}), {len(have)} versions")
         body = project_body(project)
         if existing.get("body", "").strip() != body or existing.get("description") != project["summary"]:
@@ -227,7 +229,7 @@ def mirror(mr, project):
         if len(number) > 32:
             # Modrinth caps version numbers at 32 characters: drop the mod id in front.
             number = re.sub(r"^[A-Za-z_]+-", "", number, count=1)[-32:]
-        if number in have or f["fileName"] in have_files:
+        if number in have or (f["fileName"], tuple(sorted(f["mcs"]))) in have_files:
             continue
         games = [g for g in f["mcs"] if g in mr.games]
         if not games:
@@ -269,24 +271,50 @@ def fill_environments(mr, project_id, environment):
         print(f"  environment {environment} {'would be ' if mr.dry_run else ''}set on {len(missing)} versions")
 
 
-def hide_duplicates(mr, slug):
-    """Unlists later versions whose jar (by file name) another version already carries."""
+def duplicates(mr, slug):
+    """(project, [later versions whose primary jar has the same SHA-1 as an earlier one])."""
     p = mr.project(slug)
     if p is None:
-        return
+        return None, []
     _, versions = request("GET", f"{MR_API}/project/{p['id']}/version", mr.h)
-    seen = {}
+    first, dupes = {}, []
     for v in sorted(versions, key=lambda v: v["date_published"]):
-        names = tuple(sorted(f["filename"] for f in v.get("files", [])))
-        if names in seen and v.get("status") == "listed":
-            if mr.dry_run:
-                print(f"  (dry run) would unlist duplicate {v['version_number']} (same file as {seen[names]})")
-            else:
-                request("PATCH", f"{MR_API}/version/{v['id']}", {**mr.h, "Content-Type": "application/json"},
-                        json.dumps({"status": "unlisted"}).encode())
-                print(f"  unlisted duplicate {v['version_number']} (same file as {seen[names]})")
+        primary = next((f for f in v.get("files", []) if f.get("primary")), (v.get("files") or [None])[0])
+        sha1 = primary and primary.get("hashes", {}).get("sha1")
+        if not sha1:
+            continue
+        if sha1 in first:
+            dupes.append((v, first[sha1]))
         else:
-            seen.setdefault(names, v["version_number"])
+            first[sha1] = v
+    return p, dupes
+
+
+def hide_duplicates(mr, slug, delete=False):
+    """Unlists (or, with delete, removes) exact re-uploads of a jar; re-lists unique ones."""
+    p, dupes = duplicates(mr, slug)
+    if p is None:
+        return
+    dupe_ids = {v["id"] for v, _ in dupes}
+    _, versions = request("GET", f"{MR_API}/project/{p['id']}/version", mr.h)
+    for v in versions:
+        if v["id"] not in dupe_ids and v.get("status") == "unlisted":
+            # Hidden by an earlier, name-based check although it is a jar of its own.
+            if not mr.dry_run:
+                request("PATCH", f"{MR_API}/version/{v['id']}", {**mr.h, "Content-Type": "application/json"},
+                        json.dumps({"status": "listed"}).encode())
+            print(f"  {'(dry run) would re-list' if mr.dry_run else 're-listed'} {v['version_number']} (not a duplicate)")
+    for v, original in dupes:
+        verb = "delete" if delete else "unlist"
+        if mr.dry_run:
+            print(f"  (dry run) would {verb} {v['version_number']} (same jar as {original['version_number']})")
+        elif delete:
+            request("DELETE", f"{MR_API}/version/{v['id']}", mr.h)
+            print(f"  deleted {v['version_number']} (same jar as {original['version_number']})")
+        elif v.get("status") == "listed":
+            request("PATCH", f"{MR_API}/version/{v['id']}", {**mr.h, "Content-Type": "application/json"},
+                    json.dumps({"status": "unlisted"}).encode())
+            print(f"  unlisted {v['version_number']} (same jar as {original['version_number']})")
 
 
 def submit(mr, slug, environment="client_and_server"):
@@ -311,6 +339,7 @@ def main():
     p.add_argument("--dry-run", action="store_true")
     p.add_argument("--submit", action="store_true", help="submit draft projects for Modrinth's review")
     p.add_argument("--hide-duplicates", action="store_true", help="unlist versions that repeat another version's jar")
+    p.add_argument("--delete-duplicates", action="store_true", help="delete versions that repeat another version's jar")
     args = p.parse_args()
     token = env_token("MODRINTH_TOKEN")
     if not token:
@@ -323,8 +352,8 @@ def main():
         if args.only and project["slug"] != args.only:
             continue
         mirror(mr, project)
-        if args.hide_duplicates:
-            hide_duplicates(mr, project["slug"])
+        if args.hide_duplicates or args.delete_duplicates:
+            hide_duplicates(mr, project["slug"], delete=args.delete_duplicates)
         if args.submit:
             submit(mr, project["slug"], project.get("environment", "client_and_server"))
 
