@@ -30,7 +30,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 public abstract class MixinPlayerModelPose {
 
     @Inject(method = "setupAnim(Lnet/minecraft/client/renderer/entity/state/AvatarRenderState;)V",
-            at = @At("RETURN"))
+            at = @At("RETURN"), require = 0)
     private void gulliver$applyPose(AvatarRenderState state, CallbackInfo ci) {
         HumanoidModel<?> hm = (HumanoidModel<?>) (Object) this;
         ModelPart rightArm = hm.rightArm;

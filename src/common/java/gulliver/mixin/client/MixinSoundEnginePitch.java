@@ -17,7 +17,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 @Mixin(SoundEngine.class)
 public abstract class MixinSoundEnginePitch {
 
-    @Inject(method = "calculatePitch", at = @At("RETURN"), cancellable = true)
+    @Inject(method = "calculatePitch", at = @At("RETURN"), cancellable = true, require = 0)
     private void gulliver$relativePitch(SoundInstance sound, CallbackInfoReturnable<Float> cir) {
         float base = cir.getReturnValueF();
         float adjusted = RelativePitch.applyTo(sound, base);

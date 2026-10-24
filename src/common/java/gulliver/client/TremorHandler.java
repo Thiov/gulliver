@@ -1,6 +1,7 @@
 package gulliver.client;
 
 import gulliver.api.IResizeableEntity;
+import gulliver.common.GulliverConfig;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.player.LocalPlayer;
@@ -37,8 +38,15 @@ import java.util.Map;
  * so the camera never clips into walls and the motion reads as "the
  * ground kicks" rather than "screen offset".
  *
- * Being carried by the walker dampens (not silences) the thumps: you
- * ride the giant's gait, you don't get rattled apart by it.
+ * Being carried by the walker, or riding it, dampens (not silences) the
+ * thumps: you ride the giant's gait, you don't get rattled apart by it.
+ *
+ * The camera sees the result through shakeAmount(), which applies the
+ * client.screenShake setting and vanilla's Damage Tilt and Distortion
+ * Effects options, and is zero while the game is paused or the player is
+ * dead. A thump never exceeds a share of the walker's own size, so a
+ * viewer at 1/32 is not held at full shake by every ordinary mob walking
+ * past (the size ratio alone would be 32 for a size-1 cow).
  */
 public final class TremorHandler {
     private TremorHandler() {}
@@ -48,10 +56,14 @@ public final class TremorHandler {
     /** Impulse pool ceiling — keeps stacked giants from nauseating. */
     private static final float MAX_SHAKE = 1.4F;
 
+    /** Largest single thump per unit of the walker's size (a size-1 mob thumps at 0.2, a size-8 titan at full). */
+    private static final float IMPULSE_PER_WALKER_SIZE = 0.2F;
+
     private static final Map<Integer, Float> STRIDE_PHASE = new HashMap<>();
     private static float shake;
     private static float prevShake;
-    private static int ticks;
+    /** Never wraps: the oscillator time below is a double, which stays exact for years of uptime. */
+    private static long ticks;
 
     /** End of every client tick. */
     public static void tick(Minecraft mc) {
@@ -114,12 +126,9 @@ public final class TremorHandler {
         // 0.33 which — combined with quadratic falloff — was barely
         // perceptible outside point-blank range.
         float severity = Mth.clamp((ratio - 5.0F) / 6.0F, 0.0F, 1.0F);
-        float impulse = severity * falloff;
-        // Riding/carried by the walker: rock with the gait, gently.
-        if (walker.getUUID().equals(((gulliver.access.IGulliverShoulderInternal) viewer)
-                .gulliver$getHoldingEntity())) {
-            impulse *= 0.4F;
-        }
+        float impulse = Math.min(severity * falloff, IMPULSE_PER_WALKER_SIZE * walkerSize);
+        // Riding or carried by the walker: rock with the gait, gently.
+        if (rocksWith(viewer, walker)) impulse *= 0.4F;
         addImpulse(impulse);
     }
 
@@ -142,18 +151,53 @@ public final class TremorHandler {
         addImpulse(Math.min(MAX_SHAKE, strength * 1.2F * falloff));
     }
 
+    /** True when the viewer is held by the walker or shares a mount with it (riding it counts). */
+    private static boolean rocksWith(LocalPlayer viewer, LivingEntity walker) {
+        if (walker.getUUID().equals(((gulliver.access.IGulliverShoulderInternal) viewer)
+                .gulliver$getHoldingEntity())) {
+            return true;
+        }
+        return viewer.isPassenger() && viewer.isPassengerOfSameVehicle(walker);
+    }
+
     private static void addImpulse(float amount) {
         if (amount <= 0.0F) return;
         shake = Math.min(MAX_SHAKE, shake + amount);
     }
 
-    /** Interpolated impulse energy for the current frame (degrees-ish). */
+    /**
+     * Interpolated impulse energy for the current frame (degrees-ish),
+     * after the player's comfort settings.
+     */
     public static float shakeAmount(float partialTick) {
-        return Mth.lerp(partialTick, prevShake, shake);
+        float raw = Mth.lerp(partialTick, prevShake, shake);
+        if (raw <= 0.0F) return 0.0F;
+        return raw * comfort();
     }
 
-    /** Continuous time base for the wobble oscillators. */
-    public static float time(float partialTick) {
-        return ticks + partialTick;
+    /**
+     * 0..1: the client.screenShake setting times vanilla's Damage Tilt and
+     * Distortion Effects accessibility options; 0 while the game is paused
+     * (or sits in a menu that pauses it) and while the player is dead.
+     */
+    private static float comfort() {
+        Minecraft mc = Minecraft.getInstance();
+        LocalPlayer viewer = mc.player;
+        if (viewer == null || mc.level == null || mc.isPaused() || viewer.isDeadOrDying()) return 0.0F;
+        float setting = (float) Mth.clamp(GulliverConfig.INSTANCE.client.screenShake, 0.0D, 1.0D);
+        if (setting <= 0.0F) return 0.0F;
+        float tilt = Mth.clamp(mc.options.damageTiltStrength().get().floatValue(), 0.0F, 1.0F);
+        float distortion = Mth.clamp(mc.options.screenEffectScale().get().floatValue(), 0.0F, 1.0F);
+        return setting * tilt * distortion;
+    }
+
+    /**
+     * Continuous time base for the wobble oscillators, in ticks. A double:
+     * a float loses its fractional ticks after about nine hours, and the
+     * old Mth.sin(float) stopped working altogether once the argument got
+     * large (the shake died after ~30-55 minutes on older versions).
+     */
+    public static double time(float partialTick) {
+        return ticks + (double) partialTick;
     }
 }

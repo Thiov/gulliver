@@ -34,7 +34,8 @@ public abstract class MixinEntitySprintParticle {
         at = @At(
             value = "INVOKE",
             target = "Lnet/minecraft/world/level/Level;addParticle(Lnet/minecraft/core/particles/ParticleOptions;DDDDDD)V"
-        )
+        ),
+        require = 0
     )
     private void gulliver$scaleSprintParticle(Level level, ParticleOptions opts,
                                                double x, double y, double z,
