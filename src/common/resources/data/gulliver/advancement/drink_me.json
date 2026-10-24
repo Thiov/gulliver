@@ -1,5 +1,6 @@
 //#if MC >= 1.21
 {
+  "parent": "gulliver:root",
   "display": {
     "icon": {
       "id": "minecraft:potion",

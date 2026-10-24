@@ -129,6 +129,7 @@ public final class TinyMounts {
         if (!GulliverConfig.INSTANCE.general.tinyMounts || !canBoard(rider, mount)) return false;
         if (!ShoulderHelper.mayInteract(rider, mount)) return false;
         if (!rider.startRiding(mount)) return false;
+        GulliverAdvancements.award(rider, GulliverAdvancements.TINY_RIDER);
         // Whatever the animal was busy with, it stands up and drops its quarrels.
         Mob m = (Mob) mount;
         m.setTarget(null);

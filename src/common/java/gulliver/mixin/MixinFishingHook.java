@@ -74,6 +74,9 @@ public abstract class MixinFishingHook implements IGulliverHookInternal {
         if (owner == null || self.level().isClientSide()) return;
         if (gulliver$anchor != null) {
             Grapple.pullToward(owner, gulliver$anchor);
+            if (owner instanceof net.minecraft.server.level.ServerPlayer player) {
+                gulliver.common.GulliverAdvancements.award(player, gulliver.common.GulliverAdvancements.UP_WE_GO);
+            }
             self.discard();
             cir.setReturnValue(1);
             return;
@@ -84,6 +87,9 @@ public abstract class MixinFishingHook implements IGulliverHookInternal {
                 && ((IResizeableEntity) hookedIn).getSizeMultiplier()
                     >= ((IResizeableEntity) owner).getSizeMultiplier() * 2.0F) {
             Grapple.pullToward(owner, hookedIn.position().add(0.0D, hookedIn.getBbHeight() * 0.8D, 0.0D));
+            if (owner instanceof net.minecraft.server.level.ServerPlayer player) {
+                gulliver.common.GulliverAdvancements.award(player, gulliver.common.GulliverAdvancements.UP_WE_GO);
+            }
         }
     }
 

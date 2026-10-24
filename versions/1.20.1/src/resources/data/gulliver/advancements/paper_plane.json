@@ -1,0 +1,23 @@
+{
+  "parent": "gulliver:root",
+  "display": {
+    "icon": {
+      "item": "minecraft:paper"
+    },
+    "title": {
+      "translate": "advancements.gulliver.paper_plane.title"
+    },
+    "description": {
+      "translate": "advancements.gulliver.paper_plane.description"
+    },
+    "frame": "task",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "criteria": {
+    "code": {
+      "trigger": "minecraft:impossible"
+    }
+  }
+}

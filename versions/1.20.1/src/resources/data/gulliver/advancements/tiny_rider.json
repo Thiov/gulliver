@@ -1,0 +1,23 @@
+{
+  "parent": "gulliver:root",
+  "display": {
+    "icon": {
+      "item": "minecraft:saddle"
+    },
+    "title": {
+      "translate": "advancements.gulliver.tiny_rider.title"
+    },
+    "description": {
+      "translate": "advancements.gulliver.tiny_rider.description"
+    },
+    "frame": "task",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "criteria": {
+    "code": {
+      "trigger": "minecraft:impossible"
+    }
+  }
+}

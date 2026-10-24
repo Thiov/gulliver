@@ -1,6 +1,6 @@
 # Gulliver
 
-Shrink down to explore the world from an ant's-eye view, or grow into a world-crushing giant. Resize yourself and other entities anywhere from **0.125× to 8×**, and everything scales to match: how far you reach, how hard you hit, how mobs react to you, how the world sounds, and how it *feels* when something enormous walks past.
+Shrink down to explore the world from an ant's-eye view, or grow into a world-crushing giant. Resize yourself and other entities anywhere from **0.125× to 8×** (configurable from 1/32× up to 32×), and everything scales to match: how far you reach, how hard you hit, how mobs react to you, how the world sounds, and how it *feels* when something enormous walks past.
 
 Inspired by UncleMion's classic Gulliver mod for 1.6.4. No scaling library is needed: on Fabric the only dependency is the Fabric API, on NeoForge and Forge there are none.
 
@@ -8,6 +8,7 @@ Inspired by UncleMion's classic Gulliver mod for 1.6.4. No scaling library is ne
 
 | Minecraft | Fabric | NeoForge | Forge |
 |-----------|:------:|:--------:|:-----:|
+| 26.3      | ✓ | ✓ | ✓ |
 | 26.2      | ✓ | ✓ | ✓ |
 | 26.1.x    | ✓ | ✓ | ✓ |
 | 1.21.11   | ✓ | ✓ | ✓ |
@@ -45,7 +46,9 @@ Get the jars from the [releases page](https://github.com/Thiov/gulliver/releases
 - Carry a pointy item (sword, tool, or stick) to use functional blocks. You're too light to trip pressure plates and tripwires.
 - **Rain slowly drowns the smallest sizes.** Hold a lily pad overhead as an umbrella, get under cover, or sneak to huddle.
 - Hide inside flowers.
-- Paper, lily pads, slimeballs, and string all work from **either hand**.
+- **Ride small animals**: right-click a chicken, rabbit, cat, ocelot, wolf or fox at least three times your size with an empty hand and steer it like a horse. Chickens flap down gently, rabbits leap.
+- Wind charges and breezes fling tinies across the room; giants barely notice them.
+- Paper, lily pads, slimeballs, and string all work from **either hand**, and their tooltips tell you what they do while you're tiny.
 
 **Carry**
 - Sneak + right-click (empty hand) a creature under 0.4× your size to scoop it into your hand.
@@ -53,7 +56,9 @@ Get the jars from the [releases page](https://github.com/Thiov/gulliver/releases
 - Right-click to set one down, left-click to throw it. The bigger you are, the further it flies.
 - Other players can only be carried where PvP is allowed, and can always break free by sneaking. Bosses can't be carried.
 
-**Polish**: held items, name tags, view-bobbing, the third-person camera distance, and eating speed all scale with size.
+**Polish**: resizing animates smoothly with a puff and a rising or falling sound, and the action bar shows your new size. Held items, name tags, shadows, view-bobbing, the third-person camera distance, water splashes and eating speed all scale with size. Giant mobs drop more loot, tiny ones less, and can optionally show a boss bar. A Gulliver advancement tab tracks the milestones.
+
+**Giants and mounts**: a giant can't squeeze into a boat or onto a mount much smaller than itself.
 
 ## Resizing
 
@@ -68,9 +73,11 @@ In game: **Mods → Gulliver → Config** on NeoForge and Forge, or the settings
 
 Everything is stored in `config/gulliver.json` (reload with `/gulliver reload`):
 
-- `general`: size limits, `enableDyeResizing`, `enableKarmaMode` (reset size on death), `fishingRodGrapple` and `grappleMaxSize` (default 0.3, i.e. tiny), `trampleSizeRatio` (default 0.4, 0 disables trampling).
+- `general`: size limits (`minEntitySize`/`maxEntitySize`, default 0.125 and 8, allowed 1/32 to 32; outside 1/8–8 is experimental), `enableDyeResizing`, `enableKarmaMode` (reset size on death), `fishingRodGrapple` and `grappleMaxSize` (default 0.3, i.e. tiny), `trampleSizeRatio` (default 0.4, 0 disables trampling).
 - `spawnSize`: starting sizes for players, animals, monsters, villagers, and per-entity overrides. Accepts plain sizes (`"0.5"`), ranges (`"0.5-2"`), sets (`"0.5,1,2"`) and heights (`"5'9\""`, `"120cm"`).
 - `sizeLimit`: minimum and maximum sizes per class and per entity.
+- `client.screenShake` (0 to 1, also follows vanilla's Damage Tilt and Distortion Effects), `client.smoothResize`, `client.sizeReadout`.
+- `general.lootScaling`, `general.giantBossBars` (off by default), `general.tinyMounts`.
 - `client.heldItemScaling`: `"classic"` (items look bigger when you're tiny, as in the original) or `"proportional"` (items stay in proportion to your body).
 
 Game rule `gulliver:size_griefing` (`gulliverSizeGriefing` before 1.21.11) turns off every size-based block breaking.

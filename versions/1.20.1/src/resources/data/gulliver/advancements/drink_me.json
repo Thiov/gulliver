@@ -1,4 +1,5 @@
 {
+  "parent": "gulliver:root",
   "display": {
     "icon": {
       "item": "minecraft:potion",

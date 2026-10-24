@@ -1,0 +1,25 @@
+//#if MC >= 1.21
+{
+  "display": {
+    "icon": {
+      "id": "minecraft:red_mushroom"
+    },
+    "title": {
+      "translate": "advancements.gulliver.root.title"
+    },
+    "description": {
+      "translate": "advancements.gulliver.root.description"
+    },
+    "frame": "task",
+    "show_toast": false,
+    "announce_to_chat": false,
+    "hidden": false,
+    "background": "minecraft:gui/advancements/backgrounds/husbandry"
+  },
+  "criteria": {
+    "tick": {
+      "trigger": "minecraft:tick"
+    }
+  }
+}
+//#endif

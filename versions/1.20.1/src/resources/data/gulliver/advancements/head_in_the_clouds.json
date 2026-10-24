@@ -1,0 +1,23 @@
+{
+  "parent": "gulliver:root",
+  "display": {
+    "icon": {
+      "item": "minecraft:purple_dye"
+    },
+    "title": {
+      "translate": "advancements.gulliver.head_in_the_clouds.title"
+    },
+    "description": {
+      "translate": "advancements.gulliver.head_in_the_clouds.description"
+    },
+    "frame": "goal",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "criteria": {
+    "code": {
+      "trigger": "minecraft:impossible"
+    }
+  }
+}

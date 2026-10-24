@@ -1347,6 +1347,9 @@ public final class GulliverEnvoy {
             float dmg = (float) Math.ceil(0.5F * stepperRoot / tsized.getSizeMultiplierRoot());
             dmg = Math.max(1.0F, Math.min(MAX_TRAMPLE_DAMAGE, dmg));
             living.hurt(gulliver.init.GulliverDamageTypes.passive(level, stepper), dmg);
+            if (stepper instanceof net.minecraft.server.level.ServerPlayer player) {
+                GulliverAdvancements.award(player, GulliverAdvancements.WATCH_YOUR_STEP);
+            }
             if (++trampled >= MAX_TRAMPLED) break;
         }
     }
