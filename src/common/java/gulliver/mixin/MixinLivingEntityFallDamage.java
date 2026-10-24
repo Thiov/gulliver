@@ -62,20 +62,28 @@ public abstract class MixinLivingEntityFallDamage {
         LivingEntity self = (LivingEntity) (Object) this;
         IResizeableEntity sized = (IResizeableEntity) self;
         float size = sized.getSizeMultiplier();
-        if (size == 1.0F) return;
+        if (size == 1.0F || !(size > 0.0F) || Float.isInfinite(size)) return;
 
         if (self.getType().builtInRegistryHolder().is(EntityTypeTags.FALL_DAMAGE_IMMUNE)) {
             cir.setReturnValue(0);
             return;
         }
 
-        float sizeroot = sized.getSizeMultiplierRoot();
-        float sh = self.maxUpStep();
-        float threshold = sizeroot >= 1.0F ? 3.0F : 0.125F + 2.875F * sizeroot;
-        float min = Math.max(sh * 1.5F, threshold);
-
         MobEffectInstance jb = self.getEffect(MobEffects.JUMP_BOOST);
         float f1 = jb != null ? jb.getAmplifier() + 1 : 0.0F;
+
+        // The 1.6.4 threshold curve starts from vanilla's 3 safe blocks. From
+        // 1.20.5 that number is the safe_fall_distance attribute, which a
+        // fox, a goat or a horse has more of -- and which already contains
+        // Jump Boost's blocks, counted separately below like before.
+        float safe = 3.0F;
+        //#if MC >= 1.20.5
+        safe = Math.max(0.0F, (float) self.getAttributeValue(Attributes.SAFE_FALL_DISTANCE) - f1);
+        //#endif
+        float sizeroot = sized.getSizeMultiplierRoot();
+        float sh = self.maxUpStep();
+        float threshold = (sizeroot >= 1.0F ? 3.0F : 0.125F + 2.875F * sizeroot) * (safe / 3.0F);
+        float min = Math.max(sh * 1.5F, threshold);
 
         // Asymmetric scaling:
         //   size <= 1: factor = size² (tinies near-immune to any fall)

@@ -8,6 +8,7 @@ import net.minecraft.util.Mth;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.phys.Vec3;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
@@ -31,7 +32,8 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
  *
  *   2. Rising updraft from heat sources (tiny) — adds Y velocity
  *      scaled by sizeMultiplierRoot. Tinies near fire/lava/torches get
- *      lifted.
+ *      lifted. (A glider takes its updraft inside the glide itself,
+ *      MixinLivingEntityGlide, so it is not added twice.)
  *
  *   3. Rain drowning (extra-tiny) — to something that small, raindrops
  *      are body-sized masses of water: being caught in the open drains
@@ -40,6 +42,10 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
  *      on the vanilla cadence (2 hp every 20 ticks). Shelter, sneaking
  *      (huddling), or holding a lily-pad umbrella overhead stops the
  *      drain, and air recovers at vanilla +4/tick once out of the rain.
+ *      The drain follows vanilla's air logic under water: Respiration
+ *      sometimes spares a tick, and water breathers (undead, turtles,
+ *      axolotls), Water Breathing, Conduit Power and creative / spectator
+ *      / invulnerable bodies don't drown at all.
  *
  *   4. Sticky-surface spider-walk (tiny): along a ladder or wall-sign
  *      side, damp horizontal motion so the tiny clings instead of
@@ -51,12 +57,14 @@ public abstract class MixinLivingEntityTinyEffects {
     /** Vanilla air terminal velocity ≈ gravity×drag/(1−drag) = 0.08×0.98/0.02. */
     private static final double GULLIVER$VANILLA_TERMINAL = 3.92D;
 
+    @Shadow protected abstract int decreaseAirSupply(int currentAir);
+
     @Inject(method = "aiStep", at = @At("RETURN"))
     private void gulliver$tinyEffects(CallbackInfo ci) {
         LivingEntity self = (LivingEntity) (Object) this;
         IResizeableEntity sized = (IResizeableEntity) self;
         float size = sized.getSizeMultiplier();
-        if (size >= 1.0F) return;
+        if (!(size > 0.0F && size < 1.0F)) return;
 
         // 1. Terminal velocity — smooth across the whole sub-1 bracket
         //    (no threshold pop at the isTiny boundary). Skip in fluids
@@ -76,20 +84,26 @@ public abstract class MixinLivingEntityTinyEffects {
         if (!sized.isTiny()) return;
 
         // 2. Rising updraft — applies upward velocity from heat sources.
-        double updraft = GulliverEnvoy.getRisingUpdraft(self);
-        if (updraft > 0.0D) {
-            Vec3 m = self.getDeltaMovement();
-            self.setDeltaMovement(m.x, m.y + updraft, m.z);
+        if (!((IResizeableLiving) self).isGliding()) {
+            double updraft = GulliverEnvoy.getRisingUpdraft(self);
+            if (updraft > 0.0D) {
+                Vec3 m = self.getDeltaMovement();
+                self.setDeltaMovement(m.x, m.y + updraft, m.z);
+            }
         }
 
         // 3. Rain drowning for extra-tinies. Runs after vanilla's air
         //    handling in baseTick (+4/tick replenish on land), so the
         //    -5 here nets -1/tick while exposed — the exact vanilla
-        //    underwater drain rate, bubbles HUD and all.
+        //    underwater drain rate, bubbles HUD and all. The one lost
+        //    breath goes through vanilla's decreaseAirSupply, so
+        //    Respiration spares it now and then.
         if (sized.isExtraTiny()
                 && !self.level().isClientSide()
-                && GulliverEnvoy.tinyCaughtInRain(self)) {
-            int air = self.getAirSupply() - 5;
+                && GulliverEnvoy.tinyCaughtInRain(self)
+                && GulliverEnvoy.rainCanDrown(self)) {
+            int air = self.getAirSupply();
+            air -= 4 + (air - decreaseAirSupply(air));
             if (air <= -20) {
                 air = 0;
                 self.hurt(GulliverDamageTypes.rain(self.level()), 2.0F);

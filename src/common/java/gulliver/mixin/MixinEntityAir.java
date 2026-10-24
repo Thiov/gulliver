@@ -29,7 +29,7 @@ public abstract class MixinEntityAir {
     @Inject(method = "getMaxAirSupply", at = @At("RETURN"), cancellable = true)
     private void gulliver$scaleMaxAir(CallbackInfoReturnable<Integer> cir) {
         float size = ((IResizeableEntity) this).getSizeMultiplier();
-        if (size == 1.0F) return;
+        if (size == 1.0F || !(size > 0.0F) || Float.isInfinite(size)) return;
         int scaled = (int) (cir.getReturnValueI() * size);
         if (scaled < 20) scaled = 20;
         cir.setReturnValue(scaled);

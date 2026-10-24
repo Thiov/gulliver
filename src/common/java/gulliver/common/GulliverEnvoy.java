@@ -669,20 +669,15 @@ public final class GulliverEnvoy {
     /**
      * 1.6.4 alongStickySurface: tinies hugging the side of a ladder or
      * wall-sign can spider-walk along it (lateral movement, not just
-     * up/down). Source-of-truth check: any block in the tiny's bbox is a
-     * ladder OR wall-sign with the tiny exactly adjacent on the back side.
-     *
-     * Exact 1.6.4 logic involved bit-fiddling on direction metadata and
-     * looking up neighbouring blocks to disambiguate which face the
-     * ladder/sign was attached to. Modern translation: a tiny is "along
-     * a sticky surface" when it intersects a ladder block or any wall-
-     * sign block (vanilla wall signs already snap to a face based on
-     * blockstate — we don't need the manual face math).
+     * up/down). The 1.6.4 logic picked the attached face out of the block's
+     * direction metadata; here the block's own outline decides: the tiny is
+     * "along" a ladder or wall sign when that thin plate is within half a
+     * body width of its sides.
      */
     public static boolean alongStickySurface(net.minecraft.world.entity.LivingEntity entity) {
         if (!((IResizeableEntity) entity).isTiny()) return false;
-        net.minecraft.world.phys.AABB box = entity.getBoundingBox()
-                .inflate(entity.getBbWidth() * 0.5D, entity.getBbWidth() * 0.5D, entity.getBbWidth() * 0.5D);
+        double half = entity.getBbWidth() * 0.5D;
+        net.minecraft.world.phys.AABB box = entity.getBoundingBox().inflate(half, 0.0D, half);
         net.minecraft.world.level.Level level = entity.level();
         int x1 = net.minecraft.util.Mth.floor(box.minX);
         int y1 = net.minecraft.util.Mth.floor(box.minY);
@@ -699,7 +694,9 @@ public final class GulliverEnvoy {
                     if (st.getBlock() instanceof net.minecraft.world.level.block.LadderBlock
                             || st.is(net.minecraft.tags.BlockTags.WALL_SIGNS)
                             || st.is(net.minecraft.tags.BlockTags.WALL_HANGING_SIGNS)) {
-                        return true;
+                        for (net.minecraft.world.phys.AABB part : st.getShape(level, mp).toAabbs()) {
+                            if (part.move(x, y, z).intersects(box)) return true;
+                        }
                     }
                 }
             }
@@ -807,16 +804,32 @@ public final class GulliverEnvoy {
      * roof — if the column is fully open or the only block above is a
      * snow layer (which doesn't shelter), the entity is exposed.
      *
-     * Modern translation: vanilla level.canSeeSky(pos) covers the typical
-     * case, but we also need to honour partial shelters (slabs, glass).
-     * Use Heightmap MOTION_BLOCKING — if the block above the entity is
-     * within the motion-blocking heightmap AND not transparent, sheltered.
+     * Modern translation: vanilla's rain check asks about the block the
+     * eye is in, but for the smallest bodies that block is often the very
+     * slab, bed or carpet they are standing on. So the sky is asked about
+     * the column ABOVE the eye's block, and the eye's own block only
+     * shelters when part of it sits over the body (a top slab, a trapdoor).
      */
     public static boolean couldBeRainedOn(net.minecraft.world.entity.LivingEntity entity) {
+        net.minecraft.world.level.Level level = entity.level();
+        net.minecraft.world.phys.Vec3 eye = entity.getEyePosition();
+        net.minecraft.core.BlockPos eyePos = net.minecraft.core.BlockPos.containing(eye);
+        net.minecraft.world.level.block.state.BlockState st = level.getBlockState(eyePos);
+        if (!st.isAir()) {
+            double half = Math.max(0.01D, entity.getBbWidth() * 0.5D);
+            double lx = eye.x - eyePos.getX();
+            double ly = eye.y - eyePos.getY();
+            double lz = eye.z - eyePos.getZ();
+            for (net.minecraft.world.phys.AABB part : st.getCollisionShape(level, eyePos).toAabbs()) {
+                if (part.maxY > ly && part.minX < lx + half && part.maxX > lx - half
+                        && part.minZ < lz + half && part.maxZ > lz - half) {
+                    return false;
+                }
+            }
+        }
         // isRainingAt = raining + open sky above + a biome where it RAINS
         // there (snowfall and deserts don't count).
-        return entity.level().isRainingAt(
-                net.minecraft.core.BlockPos.containing(entity.getEyePosition()));
+        return level.isRainingAt(eyePos.above());
     }
 
     /**
@@ -850,6 +863,18 @@ public final class GulliverEnvoy {
         if (!couldBeRainedOn(entity)) return false;
         if (((gulliver.api.IResizeableLiving) entity).doesUmbrella()) return false;
         return true;
+    }
+
+    /**
+     * Whether rain drowning may hurt this body at all. The same exemptions
+     * as vanilla's air logic under water: creatures that breathe there
+     * (undead, turtles, axolotls), Water Breathing and Conduit Power, and
+     * players who can't take damage (creative, spectator).
+     */
+    public static boolean rainCanDrown(net.minecraft.world.entity.LivingEntity entity) {
+        if (entity.canBreatheUnderwater() || net.minecraft.world.effect.MobEffectUtil.hasWaterBreathing(entity)) return false;
+        if (entity.isInvulnerable() || entity.isSpectator()) return false;
+        return !(entity instanceof Player p && p.getAbilities().invulnerable);
     }
 
     /**
@@ -959,7 +984,10 @@ public final class GulliverEnvoy {
             flags.gulliver$setStruggling(false);
             return;
         }
-        boolean onLadder = entity.onClimbable() || isHoldingStringOrLeash(entity);
+        // Holding string or a lead alone is no climb: rope-climbing is
+        // reported by onClimbable itself, and only while the body presses
+        // into a wall.
+        boolean onLadder = entity.onClimbable();
         boolean inRain = couldBeRainedOn(entity);
         boolean inWater = entity.isInWater();
 
@@ -976,7 +1004,8 @@ public final class GulliverEnvoy {
         // a solid surface, and forcing rafting=true here would teleport
         // them down to the water-surface line beneath the platform.
         boolean closeAboveOrInWater = entity.isInWater() || isOverWaterShortRange(entity);
-        boolean rafting = sized.isTiny() && !onLadder && !entity.isShiftKeyDown()
+        boolean rafting = sized.isTiny() && isMovingFreely(entity)
+                && !onLadder && !entity.isShiftKeyDown()
                 && !entity.onGround()
                 && isHolding(entity, net.minecraft.world.item.Items.LILY_PAD)
                 && closeAboveOrInWater;
@@ -991,6 +1020,7 @@ public final class GulliverEnvoy {
 
         boolean glideable = isHolding(entity, GulliverEnvoy::isGlideableItem);
         boolean canGlide = sized.isTiny()
+                && isMovingFreely(entity)
                 && !onLadder && !entity.isShiftKeyDown()
                 && !inWater && !inRain
                 && glideable
@@ -1002,6 +1032,16 @@ public final class GulliverEnvoy {
 
         // isStruggling resets each tick; movement code may re-set it.
         flags.gulliver$setStruggling(false);
+    }
+
+    /**
+     * Gliding and rafting are ways of falling and floating: they give way to
+     * every other kind of flight and to anything that moves the body for it
+     * (spectator, creative flight, elytra, a mount, no-clip).
+     */
+    public static boolean isMovingFreely(net.minecraft.world.entity.LivingEntity entity) {
+        if (entity.isFallFlying() || entity.isSpectator() || entity.isPassenger() || entity.noPhysics) return false;
+        return !(entity instanceof Player p && p.getAbilities().flying);
     }
 
     /**
