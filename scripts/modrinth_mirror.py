@@ -253,11 +253,26 @@ def mirror(mr, project):
         print(f"  uploaded {number}")
 
 
+def submit(mr, slug):
+    """Asks Modrinth's moderators to review a draft (it goes public once approved)."""
+    p = mr.project(slug)
+    if p is None or p["status"] != "draft":
+        print(f"  {slug}: {'missing' if p is None else p['status']}, nothing to submit")
+        return
+    if mr.dry_run:
+        print(f"  (dry run) would submit {slug} for review")
+        return
+    request("PATCH", f"{MR_API}/project/{p['id']}", {**mr.h, "Content-Type": "application/json"},
+            json.dumps({"status": "processing"}).encode())
+    print(f"  {slug}: submitted for review")
+
+
 def main():
     p = argparse.ArgumentParser()
     p.add_argument("--manifest", default=os.path.join(os.path.dirname(__file__), "..", "mirror", "projects.json"))
     p.add_argument("--only", help="mirror just this slug")
     p.add_argument("--dry-run", action="store_true")
+    p.add_argument("--submit", action="store_true", help="submit draft projects for Modrinth's review")
     args = p.parse_args()
     token = env_token("MODRINTH_TOKEN")
     if not token:
@@ -270,6 +285,8 @@ def main():
         if args.only and project["slug"] != args.only:
             continue
         mirror(mr, project)
+        if args.submit:
+            submit(mr, project["slug"])
 
 
 if __name__ == "__main__":

@@ -28,10 +28,9 @@ import net.minecraft.world.phys.EntityHitResult;
  * Entity-target trigger item is STICK (4(357), changed from FEATHER):
  * stick + entity target → /entitydoublesize | /entityhalfsize.
  *
- * GLFW key codes (used in 26.x):
- *   U → GLFW_KEY_U = 85
- *   I → GLFW_KEY_I = 73
- *   V → GLFW_KEY_V = 86
+ * Default keys U (embiggen), I (ensmallen) and V (shoulder) come from
+ * InputConstants, never as raw numbers: the codes behind them changed when
+ * 26.3 moved from GLFW to SDL (U was 85, is 24).
  */
 public final class KeyInputHandler {
     private KeyInputHandler() {}
@@ -41,15 +40,14 @@ public final class KeyInputHandler {
     //#else
     //$$ private static final String CATEGORY = "key.categories.gulliver";
     //#endif
-    // GLFW key codes inlined to avoid pulling in the LWJGL3 GLFW class:
-    //   U = 85, I = 73, V = 86. Defaults moved off R/F to U/I in 4(338);
-    //   R/F collide with vanilla swap-hands (F) and reload-resourcepack (F3+R).
+    // Defaults moved off R/F to U/I in 4(338); R/F collide with vanilla
+    // swap-hands (F) and reload-resourcepack (F3+R).
     public static final KeyMapping UPSIZE = new KeyMapping(
-            "key.gulliver.upsize", InputConstants.Type.KEYSYM, 85, CATEGORY);
+            "key.gulliver.upsize", InputConstants.Type.KEYSYM, InputConstants.KEY_U, CATEGORY);
     public static final KeyMapping DOWNSIZE = new KeyMapping(
-            "key.gulliver.downsize", InputConstants.Type.KEYSYM, 73, CATEGORY);
+            "key.gulliver.downsize", InputConstants.Type.KEYSYM, InputConstants.KEY_I, CATEGORY);
     public static final KeyMapping SHOULDER = new KeyMapping(
-            "key.gulliver.shoulder", InputConstants.Type.KEYSYM, 86, CATEGORY);
+            "key.gulliver.shoulder", InputConstants.Type.KEYSYM, InputConstants.KEY_V, CATEGORY);
 
     /** Every key mapping the loader must register. */
     public static final KeyMapping[] ALL = { UPSIZE, DOWNSIZE, SHOULDER };

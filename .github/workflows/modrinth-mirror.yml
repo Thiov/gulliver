@@ -16,6 +16,10 @@ on:
         description: Only show what would be created and uploaded
         type: boolean
         default: true
+      submit:
+        description: Submit draft projects for Modrinth's review afterwards
+        type: boolean
+        default: false
 
 jobs:
   mirror:
@@ -32,4 +36,5 @@ jobs:
         run: |
           python3 scripts/modrinth_mirror.py \
             $([ -n "${{ inputs.only }}" ] && echo --only "${{ inputs.only }}") \
-            $([ "${{ inputs.dry_run }}" = true ] && echo --dry-run)
+            $([ "${{ inputs.dry_run }}" = true ] && echo --dry-run) \
+            $([ "${{ inputs.submit }}" = true ] && echo --submit)
