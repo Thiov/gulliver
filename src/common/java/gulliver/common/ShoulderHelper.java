@@ -39,7 +39,13 @@ import java.util.UUID;
  * "quite smaller" (under 0.4x the carrier's size) and narrow enough for
  * the hand, the carrier's main hand must be empty, bosses can't be lifted,
  * other players only where PvP is on, and a carried player can always
- * break free by sneaking.
+ * break free by sneaking. Someone else's tamed animal is off limits
+ * (unless you are an operator in creative), and claim mods get a veto.
+ *
+ * A carried player is placed by the server alone, like a passenger: the
+ * positions its client sends are ignored (MixinServerGamePacketCarried),
+ * and it is let go at the server's own position, on the carrier's side of
+ * every wall.
  */
 public final class ShoulderHelper {
     private ShoulderHelper() {}
@@ -51,7 +57,6 @@ public final class ShoulderHelper {
     public static final byte SLOT_LEFT = 3;
     /** Attachment byte RELEASED + slot: that slot was emptied (entity id may be -1). */
     public static final byte RELEASED = 4;
-
 
     /** 1.6.4 isQuiteSmallerThan: under 0.4x the carrier's size. */
     private static final float MAX_SIZE_RATIO = 0.4F;
@@ -124,6 +129,11 @@ public final class ShoulderHelper {
 
     private static UUID holderOf(Entity e) {
         return ((IGulliverShoulderInternal) e).gulliver$getHoldingEntity();
+    }
+
+    /** Whether somebody is carrying this entity right now. */
+    public static boolean isCarried(Entity e) {
+        return holderOf(e) != null;
     }
 
     // ---- who may be grabbed: ownership and claims ----

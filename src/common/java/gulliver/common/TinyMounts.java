@@ -77,9 +77,14 @@ public final class TinyMounts {
 
     // ---- giants in toys ----
 
-    /** The size a vehicle counts for: its own when it is a creature, 1 for boats, minecarts and the like. */
+    /**
+     * The size a vehicle counts for: 1 for boats, minecarts and the like; a
+     * creature counts for its size, or for its height against a player's
+     * when that is more (a happy ghast is a big seat even at size 1).
+     */
     private static float vehicleSize(Entity vehicle) {
-        return vehicle instanceof LivingEntity ? sizeOf(vehicle) : 1.0F;
+        if (!(vehicle instanceof LivingEntity)) return 1.0F;
+        return Math.max(sizeOf(vehicle), vehicle.getBbHeight() / 1.8F);
     }
 
     /** True when {@code rider} is too big for {@code vehicle}; ridden or not, that is not allowed. */
@@ -112,7 +117,7 @@ public final class TinyMounts {
     public static boolean canBoard(Entity rider, Entity mount) {
         if (!(mount instanceof Mob m) || specOf(m) == null || rider == m) return false;
         if (!m.isAlive() || m.isBaby() || m.isVehicle() || m.isSleeping()) return false;
-        if (rider.isPassenger() || rider.isSpectator()) return false;
+        if (rider.isPassenger() || rider.isSpectator() || ShoulderHelper.isCarried(rider)) return false;
         if (sizeOf(m) < BOARD_RATIO * sizeOf(rider)) return false;
         // A tamed animal carries nobody but its owner.
         UUID owner = ShoulderHelper.ownerOf(m);
