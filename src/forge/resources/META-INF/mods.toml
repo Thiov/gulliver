@@ -11,7 +11,7 @@ displayURL = "https://github.com/Thiov/gulliver"
 logoFile = "assets/gulliver/icon.png"
 authors = "Thiov"
 description = '''
-Resize yourself or other entities from 0.125x to 8x. Movement, combat, reach, sound, and world interaction all scale with size. Inspired by UncleMion's classic Gulliver mod.
+Resize yourself or other entities from 0.125x to 8x (configurable from 1/32x up to 32x). Movement, combat, reach, sound, and world interaction all scale with size. Inspired by UncleMion's classic Gulliver mod.
 '''
 
 [[dependencies.gulliver]]
