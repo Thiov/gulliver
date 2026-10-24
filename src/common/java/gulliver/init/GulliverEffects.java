@@ -1,6 +1,7 @@
 package gulliver.init;
 
 import gulliver.Gulliver;
+import gulliver.effect.HiddenEffect;
 import gulliver.effect.HugeEffect;
 import gulliver.effect.TinyEffect;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -21,10 +22,12 @@ public final class GulliverEffects {
 
     public static final MobEffect TINY = new TinyEffect();
     public static final MobEffect HUGE = new HugeEffect();
+    public static final MobEffect HIDDEN = new HiddenEffect();
 
     public static void register(BiConsumer<net.minecraft.resources.Identifier, MobEffect> sink) {
         sink.accept(Gulliver.id("tiny"), TINY);
         sink.accept(Gulliver.id("huge"), HUGE);
+        sink.accept(Gulliver.id("hidden"), HIDDEN);
     }
 
     //#if MC >= 1.20.5
@@ -35,8 +38,13 @@ public final class GulliverEffects {
     public static Holder<MobEffect> huge() {
         return BuiltInRegistries.MOB_EFFECT.wrapAsHolder(HUGE);
     }
+
+    public static Holder<MobEffect> hidden() {
+        return BuiltInRegistries.MOB_EFFECT.wrapAsHolder(HIDDEN);
+    }
     //#else
     //$$ public static MobEffect tiny() { return TINY; }
     //$$ public static MobEffect huge() { return HUGE; }
+    //$$ public static MobEffect hidden() { return HIDDEN; }
     //#endif
 }
