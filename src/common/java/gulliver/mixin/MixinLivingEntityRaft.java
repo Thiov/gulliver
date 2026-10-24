@@ -89,8 +89,12 @@ public abstract class MixinLivingEntityRaft {
         // Don't yank the player up from far underwater. Equipping a
         // lily-pad while submerged should let them swim up naturally;
         // the snap only takes over when they're already at/near the
-        // surface line.
-        if (currentY < surfaceY - 0.5) return;
+        // surface line. "Near" is a stretch of body, not of world: a
+        // fixed half block was nine body lengths at size 1/32 — but never
+        // less than a tenth of a block (the raft's own sinking between
+        // two ticks is absolute), and a body that fell onto the water this
+        // tick may have gone as deep as it fell.
+        if (currentY < surfaceY - (0.1 + 0.4 * sizemult + Math.max(0.0, -dm.y))) return;
 
         // Don't yank the player down from above the surface. Happens
         // mid-jump-arc and would also fire if the player is standing
@@ -98,7 +102,7 @@ public abstract class MixinLivingEntityRaft {
         // pad, boat, edge of land). The rafting flag in
         // GulliverEnvoy.updateResizingFlags already excludes onGround,
         // but this is the belt-and-suspenders fence.
-        if (currentY > surfaceY + 0.1) return;
+        if (currentY > surfaceY + (0.02 + 0.08 * sizemult)) return;
 
         // We're at the surface — snap. Sit into the water by
         // `0.4 * sizemult` so the player visibly settles into the

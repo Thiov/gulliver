@@ -4,7 +4,7 @@ import gulliver.api.IResizeableEntity;
 import net.minecraft.world.entity.LivingEntity;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.ModifyArg;
+import org.spongepowered.asm.mixin.injection.ModifyVariable;
 
 /**
  * 1.6.4 verbatim limb-swing rate compensation.
@@ -17,12 +17,15 @@ import org.spongepowered.asm.mixin.injection.ModifyArg;
  * limb-swing at vanilla rate — animation cycles at vanilla frequency
  * AT EVERY SIZE.
  *
- * Modern equivalent: LivingEntity.updateWalkAnimation invokes
- * walkAnimation.update(speed, ...) where speed comes from
- * `min(distance * 4, 1)`. We divide that speed by getSizeMovementMultiplier
- * BEFORE update consumes it. The cumulative position then increments at
- * vanilla rate per tick regardless of size — no jump-on-size-change
- * jitter (because we modify rate-of-change, not the cumulative value).
+ * Modern equivalent: LivingEntity.updateWalkAnimation(distance) turns the
+ * distance moved this tick into `min(distance * 4, 1)` and feeds that to
+ * walkAnimation.update. We divide the DISTANCE by getSizeMovementMultiplier
+ * on the way in, BEFORE vanilla caps it at 1. (Dividing the capped value
+ * instead flattened a giant: at size 8 both a walk and a sprint hit the cap
+ * and came out at 1/2.8, a slow-motion shuffle that looked the same at both
+ * speeds.) The cumulative position then increments at vanilla rate per tick
+ * regardless of size — no jump-on-size-change jitter (because we modify
+ * rate-of-change, not the cumulative value).
  *
  * Replaces the previous walk-cycle override in MixinHumanoidModelPose /
  * MixinPlayerModelPose which divided walkAnimationPos at render time
@@ -31,20 +34,13 @@ import org.spongepowered.asm.mixin.injection.ModifyArg;
 @Mixin(LivingEntity.class)
 public abstract class MixinLivingEntityWalkAnim {
 
-    @ModifyArg(method = "updateWalkAnimation",
-               at = @At(value = "INVOKE",
-                        //#if MC >= 1.20.5
-                        target = "Lnet/minecraft/world/entity/WalkAnimationState;update(FFF)V"),
-                        //#else
-                        //$$ target = "Lnet/minecraft/world/entity/WalkAnimationState;update(FF)V"),
-                        //#endif
-               index = 0)
-    private float gulliver$normalizeSpeed(float speed) {
+    @ModifyVariable(method = "updateWalkAnimation", at = @At("HEAD"), argsOnly = true)
+    private float gulliver$normalizeDistance(float distance) {
         IResizeableEntity sized = (IResizeableEntity) this;
         float m = sized.getSizeMultiplier();
-        if (m == 1.0F) return speed;
+        if (m == 1.0F) return distance;
         float mov = sized.getSizeMovementMultiplier();
-        if (mov <= 0.0F) return speed;
-        return Math.min(speed / mov, 1.0F);
+        if (!(mov > 0.0F)) return distance;
+        return distance / mov;
     }
 }

@@ -1,12 +1,11 @@
 package gulliver.mixin;
 
 import gulliver.api.IResizeableEntity;
-import gulliver.common.GulliverEnvoy;
-import net.minecraft.core.BlockPos;
+import gulliver.common.Climb;
 import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
@@ -22,32 +21,43 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
  *    branch when (isSticky && onGround), and line 2843 gives an upward
  *    push of 0.08 + 0.12*sizeroot when sticky.
  *
+ * "Solid surface" is read from the real collision shapes at the body's
+ * sides (see {@link Climb}), so a bottom slab, a carpet or a snow layer
+ * is a wall, and the floor under the feet never is.
+ *
  * Two hooks:
- *   1. onClimbable RETURN: true when (rate > 0) OR (isSticky &&
- *      adjacent to any solid). Vanilla's climb-input handling activates.
+ *   1. onClimbable RETURN: true when (soft rate > 0, sneaking) OR (isSticky
+ *      && touching any wall). Vanilla's climb-input handling activates.
  *   2. aiStep RETURN: clamp upward velocity to the per-material rate
  *      (rate * vanilla-ladder-speed * sticky-factor). For sticky-only
  *      (slime ball, no soft rate) use rate=1.0 with the sticky 0.5
  *      factor so the cap = 0.5 * 0.5 * sizeroot * 0.2 = 0.05*sizeroot.
- *      Boost with the 1.6.4 line-2843 push when on ground + sticky.
+ *      Boost with the 1.6.4 line-2843 push when on ground + sticky, but
+ *      only while pressing into the wall or holding jump (vanilla's own
+ *      ladder input), and carry the body over the lip at the top.
  */
 @Mixin(LivingEntity.class)
 public abstract class MixinLivingEntityTinyClimb {
+
+    @Shadow protected boolean jumping;
 
     @Inject(method = "onClimbable", at = @At("RETURN"), cancellable = true)
     private void gulliver$tinyClimbSoft(CallbackInfoReturnable<Boolean> cir) {
         if (cir.getReturnValueZ()) return;
         LivingEntity self = (LivingEntity) (Object) this;
         IResizeableEntity sized = (IResizeableEntity) self;
-        if (!sized.isTiny()) return;
+        if (!sized.isTiny() || !Climb.canClimb(self)) return;
         // Soft-block climb is opt-in via shift (per user 4(338)): a tiny
         // walking past a dirt wall shouldn't pause to climb it. Slime-ball
         // ("sticky") climb stays automatic — that's the explicit-item path.
-        if (self.isShiftKeyDown() && gulliver$adjacentClimbRate(self) > 0.0F) {
+        boolean shifted = self.isShiftKeyDown();
+        Climb.Contact wall = Climb.probe(self, Climb.reach(self), shifted);
+        if (!wall.solid) return;
+        if (shifted && wall.softRate > 0.0F) {
             cir.setReturnValue(true);
             return;
         }
-        if (sized.isSticky() && gulliver$hasAdjacentSolid(self)) {
+        if (sized.isSticky()) {
             cir.setReturnValue(true);
         }
     }
@@ -56,13 +66,15 @@ public abstract class MixinLivingEntityTinyClimb {
     private void gulliver$dampClimbSpeed(CallbackInfo ci) {
         LivingEntity self = (LivingEntity) (Object) this;
         IResizeableEntity sized = (IResizeableEntity) self;
-        if (!sized.isTiny()) return;
+        if (!sized.isTiny() || !Climb.canClimb(self)) return;
         // Match the onClimbable gate: soft-block path requires shift,
         // sticky-block path doesn't.
         boolean shifted = self.isShiftKeyDown();
-        float rate = shifted ? gulliver$adjacentClimbRate(self) : 0.0F;
-        boolean stickyClimb = sized.isSticky() && rate <= 0.0F
-                && gulliver$hasAdjacentSolid(self);
+        double reach = Climb.reach(self);
+        Climb.Contact wall = Climb.probe(self, reach, shifted);
+        if (!wall.solid) return;
+        float rate = shifted ? wall.softRate : 0.0F;
+        boolean stickyClimb = rate <= 0.0F && sized.isSticky();
         if (rate <= 0.0F && !stickyClimb) return;
 
         // Effective rate: if sticky-only (no soft material), use 1.0 (full
@@ -82,8 +94,11 @@ public abstract class MixinLivingEntityTinyClimb {
         }
         // 1.6.4 of.java:2843 ground-push: y = 0.08 + 0.12 * sizeroot when
         // sticky+grounded. Apply once per tick when grounded against a
-        // sticky-climbable surface so the player rises off the ground.
-        if (stickyClimb && self.onGround()) {
+        // sticky-climbable surface so the player rises off the ground — but
+        // only when actually pushing into the wall or holding jump, like
+        // vanilla's ladder (standing beside a wall must not hop).
+        boolean pushing = self.horizontalCollision || this.jumping;
+        if (stickyClimb && pushing && self.onGround()) {
             Vec3 cur = self.getDeltaMovement();
             double push = 0.08D + 0.12D * root;
             if (cur.y < push) {
@@ -95,58 +110,8 @@ public abstract class MixinLivingEntityTinyClimb {
         if (cur2.y < -0.15D) {
             self.setDeltaMovement(cur2.x, -0.15D, cur2.z);
         }
-    }
-
-    private static float gulliver$adjacentClimbRate(LivingEntity self) {
-        AABB bb = self.getBoundingBox().inflate(0.05D, 0.0D, 0.05D);
-        int x1 = (int) Math.floor(bb.minX);
-        int x2 = (int) Math.floor(bb.maxX);
-        int y1 = (int) Math.floor(bb.minY);
-        int y2 = (int) Math.floor(bb.maxY);
-        int z1 = (int) Math.floor(bb.minZ);
-        int z2 = (int) Math.floor(bb.maxZ);
-        BlockPos.MutableBlockPos mp = new BlockPos.MutableBlockPos();
-        float best = 0.0F;
-        for (int x = x1; x <= x2; x++) {
-            for (int y = y1; y <= y2; y++) {
-                for (int z = z1; z <= z2; z++) {
-                    mp.set(x, y, z);
-                    float r = GulliverEnvoy.blockClimbingRateForTiny(self.level(), mp);
-                    if (r > best) best = r;
-                }
-            }
-        }
-        return best;
-    }
-
-    private static boolean gulliver$hasAdjacentSolid(LivingEntity self) {
-        AABB bb = self.getBoundingBox().inflate(0.1D, 0.0D, 0.1D);
-        int x1 = (int) Math.floor(bb.minX);
-        int x2 = (int) Math.floor(bb.maxX);
-        int y1 = (int) Math.floor(bb.minY);
-        int y2 = (int) Math.floor(bb.maxY);
-        int z1 = (int) Math.floor(bb.minZ);
-        int z2 = (int) Math.floor(bb.maxZ);
-        BlockPos.MutableBlockPos mp = new BlockPos.MutableBlockPos();
-        for (int x = x1; x <= x2; x++) {
-            for (int y = y1; y <= y2; y++) {
-                for (int z = z1; z <= z2; z++) {
-                    mp.set(x, y, z);
-                    var st = self.level().getBlockState(mp);
-                    if (st.isAir()) continue;
-                    if (st.isFaceSturdy(self.level(), mp,
-                            net.minecraft.core.Direction.NORTH)
-                        || st.isFaceSturdy(self.level(), mp,
-                            net.minecraft.core.Direction.SOUTH)
-                        || st.isFaceSturdy(self.level(), mp,
-                            net.minecraft.core.Direction.EAST)
-                        || st.isFaceSturdy(self.level(), mp,
-                            net.minecraft.core.Direction.WEST)) {
-                        return true;
-                    }
-                }
-            }
-        }
-        return false;
+        // Over the top: the wall's lip (a slab, a carpet, a snow layer) is
+        // about to drop out from under the climb.
+        Climb.hopOverLedge(self, wall, reach);
     }
 }

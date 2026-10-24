@@ -122,6 +122,7 @@ public final class SelfTest {
         }
 
         SelfTestCore.run(level, failures);
+        SelfTestMovement.run(level, failures);
         SelfTestExtras.run(level, failures);
     }
 

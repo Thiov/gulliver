@@ -19,6 +19,8 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
  *   size 2     → 600 ticks (30 sec)
  *   size 4     → 1200 ticks (60 sec)
  *   size 8     → 2400 ticks (2 min)    giants are practically aquatic
+ *   size 32    → 9600 ticks (8 min)
+ *   size 1/32  → 20 ticks (the floor below)
  *
  * Note: cap at minimum 20 ticks (1 sec) so extra-tinies aren't instant-
  * dead the moment they touch water.
@@ -29,7 +31,7 @@ public abstract class MixinEntityAir {
     @Inject(method = "getMaxAirSupply", at = @At("RETURN"), cancellable = true)
     private void gulliver$scaleMaxAir(CallbackInfoReturnable<Integer> cir) {
         float size = ((IResizeableEntity) this).getSizeMultiplier();
-        if (size == 1.0F) return;
+        if (size == 1.0F || !(size > 0.0F) || Float.isInfinite(size)) return;
         int scaled = (int) (cir.getReturnValueI() * size);
         if (scaled < 20) scaled = 20;
         cir.setReturnValue(scaled);

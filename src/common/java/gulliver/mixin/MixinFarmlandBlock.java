@@ -1,10 +1,13 @@
 package gulliver.mixin;
 
 import gulliver.api.IResizeableEntity;
+import gulliver.common.GulliverEnvoy;
+import gulliver.platform.Services;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.FarmlandBlock;
 import net.minecraft.world.level.block.state.BlockState;
@@ -23,11 +26,20 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
  * Modern translation:
  *   - fallOn @Inject HEAD: cancel if tiny; force-trample if huge;
  *     otherwise pass through to vanilla.
+ *   - Only living bodies are sized this way; an item or a falling block
+ *     landing on farmland goes through vanilla untouched.
  *
  * The per-tick walk-stomp branch (huge always-eventually trampling
  * just from walking) integrates more cleanly with Phase 10's
  * leaveHugeFootprints, so it's deferred — fallOn covers the dramatic
  * giant-jumps-and-cracks-the-soil moment which is the iconic feel.
+ *
+ * A giant's forced trample is a size power, so it obeys the size_griefing
+ * rule (and mobGriefing for mobs), and a player's also needs spawn
+ * protection, adventure mode and the loader's claim checks to allow it.
+ * (It does not fire the Forge / NeoForge farmland-trample event itself;
+ * claim mods that listen for block breaks are asked through
+ * Platform.mayBreakBlock.)
  */
 @Mixin(FarmlandBlock.class)
 public abstract class MixinFarmlandBlock {
@@ -46,7 +58,7 @@ public abstract class MixinFarmlandBlock {
                                          //$$ float fallDistance,
                                          //#endif
                                          CallbackInfo ci) {
-        if (level.isClientSide()) return;
+        if (level.isClientSide() || !(entity instanceof LivingEntity)) return;
 
         IResizeableEntity sized = (IResizeableEntity) entity;
         if (sized.isTiny()) {
@@ -55,10 +67,12 @@ public abstract class MixinFarmlandBlock {
             return;
         }
         if (sized.isHuge()) {
-            // Honour mobGriefing for non-players (vanilla path decides then).
-            if (!(entity instanceof Player)
-                    && level instanceof ServerLevel sl
-                    && !gulliver.init.GulliverGameRules.mobGriefing(sl)) {
+            // Not allowed to trample here: let vanilla's own rules decide.
+            if (!(level instanceof ServerLevel sl) || !GulliverEnvoy.canSizeGrief(entity)) return;
+            if (entity instanceof ServerPlayer player
+                    && (!player.getAbilities().mayBuild
+                        || !level.mayInteract(player, pos)
+                        || !Services.platform().mayBreakBlock(sl, pos, state, player))) {
                 return;
             }
             FarmlandBlock.turnToDirt(entity, state, level, pos);
