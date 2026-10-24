@@ -45,6 +45,9 @@ LOADER_NAMES = {"fabric": "Fabric", "neoforge": "NeoForge", "forge": "Forge"}
 MR_FABRIC_API = "P7dR8mSH"
 MR_MOD_MENU = "mOgUt4GM"
 
+# Files a platform couldn't take (unknown game versions); reported at the end.
+SKIPPED = []
+
 JAR_RE = re.compile(r"^gulliver-(?P<version>[^+]+)\+(?P<loader>fabric|neoforge|forge)-(?P<mc>[0-9.]+)\.jar$")
 
 
@@ -126,7 +129,9 @@ def curseforge(args, files, changelog):
         if loader_id is None:
             raise SystemExit(f"CurseForge does not list the loader {LOADER_NAMES[f['loader']]}")
         if not ids:
-            raise SystemExit(f"CurseForge knows none of {f['games']} for {f['name']}")
+            print(f"CurseForge: knows none of {f['games']}, {f['name']} NOT uploaded")
+            SKIPPED.append(f"CurseForge {f['name']}")
+            continue
         if missing:
             print(f"CurseForge: {f['name']}: unknown game versions {missing}, left out")
         meta = {
@@ -177,7 +182,9 @@ def modrinth(args, files, changelog):
         if missing:
             print(f"Modrinth: {f['name']}: unknown game versions {missing}, left out")
         if not games:
-            raise SystemExit(f"Modrinth knows none of {f['games']} for {f['name']}")
+            print(f"Modrinth: knows none of {f['games']}, {f['name']} NOT uploaded")
+            SKIPPED.append(f"Modrinth {f['name']}")
+            continue
         number = f"{args.version}+{f['loader']}-{f['mc']}"
         if number in existing_numbers:
             print(f"Modrinth: {number} already exists, skipped")
@@ -259,6 +266,10 @@ def main():
     print(f"{len(files)} jars for Gulliver {args.version}")
     curseforge(args, files, changelog)
     modrinth(args, files, changelog)
+    if SKIPPED:
+        print("Not uploaded (platform doesn't know the Minecraft version yet): " + ", ".join(SKIPPED))
+        return 1
+    return 0
 
 
 if __name__ == "__main__":
