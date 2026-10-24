@@ -33,8 +33,8 @@ public final class PropRender {
 
     /** Pose at the entity's feet (world-aligned, no body rotation applied). */
     public static void lilyDisc(PoseStack pose, MultiBufferSource buffers, LivingEntity entity,
-                                float bodyYaw, boolean raft, int light) {
-        float scale = ((IResizeableLiving) entity).getSizeMultiplier();
+                                float bodyYaw, boolean raft, int light, float partialTick) {
+        float scale = VisualSize.renderScale(entity, partialTick);
         pose.pushPose();
         pose.translate(0.0F, (raft ? 0.4F : 2.0F) * scale, 0.0F);
         pose.mulPose(com.mojang.math.Axis.YP.rotationDegrees(180.0F - bodyYaw));

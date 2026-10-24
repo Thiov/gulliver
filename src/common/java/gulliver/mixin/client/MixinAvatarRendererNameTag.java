@@ -16,14 +16,14 @@
 //$$ public abstract class MixinAvatarRendererNameTag {
 //$$
 //$$     @Inject(method = "submitNameTag(Lnet/minecraft/client/renderer/entity/state/AvatarRenderState;Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/SubmitNodeCollector;Lnet/minecraft/client/renderer/state/CameraRenderState;)V",
-//$$             at = @At("HEAD"))
+//$$             at = @At("HEAD"), require = 0)
 //$$     private void gulliver$push(AvatarRenderState state, PoseStack pose, SubmitNodeCollector buf,
 //$$                                CameraRenderState cam, CallbackInfo ci) {
 //$$         gulliver.client.NameTagScale.push(state, pose);
 //$$     }
 //$$
 //$$     @Inject(method = "submitNameTag(Lnet/minecraft/client/renderer/entity/state/AvatarRenderState;Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/SubmitNodeCollector;Lnet/minecraft/client/renderer/state/CameraRenderState;)V",
-//$$             at = @At("RETURN"))
+//$$             at = @At("RETURN"), require = 0)
 //$$     private void gulliver$pop(AvatarRenderState state, PoseStack pose, SubmitNodeCollector buf,
 //$$                               CameraRenderState cam, CallbackInfo ci) {
 //$$         gulliver.client.NameTagScale.pop(state, pose);

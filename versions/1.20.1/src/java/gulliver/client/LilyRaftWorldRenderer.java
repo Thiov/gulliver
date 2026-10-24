@@ -24,10 +24,11 @@ public final class LilyRaftWorldRenderer {
         if (!raft && !sized.doesUmbrella()) return;
         Vec3 camPos = cam.getPosition();
         pose.pushPose();
-        pose.translate(Mth.lerp(pt, player.xOld, player.getX()) - camPos.x,
-                Mth.lerp(pt, player.yOld, player.getY()) - camPos.y,
-                Mth.lerp(pt, player.zOld, player.getZ()) - camPos.z);
-        PropRender.lilyDisc(pose, buffers, player, PropRender.bodyYaw(player, pt), raft, 15728880);
+        // Same previous-position fields and partial tick as the camera.
+        pose.translate(Mth.lerp(pt, player.xo, player.getX()) - camPos.x,
+                Mth.lerp(pt, player.yo, player.getY()) - camPos.y,
+                Mth.lerp(pt, player.zo, player.getZ()) - camPos.z);
+        PropRender.lilyDisc(pose, buffers, player, PropRender.bodyYaw(player, pt), raft, 15728880, pt);
         pose.popPose();
     }
 }

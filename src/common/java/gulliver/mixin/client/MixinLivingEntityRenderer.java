@@ -1,6 +1,6 @@
 package gulliver.mixin.client;
 
-import gulliver.api.IResizeableEntity;
+import gulliver.client.VisualSize;
 import gulliver.common.GulliverEnvoy;
 import net.minecraft.client.renderer.entity.LivingEntityRenderer;
 import net.minecraft.client.renderer.entity.state.LivingEntityRenderState;
@@ -27,12 +27,21 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 public abstract class MixinLivingEntityRenderer {
 
     @Inject(method = "extractRenderState(Lnet/minecraft/world/entity/LivingEntity;Lnet/minecraft/client/renderer/entity/state/LivingEntityRenderState;F)V",
-            at = @At("RETURN"))
+            at = @At("RETURN"), require = 0)
     private void gulliver$applyScale(LivingEntity entity, LivingEntityRenderState state,
                                       float partialTick, CallbackInfo ci) {
-        float m = ((IResizeableEntity) entity).getSizeMultiplier();
+        // The drawn size: it glides to a new size instead of snapping (see
+        // VisualSize); inside a GUI preview it is the real size, which the
+        // screen's own normalisation divides back out.
+        float m = VisualSize.renderScale(entity, partialTick);
         if (m != 1.0F) {
             state.scale *= m;
+            // The name tag's anchor comes from the hitbox, which has
+            // already changed size: carry it along with the drawn body.
+            float logical = VisualSize.logical(entity);
+            if (state.nameTagAttachment != null && m != logical && logical > 0.0F) {
+                state.nameTagAttachment = state.nameTagAttachment.scale(m / logical);
+            }
             // DO NOT scale state.ageScale — vanilla setupAttackAnimation
             // multiplies the punch arm's .x/.z offset by ageScale (5 *
             // ageScale, see HumanoidModel.setupAttackAnimation +85/+108).
@@ -50,7 +59,8 @@ public abstract class MixinLivingEntityRenderer {
             g.gulliver$setGliding(sized.isGliding());
             g.gulliver$setDoesUmbrella(sized.doesUmbrella());
             g.gulliver$setRafting(sized.isRafting());
-            g.gulliver$setSizeMultiplier(sized.getSizeMultiplier());
+            g.gulliver$setSizeMultiplier(m);
+            g.gulliver$setExtractScale(state.scale);
             g.gulliver$setHandPassenger(((gulliver.access.IGulliverShoulderInternal) entity)
                     .gulliver$getHandEntity() != null);
             // Which arm holds the active prop (lily-pad raft/umbrella or
@@ -89,7 +99,7 @@ public abstract class MixinLivingEntityRenderer {
      * points one direction".
      */
     @Inject(method = "submit(Lnet/minecraft/client/renderer/entity/state/LivingEntityRenderState;Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/SubmitNodeCollector;Lnet/minecraft/client/renderer/state/level/CameraRenderState;)V",
-            at = @At("RETURN"))
+            at = @At("RETURN"), require = 0)
     private void gulliver$drawRaftLilypad(LivingEntityRenderState state,
                                            com.mojang.blaze3d.vertex.PoseStack pose,
                                            net.minecraft.client.renderer.SubmitNodeCollector buf,

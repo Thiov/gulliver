@@ -22,7 +22,8 @@ public abstract class MixinLevelRendererSubmit {
     @Inject(method = "renderLevel",
             at = @At(value = "INVOKE",
                      target = "Lnet/minecraft/client/renderer/LevelRenderer;checkPoseStack(Lcom/mojang/blaze3d/vertex/PoseStack;)V",
-                     ordinal = 0))
+                     ordinal = 0),
+            require = 0)
     private void gulliver$submitProps(PoseStack pose, float partialTick, long nanos, boolean outline, Camera camera,
                                       GameRenderer gameRenderer, LightTexture lightTexture, Matrix4f projection,
                                       CallbackInfo ci) {

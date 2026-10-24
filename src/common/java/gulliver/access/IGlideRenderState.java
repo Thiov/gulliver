@@ -12,7 +12,13 @@ public interface IGlideRenderState {
     boolean gulliver$doesUmbrella();
     boolean gulliver$isRafting();
     boolean gulliver$hasHandPassenger();
+    /** The size the model was drawn at when the state was extracted (the animated size, not the hitbox's). */
     float gulliver$getSizeMultiplier();
+    /**
+     * LivingEntityRenderState.scale right after extraction; a GUI preview that
+     * normalises the scale afterwards shows up as state.scale differing from it.
+     */
+    float gulliver$getExtractScale();
     /** Arm holding the umbrella / glide item (either hand works), or null. */
     net.minecraft.world.entity.HumanoidArm gulliver$getPropArm();
     void gulliver$setPropArm(net.minecraft.world.entity.HumanoidArm arm);
@@ -21,4 +27,5 @@ public interface IGlideRenderState {
     void gulliver$setRafting(boolean v);
     void gulliver$setHandPassenger(boolean v);
     void gulliver$setSizeMultiplier(float v);
+    void gulliver$setExtractScale(float v);
 }
