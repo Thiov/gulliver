@@ -63,8 +63,8 @@ public final class ShoulderHelper {
      */
     private static final float MAX_THROW_POWER = 3.9F;
 
-    /** Set while a claim-mod probe runs, so the probe event doesn't re-enter the carry handlers. */
-    private static boolean probing;
+    /** Set while a claim-mod probe runs on this thread, so the probe event doesn't re-enter the carry handlers. */
+    private static final ThreadLocal<Boolean> PROBING = ThreadLocal.withInitial(() -> Boolean.FALSE);
 
     /** Widest body the hand can wrap around (1.6.4: 0.5-0.8x the carrier's width). */
     public static float maxHeldWidth(LivingEntity carrier) {
@@ -112,9 +112,12 @@ public final class ShoulderHelper {
         IGulliverShoulderInternal cs = (IGulliverShoulderInternal) carrier;
         UUID id = cs.gulliver$getHandEntity();
         if (id == null) return false;
-        if (carrier.level().isClientSide() && lookup(carrier, id) == null) {
-            cs.gulliver$setHandEntity(null);
-            return false;
+        if (carrier.level().isClientSide()) {
+            Entity held = lookup(carrier, id);
+            if (held == null || !carrier.getUUID().equals(holderOf(held))) {
+                cs.gulliver$setHandEntity(null);
+                return false;
+            }
         }
         return true;
     }
@@ -146,7 +149,7 @@ public final class ShoulderHelper {
 
     /** True while {@link #mayInteract} is asking the loader's claim hooks; the carry handlers stay out of it. */
     public static boolean isProbing() {
-        return probing;
+        return PROBING.get();
     }
 
     /**
@@ -156,12 +159,12 @@ public final class ShoulderHelper {
      * Gulliver listens to as well, hence the re-entry guard.
      */
     public static boolean mayInteract(ServerPlayer player, Entity target) {
-        if (probing) return true;
-        probing = true;
+        if (PROBING.get()) return true;
+        PROBING.set(Boolean.TRUE);
         try {
             return Services.platform().mayInteractWithEntity(player, target, InteractionHand.MAIN_HAND);
         } finally {
-            probing = false;
+            PROBING.set(Boolean.FALSE);
         }
     }
 
@@ -563,7 +566,8 @@ public final class ShoulderHelper {
             // A carried player breaks free by sneaking; anything that grew too
             // big for the hand slips out; a carrier turned spectator lets go;
             // a carried creature that boarded something is no longer in hand.
-            boolean breakFree = p instanceof Player && p.isShiftKeyDown() || carrier.isSpectator() || p.isPassenger();
+            boolean breakFree = p instanceof Player pl && (pl.isShiftKeyDown() || pl.isCreative() || pl.isSpectator())
+                    || carrier.isSpectator() || p.isPassenger();
             boolean tooBig = ((IResizeableEntity) p).getSizeMultiplier()
                     >= ((IResizeableEntity) carrier).getSizeMultiplier() * MAX_SIZE_RATIO * 1.25F;
             if (breakFree || tooBig) {
