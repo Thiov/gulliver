@@ -173,7 +173,8 @@ def mirror(mr, project):
             icon = jar_icon(jar)
         data = {
             "slug": slug, "title": project["title"], "description": project["summary"],
-            "categories": project["categories"], "additional_categories": [],
+            # Modrinth takes at most three main categories; the rest are secondary.
+            "categories": project["categories"][:3], "additional_categories": project["categories"][3:],
             "client_side": "required", "server_side": "required",
             "body": readme_body(project["body_from"]),
             "license_id": project["license_id"],
