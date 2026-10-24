@@ -1,6 +1,7 @@
 package gulliver.mixin;
 
 import gulliver.api.IResizeableEntity;
+import gulliver.common.SizeScaling;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.BowItem;
 import net.minecraft.world.item.ItemStack;
@@ -24,6 +25,10 @@ import org.spongepowered.asm.mixin.injection.Redirect;
  *   vanilla    → 20 ticks (1 s)
  *   size 4     → 5 ticks (instant snap-shot)
  *
+ * The draw time stays between 4 ticks and 8x vanilla whatever the size
+ * (SizeScaling.chargeFactor), so the 1/32..32 range neither freezes a
+ * tiny's bow nor makes a giant's fire in the same tick.
+ *
  * Redirect-only: the countdown seed (ItemStack.getUseDuration) stays
  * at the unscaled 72000, so client and server agree on remaining ticks
  * and the release math is self-consistent on both sides.
@@ -41,11 +46,11 @@ public abstract class MixinBowItem {
         int duration = item.getUseDuration(stack, entity);
         float size = ((IResizeableEntity) entity).getSizeMultiplier();
         if (size == 1.0F) return duration;
-        // charge = returned - remaining; we want charge' = heldTicks * size
+        // charge = returned - remaining; we want charge' = heldTicks * factor
         // where heldTicks = duration - remaining. So return
-        // remaining + round(heldTicks * size).
+        // remaining + round(heldTicks * factor).
         int held = duration - remaining;
-        return remaining + Math.round(held * size);
+        return remaining + Math.round(held * SizeScaling.chargeFactor(size, 20));
     }
     //#else
     //$$ @Redirect(method = "releaseUsing",
@@ -56,7 +61,7 @@ public abstract class MixinBowItem {
     //$$     int duration = item.getUseDuration(stack);
     //$$     float size = ((IResizeableEntity) user).getSizeMultiplier();
     //$$     if (size == 1.0F) return duration;
-    //$$     return remaining + Math.round((duration - remaining) * size);
+    //$$     return remaining + Math.round((duration - remaining) * SizeScaling.chargeFactor(size, 20));
     //$$ }
     //#endif
 }

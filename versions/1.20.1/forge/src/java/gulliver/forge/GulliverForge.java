@@ -15,6 +15,7 @@ import net.minecraftforge.event.RegisterCommandsEvent;
 import net.minecraftforge.event.entity.player.AttackEntityEvent;
 import net.minecraftforge.event.entity.player.PlayerEvent;
 import net.minecraftforge.event.entity.player.PlayerInteractEvent;
+import net.minecraftforge.eventbus.api.EventPriority;
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
@@ -47,7 +48,8 @@ public final class GulliverForge {
                 cancel(e, CommonEvents.onUseEntity(e.getEntity(), e.getLevel(), e.getHand(), e.getTarget())));
         bus.addListener((PlayerInteractEvent.RightClickItem e) ->
                 cancel(e, CommonEvents.onUseItem(e.getEntity(), e.getLevel(), e.getHand())));
-        bus.addListener((AttackEntityEvent e) ->
+        // Last, and not for cancelled attacks: a claim mod that vetoes the attack also stops the giant's splash.
+        bus.addListener(EventPriority.LOWEST, (AttackEntityEvent e) ->
                 CommonEvents.onAttackEntity(e.getEntity(), e.getEntity().level(), e.getTarget()));
         bus.addListener((PlayerEvent.Clone e) -> {
             if (e.getOriginal() instanceof ServerPlayer oldP && e.getEntity() instanceof ServerPlayer newP) {

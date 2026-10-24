@@ -29,7 +29,26 @@ public final class CommonEvents {
     }
 
     public static InteractionResult onUseEntity(Player player, Level level, InteractionHand hand, Entity target) {
+        // Platform.mayInteractWithEntity fires the loader's own interaction event to
+        // ask other mods for a veto; that event reaches this listener too, which must
+        // not act on the question.
+        if (probing > 0) return InteractionResult.PASS;
         return ShoulderInteractHandler.onUseEntity(player, level, hand, target);
+    }
+
+    private static int probing;
+
+    /**
+     * Runs a loader-event "may I?" probe (see Platform.mayInteractWithEntity)
+     * during which Gulliver's own entity-interaction listener stays silent.
+     */
+    public static <T> T probe(java.util.function.Supplier<T> question) {
+        probing++;
+        try {
+            return question.get();
+        } finally {
+            probing--;
+        }
     }
 
     public static InteractionResult onUseItem(Player player, Level level, InteractionHand hand) {

@@ -7,6 +7,7 @@ import gulliver.init.GulliverGameRules;
 import gulliver.init.GulliverPotions;
 import gulliver.platform.Services;
 import net.fabricmc.api.ModInitializer;
+import net.fabricmc.fabric.api.event.Event;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.entity.event.v1.ServerPlayerEvents;
 import net.fabricmc.fabric.api.event.player.AttackEntityCallback;
@@ -16,6 +17,7 @@ import net.fabricmc.fabric.api.event.player.UseItemCallback;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.InteractionResult;
 //#if MC >= 26.1
 import net.fabricmc.fabric.api.entity.event.v1.ServerEntityLevelChangeEvents;
@@ -24,6 +26,13 @@ import net.fabricmc.fabric.api.entity.event.v1.ServerEntityLevelChangeEvents;
 //#endif
 
 public final class GulliverFabric implements ModInitializer {
+    /**
+     * Phase of the attack listener: after the default one, where claim and
+     * protection mods cancel attacks, so a giant's splash never fires for an
+     * attack that was vetoed.
+     */
+    private static final Identifier AFTER_CLAIMS = Gulliver.id("after_claims");
+
     @Override
     public void onInitialize() {
         Services.set(new FabricPlatform());
@@ -56,7 +65,8 @@ public final class GulliverFabric implements ModInitializer {
             //$$         : net.minecraft.world.InteractionResultHolder.success(player.getItemInHand(hand));
             //#endif
         });
-        AttackEntityCallback.EVENT.register((player, level, hand, entity, hit) -> {
+        AttackEntityCallback.EVENT.addPhaseOrdering(Event.DEFAULT_PHASE, AFTER_CLAIMS);
+        AttackEntityCallback.EVENT.register(AFTER_CLAIMS, (player, level, hand, entity, hit) -> {
             CommonEvents.onAttackEntity(player, level, entity);
             return InteractionResult.PASS;
         });
