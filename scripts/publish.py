@@ -209,7 +209,41 @@ def modrinth(args, files, changelog):
         print(f"Modrinth: uploaded {number} (version id {res.get('id')})")
 
 
+def check_tokens():
+    """Describe the tokens' shape (never their value) and try one read-only call each."""
+    ok = True
+    cf = env_token("CURSEFORGE_TOKEN")
+    if not cf:
+        print("CURSEFORGE_TOKEN: not set")
+        ok = False
+    else:
+        shape = re.fullmatch(r"[0-9a-fA-F]{8}-([0-9a-fA-F]{4}-){3}[0-9a-fA-F]{12}", cf) is not None
+        print(f"CURSEFORGE_TOKEN: {len(cf)} characters, shaped like a CurseForge key (8-4-4-4-12 hex): "
+              f"{'yes' if shape else 'NO'}{', starts like a Modrinth key' if cf.startswith('mrp_') else ''}")
+        try:
+            request("GET", f"{CF_API}/game/version-types", {"X-Api-Token": cf}, raise_on={400, 401, 403})
+            print("  CurseForge accepts it")
+        except LookupError as e:
+            print(f"  CurseForge rejects it (HTTP {e.args[0]})")
+            ok = False
+    mr = env_token("MODRINTH_TOKEN")
+    if not mr:
+        print("MODRINTH_TOKEN: not set")
+        ok = False
+    else:
+        print(f"MODRINTH_TOKEN: {len(mr)} characters, starts with mrp_: {'yes' if mr.startswith('mrp_') else 'NO'}")
+        try:
+            _, user = request("GET", f"{MR_API}/user", {"Authorization": mr}, raise_on={401, 403})
+            print(f"  Modrinth accepts it (user {user['username']})")
+        except LookupError as e:
+            print(f"  Modrinth rejects it (HTTP {e.args[0]})")
+            ok = False
+    return 0 if ok else 1
+
+
 def main():
+    if "--check-tokens" in sys.argv:
+        return check_tokens()
     p = argparse.ArgumentParser()
     p.add_argument("--dist", default="dist")
     p.add_argument("--version", required=True)

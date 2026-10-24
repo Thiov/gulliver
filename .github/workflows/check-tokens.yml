@@ -1,0 +1,17 @@
+name: check-tokens
+
+# Quick check that the CURSEFORGE_TOKEN and MODRINTH_TOKEN secrets work.
+# Prints only each token's length and shape, never its value.
+
+on:
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - env:
+          CURSEFORGE_TOKEN: ${{ secrets.CURSEFORGE_TOKEN }}
+          MODRINTH_TOKEN: ${{ secrets.MODRINTH_TOKEN }}
+        run: python3 scripts/publish.py --check-tokens
