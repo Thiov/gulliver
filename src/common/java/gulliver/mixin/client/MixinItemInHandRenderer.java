@@ -1,3 +1,4 @@
+//#if MC < 26.3
 package gulliver.mixin.client;
 
 import com.mojang.blaze3d.vertex.PoseStack;
@@ -24,6 +25,9 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
  * map cleanly to PoseStack pre-multiply order). The paper is drawn in
  * the world instead (GliderPaperWorldRenderer), above the player's head,
  * and the hand-held copy is cancelled here.
+ *
+ * 26.3 split the renderer into extract and submit steps and renamed it;
+ * MixinFirstPersonHandsAndItemsRenderer is the same hook for those versions.
  */
 @Mixin(ItemInHandRenderer.class)
 public abstract class MixinItemInHandRenderer {
@@ -98,3 +102,4 @@ public abstract class MixinItemInHandRenderer {
         return gulliver.common.GulliverConfig.INSTANCE.client.proportionalHeldItems();
     }
 }
+//#endif

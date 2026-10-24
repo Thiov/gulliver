@@ -15,7 +15,7 @@ jar_for() {
     esac
 }
 targets=("$@")
-[ ${#targets[@]} -eq 0 ] && targets=(26.2/fabric 26.1.2/neoforge 1.21.11/forge 1.21.10/fabric 1.20.1/forge 1.20.1/neoforge)
+[ ${#targets[@]} -eq 0 ] && targets=(26.3/fabric 26.2/fabric 26.1.2/neoforge 1.21.11/forge 1.21.10/fabric 1.20.1/forge 1.20.1/neoforge)
 fail=0
 for t in "${targets[@]}"; do
     mc="${t%/*}"

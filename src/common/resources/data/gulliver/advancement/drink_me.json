@@ -32,11 +32,21 @@
             "minecraft:lingering_potion"
           ],
           "predicates": {
+//#if MC >= 26.3
+            "minecraft:potion_contents": {
+              "potions": [
+                "gulliver:tiny",
+                "gulliver:long_tiny",
+                "gulliver:strong_tiny"
+              ]
+            }
+//#else
             "minecraft:potion_contents": [
               "gulliver:tiny",
               "gulliver:long_tiny",
               "gulliver:strong_tiny"
             ]
+//#endif
           }
         }
       }
@@ -51,11 +61,21 @@
             "minecraft:lingering_potion"
           ],
           "predicates": {
+//#if MC >= 26.3
+            "minecraft:potion_contents": {
+              "potions": [
+                "gulliver:huge",
+                "gulliver:long_huge",
+                "gulliver:strong_huge"
+              ]
+            }
+//#else
             "minecraft:potion_contents": [
               "gulliver:huge",
               "gulliver:long_huge",
               "gulliver:strong_huge"
             ]
+//#endif
           }
         }
       }

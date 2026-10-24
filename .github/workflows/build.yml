@@ -20,6 +20,9 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          - { mc: '26.3', loader: fabric }
+          - { mc: '26.3', loader: neoforge }
+          - { mc: '26.3', loader: forge }
           - { mc: '26.2', loader: fabric }
           - { mc: '26.2', loader: neoforge }
           - { mc: '26.2', loader: forge }

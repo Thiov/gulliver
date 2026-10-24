@@ -39,7 +39,9 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 @Mixin(TntBlock.class)
 public abstract class MixinTntBlock {
 
-    //#if MC >= 1.21.2
+    //#if MC >= 26.3
+    // prime() is public from 26.3 on (and takes the igniting item): called directly below.
+    //#elif MC >= 1.21.2
     @org.spongepowered.asm.mixin.Shadow
     private static boolean prime(Level level, BlockPos pos, net.minecraft.world.entity.LivingEntity source) {
         throw new AssertionError();
@@ -76,7 +78,11 @@ public abstract class MixinTntBlock {
         if (player.isShiftKeyDown()) return;
 
         if (!level.isClientSide()) {
-            //#if MC >= 1.21.2
+            //#if MC >= 26.3
+            // prime() refuses when the tnt_explodes game rule is off (or an
+            // adventure-mode hand may not break it); the block must survive then.
+            if (net.minecraft.world.level.block.TntBlock.prime(level, pos, player, stack)) level.removeBlock(pos, false);
+            //#elif MC >= 1.21.2
             // prime() refuses when the tnt_explodes game rule is off; the
             // block must survive then.
             if (prime(level, pos, player)) level.removeBlock(pos, false);
