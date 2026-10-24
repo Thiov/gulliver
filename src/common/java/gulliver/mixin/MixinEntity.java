@@ -204,12 +204,8 @@ public abstract class MixinEntity implements IResizeableEntity, IGulliverEntityI
     private void gulliver$scaleStepHeight(CallbackInfoReturnable<Float> cir) {
         float m = getSizeMultiplier();
         if (m == 1.0F) return;
-        float f = cir.getReturnValue();
-        float norm = 1.0F;
-        while (norm * m < 0.5F) { norm *= 2.0F; f /= 2.0F; }
-        while (norm * m > 1.0F) { norm /= 2.0F; f *= 2.0F; }
-        if (norm * m < 0.65F) { f *= norm * m; }
-        cir.setReturnValue(f);
+        // (shared with LivingEntity's own maxUpStep, MixinLivingEntityStep)
+        cir.setReturnValue(gulliver.common.Movement.stepHeight(cir.getReturnValue(), m));
     }
 
     /**
