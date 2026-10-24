@@ -5,7 +5,10 @@ import gulliver.common.Climb;
 import gulliver.common.GulliverEnvoy;
 import gulliver.common.Movement;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.entity.ai.attributes.Attributes;
+import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.entity.EntityTypes;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.Mob;
@@ -141,6 +144,28 @@ final class SelfTestMovement {
             }
         }
         level.setBlock(wire, Blocks.AIR.defaultBlockState(), 2);
+
+        jumpsAndFalls(level, failures);
+
+        // Snow: eight layers are a full block to an extra-tiny (SHAPES has nine entries).
+        BlockPos snowPos = o.offset(0, 0, 4);
+        Mob extraTiny = tinyAt(level, snowPos.getX() + 0.5D, snowPos.getY() + 3.0D, snowPos.getZ() + 0.5D);
+        Mob regular = SelfTest.spawnMob(level, EntityTypes.PIG, o);
+        if (extraTiny != null && regular != null) {
+            for (int layers : new int[] { 3, 8 }) {
+                net.minecraft.world.level.block.state.BlockState snow =
+                        Blocks.SNOW.defaultBlockState().setValue(SnowLayerBlock.LAYERS, layers);
+                level.setBlock(snowPos, snow, 2);
+                double tall = snow.getCollisionShape(level, snowPos, CollisionContext.of(extraTiny)).max(Direction.Axis.Y);
+                double normal = snow.getCollisionShape(level, snowPos, CollisionContext.of(regular)).max(Direction.Axis.Y);
+                check(failures, Math.abs(tall - Math.min(1.0D, layers / 8.0D)) < 1.0E-6D
+                                && Math.abs(normal - (layers - 1) / 8.0D) < 1.0E-6D,
+                        "snow with " + layers + " layers: extra-tiny stands at " + tall + ", normal body at " + normal);
+            }
+            level.setBlock(snowPos, Blocks.AIR.defaultBlockState(), 2);
+        }
+        if (extraTiny != null) extraTiny.discard();
+        if (regular != null) regular.discard();
 
         // M7: who rain can drown.
         Mob pig = SelfTest.spawnMob(level, EntityTypes.PIG, o);
@@ -279,6 +304,62 @@ final class SelfTestMovement {
         check(failures, f.reached >= 0 && f.climbTicks == 0,
                 "walk: lead-holding body walks past a wall without climbing it (" + f.climbTicks + " climb ticks)");
         if (f.reached < 0 || f.climbTicks > 0) gulliver.Gulliver.LOGGER.info("walk trace\n{}", f.trace);
+    }
+
+    private static void jumpsAndFalls(ServerLevel level, List<String> failures) {
+        BlockPos o = new BlockPos(8, 200, 8);
+        //#if MC >= 1.21.2
+        Mob jumper = SelfTest.spawnMob(level, EntityTypes.ZOMBIE, o);
+        if (jumper != null) {
+            jumper.setNoGravity(true);
+            jumper.setOnGround(true);
+            jumper.setShiftKeyDown(true);
+            double[] v = new double[2];
+            float[] sizes = { 1.0F, 0.99F };
+            for (int i = 0; i < sizes.length; i++) {
+                ((IResizeableLiving) jumper).setBaseSize(sizes[i]);
+                jumper.setDeltaMovement(0.0D, 0.0D, 0.0D);
+                jumper.jumpFromGround();
+                v[i] = jumper.getDeltaMovement().y;
+            }
+            check(failures, Math.abs(v[0] - 0.42D) < 1.0E-3D && Math.abs(v[1] - v[0]) < 0.01D,
+                    "a sneak-jump at 0.99 is no higher than at 1 (" + v[0] + " vs " + v[1] + ")");
+
+            // The sprint-jump boost follows the walking gait: 0.2 * sqrt(0.125) at 1/8.
+            jumper.setShiftKeyDown(false);
+            jumper.setSprinting(true);
+            ((IResizeableLiving) jumper).setBaseSize(0.125F);
+            jumper.setYRot(0.0F);
+            jumper.setDeltaMovement(0.0D, 0.0D, 0.0D);
+            jumper.jumpFromGround();
+            double boost = jumper.getDeltaMovement().horizontalDistance();
+            check(failures, Math.abs(boost - 0.2D * Math.sqrt(0.125D)) < 0.002D,
+                    "a sprint-jump at 1/8 gets 0.2 * sqrt(size) (got " + boost + ")");
+            jumper.discard();
+        }
+        //#endif
+
+        //#if MC >= 1.20.5
+        // The fall threshold starts from the safe_fall_distance attribute.
+        Mob faller = SelfTest.spawnMob(level, EntityTypes.ZOMBIE, o);
+        if (faller != null) {
+            ((IResizeableLiving) faller).setBaseSize(0.5F);
+            faller.setHealth(faller.getMaxHealth());
+            faller.invulnerableTime = 0;
+            float before = faller.getHealth();
+            fall(faller, 8.0D, 1.0F);
+            float lostDefault = before - faller.getHealth();
+            faller.setHealth(faller.getMaxHealth());
+            faller.invulnerableTime = 0;
+            faller.getAttribute(Attributes.SAFE_FALL_DISTANCE).setBaseValue(10.0D);
+            before = faller.getHealth();
+            fall(faller, 8.0D, 1.0F);
+            float lostSafe = before - faller.getHealth();
+            check(failures, lostDefault >= 1.0F && lostSafe == 0.0F,
+                    "safe_fall_distance counts for a half-size fall (lost " + lostDefault + ", then " + lostSafe + ")");
+            faller.discard();
+        }
+        //#endif
     }
 
     /** Fills the footprint under a size-4 body (5x5, two deep) with dirt, or empties it. */
