@@ -1,0 +1,35 @@
+name: modrinth-mirror
+
+# Mirrors the CurseForge projects in mirror/projects.json to Modrinth:
+# creates missing projects as drafts and uploads the newest file of every
+# loader/Minecraft pair that Modrinth doesn't have yet. Safe to re-run.
+# Needs the repository secret MODRINTH_TOKEN.
+
+on:
+  workflow_dispatch:
+    inputs:
+      only:
+        description: Mirror only this Modrinth slug (empty = all projects)
+        required: false
+        default: ''
+      dry_run:
+        description: Only show what would be created and uploaded
+        type: boolean
+        default: true
+
+jobs:
+  mirror:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install pillow
+      - name: Mirror
+        env:
+          MODRINTH_TOKEN: ${{ secrets.MODRINTH_TOKEN }}
+        run: |
+          python3 scripts/modrinth_mirror.py \
+            $([ -n "${{ inputs.only }}" ] && echo --only "${{ inputs.only }}") \
+            $([ "${{ inputs.dry_run }}" = true ] && echo --dry-run)
