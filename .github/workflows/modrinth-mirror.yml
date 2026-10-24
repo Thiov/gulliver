@@ -24,6 +24,10 @@ on:
         description: Unlist versions that repeat another version's jar
         type: boolean
         default: true
+      delete_duplicates:
+        description: DELETE versions that repeat another version's jar (permanent)
+        type: boolean
+        default: false
 
 jobs:
   mirror:
@@ -42,4 +46,5 @@ jobs:
             $([ -n "${{ inputs.only }}" ] && echo --only "${{ inputs.only }}") \
             $([ "${{ inputs.dry_run }}" = true ] && echo --dry-run) \
             $([ "${{ inputs.submit }}" = true ] && echo --submit) \
-            $([ "${{ inputs.hide_duplicates }}" = true ] && echo --hide-duplicates)
+            $([ "${{ inputs.hide_duplicates }}" = true ] && echo --hide-duplicates) \
+            $([ "${{ inputs.delete_duplicates }}" = true ] && echo --delete-duplicates)
