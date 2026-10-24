@@ -121,6 +121,8 @@ final class SelfTestMovement {
         level.setBlock(o.offset(3, 0, 3), Blocks.AIR.defaultBlockState(), 2);
         level.setBlock(o.offset(-1, 0, 2), Blocks.AIR.defaultBlockState(), 2);
 
+        walks(level, failures);
+
         // Tripwire: a tiny waiting in a tripped wire doesn't keep it powered.
         BlockPos wire = o.offset(0, 0, -3);
         net.minecraft.world.level.block.state.BlockState tripped =
@@ -182,6 +184,101 @@ final class SelfTestMovement {
             level.setBlock(field, Blocks.AIR.defaultBlockState(), 2);
             giant.discard();
         }
+    }
+
+    /** What a scripted walk did. */
+    private static final class Walk {
+        int reached = -1;     // ticks until the body stood at the goal, -1 if it never did
+        int climbTicks;       // ticks it counted as climbing
+        double maxY = -1.0E9; // highest feet height after the first settling ticks
+        StringBuilder trace = new StringBuilder();
+    }
+
+    /**
+     * A zombie of the given size, holding {@code held}, with no AI of its own,
+     * is told to walk to a goal over a stone (or soul sand) floor, past or into
+     * a one-block-wide stone column at x = 11 that may carry a bottom slab. The
+     * real tick runs, so jumping, stepping, climbing and falling are the game's.
+     */
+    private static Walk walk(ServerLevel level, float size, net.minecraft.world.item.Item held, int wallHeight,
+                             boolean lip, boolean soulSand, double sx, double sy, double sz,
+                             double gx, double gy, double gz, int maxTicks) {
+        BlockPos o = new BlockPos(8, 200, 8);
+        for (int x = 4; x <= 14; x++) {
+            for (int y = -1; y <= 6; y++) {
+                for (int z = 4; z <= 12; z++) {
+                    level.setBlock(new BlockPos(x, o.getY() + y, z),
+                            y == -1 ? (soulSand ? Blocks.SOUL_SAND : Blocks.STONE).defaultBlockState()
+                                    : Blocks.AIR.defaultBlockState(), 2);
+                }
+            }
+        }
+        for (int y = 0; y < wallHeight; y++) level.setBlock(new BlockPos(11, o.getY() + y, 8), Blocks.STONE.defaultBlockState(), 2);
+        if (lip) level.setBlock(new BlockPos(11, o.getY() + wallHeight, 8), Blocks.STONE_SLAB.defaultBlockState(), 2);
+
+        Walk w = new Walk();
+        Mob mob = SelfTest.spawnMob(level, EntityTypes.ZOMBIE, o);
+        if (mob == null) return w;
+        ((IResizeableLiving) mob).setBaseSize(size);
+        mob.setInvulnerable(true); // daylight would burn it
+        mob.removeAllGoals(g -> true);
+        if (held != null) mob.setItemSlot(EquipmentSlot.MAINHAND, new ItemStack(held));
+        mob.setPos(sx, sy, sz);
+        for (int t = 0; t < maxTicks; t++) {
+            mob.getMoveControl().setWantedPosition(gx, gy, gz, 1.0D);
+            mob.tick();
+            boolean climbing = mob.onClimbable();
+            if (climbing) w.climbTicks++;
+            if (t >= 6) w.maxY = Math.max(w.maxY, mob.getY());
+            if (t % 8 == 0 || t < 24) {
+                w.trace.append(String.format("t%d x=%.3f y=%.3f vy=%.3f ground=%b hc=%b climb=%b%n", t, mob.getX(), mob.getY(),
+                        mob.getDeltaMovement().y, mob.onGround(), mob.horizontalCollision, climbing));
+            }
+            double dx = mob.getX() - gx, dz = mob.getZ() - gz;
+            if (dx * dx + dz * dz < 0.04D && Math.abs(mob.getY() - gy) < 0.05D && mob.onGround()) {
+                w.reached = t;
+                break;
+            }
+        }
+        mob.discard();
+        for (int x = 4; x <= 14; x++) {
+            for (int y = -1; y <= 6; y++) {
+                for (int z = 4; z <= 12; z++) {
+                    level.setBlock(new BlockPos(x, o.getY() + y, z), Blocks.AIR.defaultBlockState(), 2);
+                }
+            }
+        }
+        return w;
+    }
+
+    private static void walks(ServerLevel level, List<String> failures) {
+        double y0 = 200.0D;
+        double tinyFlush = 11.0D - 0.0375D - 0.01D;
+
+        Walk a = walk(level, 0.125F, Items.SLIME_BALL, 3, true, false, tinyFlush, y0, 8.5D, 11.5D, y0 + 3.5D, 8.5D, 600);
+        check(failures, a.reached >= 0, "walk: slime-ball tiny climbs a slab-topped wall and stands on it");
+        if (a.reached < 0) gulliver.Gulliver.LOGGER.info("walk trace\n{}", a.trace);
+        Walk b = walk(level, 0.125F, Items.SLIME_BALL, 3, false, false, tinyFlush, y0, 8.5D, 11.5D, y0 + 3.0D, 8.5D, 600);
+        check(failures, b.reached >= 0, "walk: slime-ball tiny climbs a plain wall and stands on it");
+        if (b.reached < 0) gulliver.Gulliver.LOGGER.info("walk trace\n{}", b.trace);
+        Walk c = walk(level, 0.125F, Items.SLIME_BALL, 0, true, false, tinyFlush, y0, 8.5D, 11.5D, y0 + 0.5D, 8.5D, 600);
+        check(failures, c.reached >= 0, "walk: slime-ball tiny climbs a slab on the floor and stands on it");
+        if (c.reached < 0) gulliver.Gulliver.LOGGER.info("walk trace\n{}", c.trace);
+        // Out in the open on soul sand: it just walks, it doesn't hop its way there.
+        double sand = y0 - 1.0D + 0.875D;
+        Walk d = walk(level, 0.125F, Items.SLIME_BALL, 0, false, true, 5.5D, sand, 5.5D, 9.5D, sand, 5.5D, 900);
+        check(failures, d.reached >= 0 && d.climbTicks == 0 && d.maxY < sand + 0.03D,
+                "walk: slime-ball tiny crosses soul sand without climbing or hopping (maxY " + (d.maxY - sand) + ")");
+        if (d.reached < 0 || d.climbTicks > 0) gulliver.Gulliver.LOGGER.info("walk trace\n{}", d.trace);
+        // A normal body with a lead scales a slab-topped wall by pressing into it ...
+        Walk e = walk(level, 1.0F, Items.LEAD, 3, true, false, 11.0D - 0.3D - 0.01D, y0, 8.5D, 11.5D, y0 + 3.5D, 8.5D, 600);
+        check(failures, e.reached >= 0, "walk: lead-holding body climbs a slab-topped wall and stands on it");
+        if (e.reached < 0) gulliver.Gulliver.LOGGER.info("walk trace\n{}", e.trace);
+        // ... and walks along it without noticing it.
+        Walk f = walk(level, 1.0F, Items.LEAD, 3, false, false, 10.7D, y0, 5.5D, 10.7D, y0, 11.5D, 600);
+        check(failures, f.reached >= 0 && f.climbTicks == 0,
+                "walk: lead-holding body walks past a wall without climbing it (" + f.climbTicks + " climb ticks)");
+        if (f.reached < 0 || f.climbTicks > 0) gulliver.Gulliver.LOGGER.info("walk trace\n{}", f.trace);
     }
 
     /** Fills the footprint under a size-4 body (5x5, two deep) with dirt, or empties it. */
