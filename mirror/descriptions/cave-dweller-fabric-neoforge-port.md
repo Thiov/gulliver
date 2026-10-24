@@ -12,7 +12,7 @@ Something tall and pale lives in the dark down there. You'll hear it before you 
 
 ## Requirements
 
-- Minecraft **1.20.1, 1.21.10, 1.21.11, 26.1, 26.1.2 or 26.2**, pick the file for your version
+- Minecraft **1.20.1, 1.21.10, 1.21.11, 26.1, 26.1.2, 26.2 or 26.3**, pick the file for your version
 - **Fabric** (with Fabric API) or **NeoForge** (Forge on 1.20.1)
 - **GeckoLib** for your loader and version
 

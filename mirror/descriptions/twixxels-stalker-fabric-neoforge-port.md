@@ -1,6 +1,6 @@
 # Twixxel's Stalker (Fabric/NeoForge Port)
 
-An unofficial port of **Twixxel's Stalker** to Fabric and NeoForge for Minecraft 26.1.2.
+An unofficial port of **Twixxel's Stalker** to Fabric and NeoForge, for Minecraft 1.20.1 up to 26.3.
 
 *Something is watching you.* It keeps its distance while you look at it. Don't turn your back for too long.
 
@@ -13,8 +13,8 @@ An unofficial port of **Twixxel's Stalker** to Fabric and NeoForge for Minecraft
 
 ## Requirements
 
-- Minecraft **26.1.2**, Java 25
-- **Fabric** (with Fabric API) or **NeoForge**
+- Minecraft **1.20.1, 1.21.10, 1.21.11, 26.1, 26.1.2, 26.2 or 26.3**, pick the file for your version
+- **Fabric** (with Fabric API) or **NeoForge** (Forge on 1.20.1)
 
 ## Credits
 
