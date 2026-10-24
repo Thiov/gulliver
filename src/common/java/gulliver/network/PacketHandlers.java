@@ -16,6 +16,8 @@ public final class PacketHandlers {
 
     static void onConsumeResizingItem(ServerPlayer player, Payloads.ConsumeResizingItem payload) {
         if (!GulliverConfig.INSTANCE.general.enableDyeResizing) return;
+        // Spectators neither hold nor eat anything; this can only be a forged packet.
+        if (player.isSpectator()) return;
         InteractionHand hand = payload.mainHand() ? InteractionHand.MAIN_HAND : InteractionHand.OFF_HAND;
         ItemStack stack = player.getItemInHand(hand);
         boolean tiny = stack.is(Items.DYE.cyan()) || stack.is(Items.RED_MUSHROOM);

@@ -22,4 +22,29 @@ public interface IGulliverEntityInternal {
     /** True once spawn-size config has been applied (or the entity came from a save). */
     boolean gulliver$isSizeInitialized();
     void gulliver$setSizeInitialized(boolean v);
+
+    /**
+     * The size the entity is heading to (destination base x potion x item),
+     * clamped to its limits: what the server tells clients.
+     */
+    float gulliver$getEffectiveDestSize();
+
+    /** The cached size limits (per-entity override, class, general), as of the current config. */
+    float gulliver$getMinSize();
+    float gulliver$getMaxSize();
+
+    /** Clamps a size to this entity's limits (NaN counts as 1). */
+    float gulliver$clampSize(float size);
+
+    /**
+     * The size the entity's dimensions, attributes and clients were last
+     * brought in line with; the tick compares it with the live size to
+     * catch changes nobody announced (a config reload).
+     */
+    float gulliver$getAppliedSize();
+    void gulliver$setAppliedSize(float size);
+
+    /** Ticks left to find room for a body that did not fit where it arrived (see BodyFit). */
+    int gulliver$getSettleTicks();
+    void gulliver$setSettleTicks(int ticks);
 }

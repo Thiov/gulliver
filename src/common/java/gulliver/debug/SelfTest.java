@@ -121,6 +121,7 @@ public final class SelfTest {
             pig.discard();
         }
 
+        SelfTestCore.run(level, failures);
         SelfTestExtras.run(level, failures);
     }
 
