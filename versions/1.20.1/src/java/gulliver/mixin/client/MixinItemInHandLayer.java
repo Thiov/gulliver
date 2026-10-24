@@ -42,8 +42,9 @@ public abstract class MixinItemInHandLayer {
             pose.mulPose(com.mojang.math.Axis.ZP.rotationDegrees(90.0F * side));
             pose.translate(0.0F, 0.3F, -0.3F);
         }
-        // The size the body is drawn at (1 inside the inventory preview).
-        float size = VisualSize.renderScale(entity);
+        // The body's own size, also in the inventory preview (which draws the
+        // body at 1): the item keeps its world proportion to the body there.
+        float size = VisualSize.inPreview() ? VisualSize.logical(entity) : VisualSize.renderScale(entity);
         if (size != 1.0F && !gulliver.common.GulliverConfig.INSTANCE.client.proportionalHeldItems()) {
             float invRoot = 1.0F / (float) Math.sqrt(size);
             pose.scale(invRoot, invRoot, invRoot);
