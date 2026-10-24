@@ -106,6 +106,8 @@ public final class InteractEventHandler {
     private static boolean isInteractive(BlockState state, Level level, BlockPos pos) {
         MenuProvider mp = state.getMenuProvider(level, pos);
         if (mp != null) return true;
+        // The ender chest opens its menu itself and offers no provider.
+        if (state.getBlock() instanceof net.minecraft.world.level.block.EnderChestBlock) return true;
         String name = state.getBlock().getClass().getSimpleName();
         return name.contains("Door")
                 || name.contains("Lever")

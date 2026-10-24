@@ -24,8 +24,8 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
  *      which doesn't apply attacker-size scaling. Result: a size-0.125
  *      tiny with a sword still produces full sprint-attack knockback.
  *
- * Fix: push `this` as the attacker at HEAD of causeExtraKnockback and
- * pop it at RETURN. Hooked on LivingEntity too, so giant MOBS' extra
+ * Fix: push `this` as the attacker of `target` at HEAD of
+ * causeExtraKnockback and pop it at RETURN. Hooked on LivingEntity too, so giant MOBS' extra
  * knockback scales as well (Player's override never calls super). Narrow window — covers only the extra-knockback
  * path without touching the in-hurtServer scaling.
  *
@@ -43,7 +43,7 @@ public abstract class MixinLivingEntityExtraKnockback {
                                              net.minecraft.world.damagesource.DamageSource source, float f, boolean b,
                                              //#endif
                                              CallbackInfo ci) {
-        AttackContext.push((Entity) (Object) this);
+        AttackContext.push((Entity) (Object) this, target);
     }
 
     @Inject(method = "causeExtraKnockback", at = @At("RETURN"))
@@ -52,7 +52,7 @@ public abstract class MixinLivingEntityExtraKnockback {
                                                net.minecraft.world.damagesource.DamageSource source, float f, boolean b,
                                                //#endif
                                                CallbackInfo ci) {
-        AttackContext.pop();
+        AttackContext.pop(target);
     }
 }
 //#endif

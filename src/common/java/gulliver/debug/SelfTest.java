@@ -124,6 +124,7 @@ public final class SelfTest {
         SelfTestCore.run(level, failures);
         SelfTestMovement.run(level, failures);
         SelfTestExtras.run(level, failures);
+        SelfTestCombat.run(level, failures);
     }
 
     public static Mob spawnMob(ServerLevel level, EntityType<? extends Mob> type, BlockPos at) {

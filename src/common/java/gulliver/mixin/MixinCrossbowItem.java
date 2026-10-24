@@ -2,6 +2,7 @@
 package gulliver.mixin;
 
 import gulliver.api.IResizeableEntity;
+import gulliver.common.SizeScaling;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.CrossbowItem;
 import net.minecraft.world.item.ItemStack;
@@ -24,6 +25,10 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
  *   size 0.5   → 50 ticks (2.5 s)
  *   vanilla    → 25 ticks
  *   size 4+    → ~6 ticks (a giant spans it with two fingers)
+ *
+ * Never under 4 ticks and never over 8x vanilla (SizeScaling.scaledTicks).
+ * Before 1.21 the charge time has no entity to ask about; see
+ * MixinCrossbowItemLegacy.
  */
 @Mixin(CrossbowItem.class)
 public abstract class MixinCrossbowItem {
@@ -33,7 +38,7 @@ public abstract class MixinCrossbowItem {
                                                       CallbackInfoReturnable<Integer> cir) {
         float size = ((IResizeableEntity) entity).getSizeMultiplier();
         if (size == 1.0F) return;
-        cir.setReturnValue(Math.max(1, Math.round(cir.getReturnValueI() / size)));
+        cir.setReturnValue(SizeScaling.scaledTicks(cir.getReturnValueI(), size));
     }
 }
 //#endif
