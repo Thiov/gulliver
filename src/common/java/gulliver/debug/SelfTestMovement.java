@@ -97,11 +97,11 @@ final class SelfTestMovement {
 
         // A snow layer is a wall too (and its shape is Gulliver's own for an extra-tiny).
         level.setBlock(o.offset(3, 0, 3), Blocks.SNOW.defaultBlockState().setValue(SnowLayerBlock.LAYERS, 3), 2);
-        Mob carpeted = tinyAt(level, o.getX() + 3.0D - 0.0375D - 1.0E-4D, o.getY(), o.getZ() + 3.5D);
-        if (carpeted != null) {
-            carpeted.setItemSlot(EquipmentSlot.MAINHAND, new ItemStack(Items.SLIME_BALL));
-            check(failures, carpeted.onClimbable(), "slime-ball tiny beside a snow layer can climb");
-            carpeted.discard();
+        Mob snowed = tinyAt(level, o.getX() + 3.0D - 0.0375D - 1.0E-4D, o.getY(), o.getZ() + 3.5D);
+        if (snowed != null) {
+            snowed.setItemSlot(EquipmentSlot.MAINHAND, new ItemStack(Items.SLIME_BALL));
+            check(failures, snowed.onClimbable(), "slime-ball tiny beside a snow layer can climb");
+            snowed.discard();
         }
 
         // H6: a lead is a rope only while pressing into the wall.
