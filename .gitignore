@@ -10,3 +10,4 @@ reference/
 .DS_Store
 build-mac.sh
 run-prod/
+.claude/
