@@ -197,9 +197,13 @@ def mirror(mr, project):
             if loader not in newest_mc or mc_key(f["mcs"][-1]) > mc_key(newest_mc[loader]):
                 newest_mc[loader] = f["mcs"][-1]
     for f in files:
-        number = f["fileName"][:-4] if f["fileName"].endswith(".jar") else f["fileName"]
-        if f["mcs"][-1] not in number:
-            number += "+" + f["mcs"][-1]  # e.g. two "…-fabric.jar" files for different versions
+        name = f["fileName"][:-4] if f["fileName"].endswith(".jar") else f["fileName"]
+        if f["mcs"][-1] not in name:
+            name += "+" + f["mcs"][-1]  # e.g. two "…-fabric.jar" files for different versions
+        number = name
+        if len(number) > 32:
+            # Modrinth caps version numbers at 32 characters: drop the mod id in front.
+            number = re.sub(r"^[A-Za-z_]+-", "", number, count=1)[-32:]
         if number in have:
             continue
         games = [g for g in f["mcs"] if g in mr.games]
@@ -217,7 +221,7 @@ def mirror(mr, project):
             continue
         jar = get_bytes(f"{CF_WEB}/{project['curseforge_id']}/files/{f['id']}/download")
         data = {
-            "name": number, "version_number": number,
+            "name": name[:64], "version_number": number,
             "changelog": f"Same file as on CurseForge: {CF_PAGE}/{slug}/files/{f['id']}",
             "dependencies": deps, "game_versions": games,
             "version_type": RELEASE_TYPES.get(f.get("releaseType"), "release"),
