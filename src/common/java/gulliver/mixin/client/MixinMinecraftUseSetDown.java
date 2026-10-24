@@ -1,6 +1,6 @@
 package gulliver.mixin.client;
 
-import gulliver.access.IGulliverShoulderInternal;
+import gulliver.common.ShoulderHelper;
 import gulliver.network.Payloads;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
@@ -26,7 +26,7 @@ public abstract class MixinMinecraftUseSetDown {
 
     @Inject(method = "startUseItem", at = @At("HEAD"), cancellable = true)
     private void gulliver$setDownOnEmptyClick(CallbackInfo ci) {
-        if (player == null || ((IGulliverShoulderInternal) player).gulliver$getHandEntity() == null) return;
+        if (player == null || !ShoulderHelper.handOccupied(player)) return;
         if (!player.getMainHandItem().isEmpty()) return; // an item in hand goes through the use-item event
         if (hitResult != null && hitResult.getType() != HitResult.Type.MISS) return; // block/entity paths
         if (gulliver.platform.Services.platform().sendToServer(

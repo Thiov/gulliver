@@ -325,23 +325,15 @@ public abstract class MixinEntity implements IResizeableEntity, IGulliverEntityI
      * thing that repositions it — on both client and server, so the
      * server-broadcast position and the locally-computed hand position
      * agree exactly (no interpolation tug-of-war). Cleared automatically on
-     * drop/throw when gulliver$holdingEntity goes null.
+     * drop/throw when gulliver$holdingEntity goes null. The orphan check
+     * (carrier gone) runs from the entity's own tick, MixinEntityCarryRide.
      */
     @Inject(method = "move", at = @At("HEAD"), cancellable = true)
     private void gulliver$freezeCarriedMove(net.minecraft.world.entity.MoverType type,
                                             net.minecraft.world.phys.Vec3 movement,
                                             CallbackInfo ci) {
         if (gulliver$holdingEntity != null) {
-            Entity self = (Entity) (Object) this;
-            // Orphan self-heal (server, throttled): if the carrier is
-            // gone — disconnected, changed dimension, killed without the
-            // drop hook firing — release the carry instead of freezing
-            // this entity in place forever.
-            if ((self.tickCount & 15) == 0 && !self.level().isClientSide()) {
-                gulliver.common.ShoulderHelper.validateCarried(self);
-                if (gulliver$holdingEntity == null) return; // released — move normally
-            }
-            self.setDeltaMovement(net.minecraft.world.phys.Vec3.ZERO);
+            ((Entity) (Object) this).setDeltaMovement(net.minecraft.world.phys.Vec3.ZERO);
             ci.cancel();
         }
     }
