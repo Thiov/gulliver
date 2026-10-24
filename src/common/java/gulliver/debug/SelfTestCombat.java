@@ -6,6 +6,7 @@ import gulliver.common.AttackContext;
 import gulliver.common.CollateralBreaking;
 import gulliver.common.GiantBossBars;
 import gulliver.common.GulliverConfig;
+import gulliver.common.GulliverEnvoy;
 import gulliver.common.LootScaling;
 import gulliver.common.SizeScaling;
 import gulliver.init.GulliverTags;
@@ -14,9 +15,11 @@ import net.minecraft.server.level.ServerBossEvent;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.EntityTypes;
 import net.minecraft.world.entity.Mob;
+import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.phys.AABB;
 //#if MC >= 1.21.10
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.sounds.SoundEvents;
@@ -36,6 +39,29 @@ final class SelfTestCombat {
     private static void check(List<String> failures, boolean ok, String what) {
         if (!ok) failures.add(what);
         gulliver.Gulliver.LOGGER.info("selftest {} {}", ok ? "ok  " : "FAIL", what);
+    }
+
+    /** Kills {@code count} cows of this size above the ground and returns the average beef they dropped. */
+    private static double killCows(ServerLevel level, int top, float size, int count) {
+        int beef = 0;
+        AABB area = new AABB(-8.0D, top - 4.0D, -8.0D, 24.0D, top + 40.0D, 24.0D);
+        for (int i = 0; i < count; i++) {
+            Mob cow = SelfTest.spawnMob(level, EntityTypes.COW, new BlockPos(8, 0, 8));
+            if (cow == null) continue;
+            GulliverEnvoy.withoutGrowthBurst(() -> ((IResizeableLiving) cow).setBaseSize(size));
+            cow.setPos(8.5D, top + 20.0D, 8.5D);
+            //#if MC >= 1.21.2
+            cow.hurtServer(level, level.damageSources().generic(), 10000.0F);
+            //#else
+            //$$ cow.hurt(level.damageSources().generic(), 10000.0F);
+            //#endif
+            cow.discard();
+        }
+        for (ItemEntity drop : level.getEntitiesOfClass(ItemEntity.class, area)) {
+            if (drop.getItem().is(Items.BEEF)) beef += drop.getItem().getCount();
+            drop.discard();
+        }
+        return beef / (double) count;
     }
 
     static void run(ServerLevel level, List<String> failures) {
@@ -118,6 +144,18 @@ final class SelfTestCombat {
             check(failures, LootScaling.scaleExperience(cow, 10) == 10, "loot scaling can be switched off");
             cow.discard();
         }
+        // End to end: cows that really die drop beef through the loot table, scaled by their size.
+        GulliverConfig.INSTANCE.general.lootScaling = true;
+        double normalBeef = killCows(level, top, 1.0F, 60);
+        double giantBeef = killCows(level, top, 8.0F, 60);
+        double tinyBeef = killCows(level, top, 0.25F, 60);
+        check(failures, normalBeef > 1.5 && giantBeef / normalBeef > 2.6 && giantBeef / normalBeef < 4.4,
+                "size-8 cows really drop about 3.5x the beef (" + giantBeef + " vs " + normalBeef + ")");
+        check(failures, tinyBeef / normalBeef > 0.12 && tinyBeef / normalBeef < 0.4,
+                "quarter-size cows really drop about a quarter of the beef (" + tinyBeef + " vs " + normalBeef + ")");
+        GulliverConfig.INSTANCE.general.lootScaling = false;
+        double unscaled = killCows(level, top, 8.0F, 60);
+        check(failures, Math.abs(unscaled / normalBeef - 1.0) < 0.3, "no scaling with the option off (" + unscaled + ")");
         GulliverConfig.INSTANCE.general.lootScaling = lootBefore;
 
         // Boss bars: only size 4+, only while the option is on, gone when it shrinks.
