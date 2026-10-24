@@ -15,7 +15,7 @@ Inspired by UncleMion's classic Gulliver mod for 1.6.4. No scaling library is ne
 | 1.21.10   | ✓ | ✓ | ✓ |
 | 1.20.1    | ✓ | ✓ | ✓ |
 
-Get the jars from the [releases page](https://github.com/Thiov/gulliver/releases) and pick the one whose name matches your loader and Minecraft version, e.g. `gulliver-1.1.0+neoforge-26.1.2.jar`. Fabric needs the Fabric API; Mod Menu is optional (settings button).
+Get the jars from the [releases page](https://github.com/Thiov/gulliver/releases) and pick the one whose name matches your loader and Minecraft version, e.g. `gulliver-1.2.0+neoforge-26.3.jar`. Fabric needs the Fabric API; Mod Menu is optional (settings button).
 
 ## Features
 
