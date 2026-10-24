@@ -18,11 +18,11 @@ public abstract class MixinEntityRendererNameTag {
 
     //#if MC >= 26.1
     @Inject(method = "submitNameDisplay(Lnet/minecraft/client/renderer/entity/state/EntityRenderState;Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/SubmitNodeCollector;Lnet/minecraft/client/renderer/state/level/CameraRenderState;I)V",
-            at = @At("HEAD"))
+            at = @At("HEAD"), require = 0)
     private void gulliver$pushScale(EntityRenderState state, PoseStack pose, SubmitNodeCollector buf,
                                       CameraRenderState cam, int offset, CallbackInfo ci) {
     //#else
-    //$$ @Inject(method = "submitNameTag", at = @At("HEAD"))
+    //$$ @Inject(method = "submitNameTag", at = @At("HEAD"), require = 0)
     //$$ private void gulliver$pushScale(EntityRenderState state, PoseStack pose, SubmitNodeCollector buf,
     //$$                                   CameraRenderState cam, CallbackInfo ci) {
     //#endif
@@ -31,11 +31,11 @@ public abstract class MixinEntityRendererNameTag {
 
     //#if MC >= 26.1
     @Inject(method = "submitNameDisplay(Lnet/minecraft/client/renderer/entity/state/EntityRenderState;Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/SubmitNodeCollector;Lnet/minecraft/client/renderer/state/level/CameraRenderState;I)V",
-            at = @At("RETURN"))
+            at = @At("RETURN"), require = 0)
     private void gulliver$popScale(EntityRenderState state, PoseStack pose, SubmitNodeCollector buf,
                                      CameraRenderState cam, int offset, CallbackInfo ci) {
     //#else
-    //$$ @Inject(method = "submitNameTag", at = @At("RETURN"))
+    //$$ @Inject(method = "submitNameTag", at = @At("RETURN"), require = 0)
     //$$ private void gulliver$popScale(EntityRenderState state, PoseStack pose, SubmitNodeCollector buf,
     //$$                                  CameraRenderState cam, CallbackInfo ci) {
     //#endif

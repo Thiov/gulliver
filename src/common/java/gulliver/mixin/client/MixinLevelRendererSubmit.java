@@ -19,7 +19,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Mixin(LevelRenderer.class)
 public abstract class MixinLevelRendererSubmit {
 
-    @Inject(method = "submitEntities", at = @At("TAIL"))
+    @Inject(method = "submitEntities", at = @At("TAIL"), require = 0)
     private void gulliver$submitProps(PoseStack pose, LevelRenderState state, SubmitNodeCollector buf,
                                       CallbackInfo ci) {
         GliderPaperWorldRenderer.submit(pose, buf);

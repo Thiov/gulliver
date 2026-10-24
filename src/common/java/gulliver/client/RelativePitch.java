@@ -72,8 +72,10 @@ public final class RelativePitch {
 
         float sourceSize = ((IResizeableEntity) source).getSizeMultiplier();
         float listenerSize = ((IResizeableEntity) listener).getSizeMultiplier();
-        if (sourceSize == listenerSize) return basePitch;
-        float factor = (float) Math.sqrt(listenerSize / sourceSize);
+        if (sourceSize == listenerSize || !(sourceSize > 0.0F) || !(listenerSize > 0.0F)) return basePitch;
+        // The ratio can reach 1024 across the 1/32..32 range; the factor is
+        // held to what the pitch clamp below could use anyway.
+        float factor = Mth.clamp((float) Math.sqrt(listenerSize / sourceSize), 0.25F, 4.0F);
         return Mth.clamp(basePitch * factor, 0.25F, 2.5F);
     }
 }
