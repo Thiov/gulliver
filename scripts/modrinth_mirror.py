@@ -353,6 +353,7 @@ def main():
     p.add_argument("--submit", action="store_true", help="submit draft projects for Modrinth's review")
     p.add_argument("--hide-duplicates", action="store_true", help="unlist versions that repeat another version's jar")
     p.add_argument("--delete-duplicates", action="store_true", help="delete versions that repeat another version's jar")
+    p.add_argument("--set-status", default="", help="comma list of VERSION_ID=listed|unlisted|archived, then exit")
     args = p.parse_args()
     token = env_token("MODRINTH_TOKEN")
     if not token:
@@ -361,6 +362,15 @@ def main():
         projects = json.load(fh)["projects"]
     mr = Modrinth(token, args.dry_run)
     print(f"Modrinth user: {mr.user['username']}")
+    if args.set_status:
+        for item in filter(None, args.set_status.split(",")):
+            vid, status = item.strip().split("=")
+            if not args.dry_run:
+                request("PATCH", f"{MR_API}/version/{vid}", {**mr.h, "Content-Type": "application/json"},
+                        json.dumps({"status": status}).encode())
+            _, v = request("GET", f"{MR_API}/version/{vid}", mr.h)
+            print(f"  {v['version_number']}: {v.get('status')}")
+        return
     for project in projects:
         if args.only and project["slug"] != args.only:
             continue
