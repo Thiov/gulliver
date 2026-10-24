@@ -509,7 +509,11 @@ public final class ShoulderHelper {
         if (cs.gulliver$getHandEntity() == null || carrier.isSpectator() || carrier.isDeadOrDying()) return false;
         Entity held = detachHand(carrier);
         if (held == null) return true;
-        carrier.swing(InteractionHand.MAIN_HAND, true);
+        //#if MC >= 26.3
+        carrier.swing(InteractionHand.MAIN_HAND, net.minecraft.world.item.component.SwingAnimation.DEFAULT, true);
+        //#else
+        //$$ carrier.swing(InteractionHand.MAIN_HAND, true);
+        //#endif
         // A player who ducked in the same tick as the pickup stays put.
         if (held instanceof Player p && p.isShiftKeyDown()) return true;
         Vec3 look = carrier.getLookAngle();

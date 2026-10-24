@@ -26,7 +26,11 @@ public final class PacketHandlers {
         player.addEffect(new MobEffectInstance(tiny ? GulliverEffects.tiny() : GulliverEffects.huge(), 200, 0));
         CriteriaTriggers.CONSUME_ITEM.trigger(player, stack);
         if (!player.getAbilities().instabuild) stack.shrink(1);
-        player.swing(hand, true);
+        //#if MC >= 26.3
+        player.swing(hand, stack.getInteractAnimation(), true);
+        //#else
+        //$$ player.swing(hand, true);
+        //#endif
     }
 
     static void onCarryAction(ServerPlayer player, Payloads.CarryAction payload) {
@@ -35,7 +39,16 @@ public final class PacketHandlers {
             case Payloads.CarryAction.THROW -> ShoulderHelper.throwHeld(player);
             case Payloads.CarryAction.DROP -> ShoulderHelper.drop(player);
             case Payloads.CarryAction.SET_DOWN -> {
-                if (!player.isSpectator()) ShoulderHelper.detachHand(player);
+                if (!player.isSpectator()) {
+                    //#if MC >= 26.3
+                    // 26.3 clients no longer send a swing packet: show the set-down to onlookers from here.
+                    if (ShoulderHelper.detachHand(player) != null) {
+                        player.swing(InteractionHand.MAIN_HAND, net.minecraft.world.item.component.SwingAnimation.DEFAULT, false);
+                    }
+                    //#else
+                    //$$ ShoulderHelper.detachHand(player);
+                    //#endif
+                }
             }
             default -> { }
         }

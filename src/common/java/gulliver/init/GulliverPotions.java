@@ -14,7 +14,8 @@ import java.util.function.BiConsumer;
  * Six potions covering the 1.6.4 brewing scope: Ensmallening and
  * Embiggening, each in base (3:00), long (8:00, redstone) and strong
  * (1:30, amplifier 1, glowstone) form. Awkward + red mushroom brews Tiny,
- * awkward + brown mushroom brews Huge (see MixinPotionBrewing). Splash,
+ * awkward + brown mushroom brews Huge (see MixinPotionBrewing; recipe
+ * JSONs on 26.3+). Splash,
  * lingering and tipped-arrow variants come for free from vanilla.
  */
 public final class GulliverPotions {

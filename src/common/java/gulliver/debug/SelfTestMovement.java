@@ -345,12 +345,12 @@ final class SelfTestMovement {
         if (faller != null) {
             ((IResizeableLiving) faller).setBaseSize(0.5F);
             faller.setHealth(faller.getMaxHealth());
-            faller.invulnerableTime = 0;
+            SelfTest.clearHurtCooldown(faller);
             float before = faller.getHealth();
             fall(faller, 8.0D, 1.0F);
             float lostDefault = before - faller.getHealth();
             faller.setHealth(faller.getMaxHealth());
-            faller.invulnerableTime = 0;
+            SelfTest.clearHurtCooldown(faller);
             faller.getAttribute(Attributes.SAFE_FALL_DISTANCE).setBaseValue(10.0D);
             before = faller.getHealth();
             fall(faller, 8.0D, 1.0F);
