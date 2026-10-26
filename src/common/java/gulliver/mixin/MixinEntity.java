@@ -179,14 +179,6 @@ public abstract class MixinEntity implements IResizeableEntity, IGulliverEntityI
 
     @Override
     @Unique
-    public float getStepHeight() {
-        // Default raw-Entity step height (overridden on LivingEntity by
-        // MixinLivingEntity.getStepHeight with the 1.6.4 power-of-2 formula).
-        return 0.0F;
-    }
-
-    @Override
-    @Unique
     public float getRangeMultiplier() {
         // Linear scaling for ALL sizes — user playtest: sqrt-for-tinies
         // gave ~3 block reach at size 0.125, which is too long. Linear
@@ -279,6 +271,11 @@ public abstract class MixinEntity implements IResizeableEntity, IGulliverEntityI
      * 0.3 vs linear's 0.3 — only diverges at extreme sizes. The whole point
      * is huge entities can step over 2-block walls and tinies don't slip up
      * staircases meant for full-size entities.
+     *
+     * Never add a getStepHeight() method to Entity: before 1.20.5 Forge and
+     * NeoForge have IForgeEntity.getStepHeight() (maxUpStep() plus the
+     * STEP_HEIGHT_ADDITION attribute) and Entity.collide steps with it, so a
+     * mixin method of that name replaces it and nothing can step up (#7).
      */
     @Inject(method = "maxUpStep", at = @At("RETURN"), cancellable = true)
     private void gulliver$scaleStepHeight(CallbackInfoReturnable<Float> cir) {

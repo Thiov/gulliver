@@ -21,8 +21,6 @@ public interface IResizeableEntity {
 
     boolean isHuge();
 
-    float getStepHeight();
-
     /**
      * Reach multiplier — LINEAR in size for all brackets. (The 1.6.4
      * source used sqrt for tinies, but playtesting showed that gave a

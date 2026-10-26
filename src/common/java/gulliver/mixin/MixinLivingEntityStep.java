@@ -1,3 +1,4 @@
+//#if MC >= 1.20.5
 package gulliver.mixin;
 
 import gulliver.api.IResizeableEntity;
@@ -14,6 +15,9 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
  * inject (LivingEntity overrides maxUpStep, doesn't call super). Apply
  * the 1.6.4 power-of-2 normalization to the LivingEntity return value
  * ({@link Movement#stepHeight}).
+ *
+ * (Before 1.20.5 LivingEntity.maxUpStep still calls super, which
+ * MixinEntity already scales; scaling here too would apply it twice.)
  *
  * Examples (vanilla maxUpStep = 0.6):
  *   size 0.03125 (1/32):     f = 0.01875 (a third of its height)
@@ -34,3 +38,4 @@ public abstract class MixinLivingEntityStep {
         cir.setReturnValue(Movement.stepHeight(cir.getReturnValue(), m));
     }
 }
+//#endif

@@ -124,6 +124,17 @@ final class SelfTestMovement {
         level.setBlock(o.offset(3, 0, 3), Blocks.AIR.defaultBlockState(), 2);
         level.setBlock(o.offset(-1, 0, 2), Blocks.AIR.defaultBlockState(), 2);
 
+        // Step height is scaled once (before 1.20.5 LivingEntity.maxUpStep
+        // calls super, which is scaled already).
+        Mob stepper = SelfTest.spawnMob(level, EntityTypes.ZOMBIE, o);
+        if (stepper != null) {
+            ((IResizeableLiving) stepper).setBaseSize(2.0F);
+            float step = stepper.maxUpStep();
+            check(failures, Math.abs(step - Movement.stepHeight(0.6F, 2.0F)) < 1.0E-4F,
+                    "a size-2 body's step height is scaled once (" + step + ")");
+            stepper.discard();
+        }
+
         walks(level, failures);
 
         // Tripwire: a tiny waiting in a tripped wire doesn't keep it powered.
@@ -304,6 +315,11 @@ final class SelfTestMovement {
         check(failures, f.reached >= 0 && f.climbTicks == 0,
                 "walk: lead-holding body walks past a wall without climbing it (" + f.climbTicks + " climb ticks)");
         if (f.reached < 0 || f.climbTicks > 0) gulliver.Gulliver.LOGGER.info("walk trace\n{}", f.trace);
+        // Issue #7: a normal body steps up onto a bottom slab without jumping.
+        Walk s = walk(level, 1.0F, null, 0, true, false, 9.5D, y0, 8.5D, 11.5D, y0 + 0.5D, 8.5D, 200);
+        check(failures, s.reached >= 0 && s.maxY < y0 + 0.55D,
+                "walk: a normal body steps up onto a slab without jumping (maxY " + (s.maxY - y0) + ")");
+        if (s.reached < 0) gulliver.Gulliver.LOGGER.info("walk trace\n{}", s.trace);
     }
 
     private static void jumpsAndFalls(ServerLevel level, List<String> failures) {

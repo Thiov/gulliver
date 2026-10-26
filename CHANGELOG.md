@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+### Fixed
+
+- **Stepping up on Forge and NeoForge 1.20.1** (#7): players and mobs could not step up anything, not even slabs, and step-height mods such as Accessible Step did nothing. Gulliver no longer replaces Forge's step height.
+- Step height on 1.20.1 is scaled with size once instead of twice (tinies stepped too little, giants far too much).
+- The first-person glider paper on 1.20.1 sits over a tiny's head again instead of sinking to eye level.
+
 ## 1.2.0
 
 Gulliver now also runs on **Minecraft 26.3** (Fabric, NeoForge and Forge), next to 26.2, 26.1.x, 1.21.11, 1.21.10 and 1.20.1.
