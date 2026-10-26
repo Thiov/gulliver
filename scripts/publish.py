@@ -3,8 +3,11 @@
 
 Every jar in the dist folder named `gulliver-<version>+<loader>-<minecraft>.jar`
 becomes one file on CurseForge and one version on Modrinth, tagged with its
-loader and the Minecraft versions it runs on. Game versions a platform does
-not know (yet) are dropped with a warning instead of failing the upload.
+loader and the Minecraft versions it runs on. Jars that are byte-identical for
+the same Minecraft version (the 1.20.1 Forge and NeoForge builds) go up once,
+tagged with each of their loaders: CurseForge rejects a file identical to
+another one. Game versions a platform does not know (yet) are dropped with a
+warning instead of failing the upload.
 
 Usage:
   publish.py --dist dist --version 1.2.0 --changelog notes.md [--dry-run]
@@ -15,6 +18,7 @@ platform without a token is skipped. --dry-run resolves everything (and
 checks the tokens with read-only calls) but uploads nothing.
 """
 import argparse
+import hashlib
 import json
 import os
 import re
@@ -108,10 +112,28 @@ def jars(dist, version):
             raise SystemExit(f"{name}: no game-version mapping for Minecraft {mc}")
         games = [g for g in GAME_VERSIONS[mc]
                  if loader == "fabric" or g not in FABRIC_ONLY_EXTRA.get(mc, set())]
-        found.append({"path": os.path.join(dist, name), "name": name, "loader": loader, "mc": mc, "games": games})
+        path = os.path.join(dist, name)
+        with open(path, "rb") as fh:
+            sha1 = hashlib.sha1(fh.read()).hexdigest()
+        found.append({"path": path, "name": name, "loader": loader, "loaders": [loader], "mc": mc,
+                      "games": games, "sha1": sha1})
     if not found:
         raise SystemExit(f"no gulliver-{version}+*.jar files in {dist}")
-    return found
+    return merge_identical(found)
+
+
+def merge_identical(files):
+    """One upload per distinct jar. On 1.20.1 NeoForge was still the Forge fork, so
+    its build is the Forge jar byte for byte; it goes up once with both loaders."""
+    merged = {}
+    for f in files:
+        same = merged.get((f["mc"], f["sha1"]))
+        if same:
+            same["loaders"].append(f["loader"])
+            print(f"{f['name']} is identical to {same['name']}: one upload for {', '.join(same['loaders'])}")
+        else:
+            merged[(f["mc"], f["sha1"])] = f
+    return list(merged.values())
 
 
 def curseforge(args, files, changelog):
@@ -139,9 +161,12 @@ def curseforge(args, files, changelog):
         ids, missing = [], []
         for g in f["games"]:
             (ids.append(by_name[("mc", g)]) if ("mc", g) in by_name else missing.append(g))
-        loader_id = by_name.get(("loader", LOADER_NAMES[f["loader"]]))
-        if loader_id is None:
-            raise SystemExit(f"CurseForge does not list the loader {LOADER_NAMES[f['loader']]}")
+        loader_ids = []
+        for loader in f["loaders"]:
+            loader_id = by_name.get(("loader", LOADER_NAMES[loader]))
+            if loader_id is None:
+                raise SystemExit(f"CurseForge does not list the loader {LOADER_NAMES[loader]}")
+            loader_ids.append(loader_id)
         if not ids:
             print(f"CurseForge: knows none of {f['games']}, {f['name']} NOT uploaded")
             SKIPPED.append(f"CurseForge {f['name']}")
@@ -152,7 +177,7 @@ def curseforge(args, files, changelog):
             "changelog": changelog,
             "changelogType": "markdown",
             "displayName": f["name"][:-4],
-            "gameVersions": ids + [loader_id] + environments,
+            "gameVersions": ids + loader_ids + environments,
             "releaseType": args.release_type,
         }
         if f["loader"] == "fabric":
@@ -161,7 +186,7 @@ def curseforge(args, files, changelog):
                 {"slug": "modmenu", "type": "optionalDependency"},
             ]}
         if args.dry_run:
-            print(f"CurseForge (dry run): {f['name']} -> games {f['games']} loader {f['loader']}")
+            print(f"CurseForge (dry run): {f['name']} -> games {f['games']} loaders {f['loaders']}")
             continue
         with open(f["path"], "rb") as fh:
             body, ctype = multipart({"metadata": json.dumps(meta)}, {"file": (f["name"], fh.read(), "application/java-archive")})
@@ -204,13 +229,13 @@ def modrinth(args, files, changelog):
             print(f"Modrinth: {number} already exists, skipped")
             continue
         data = {
-            "name": f"Gulliver {args.version} ({LOADER_NAMES[f['loader']]} {f['mc']})",
+            "name": f"Gulliver {args.version} ({'/'.join(LOADER_NAMES[loader] for loader in f['loaders'])} {f['mc']})",
             "version_number": number,
             "changelog": changelog,
             "dependencies": [],
             "game_versions": games,
             "version_type": args.release_type,
-            "loaders": [f["loader"]],
+            "loaders": f["loaders"],
             "featured": f["mc"] == newest,
             "project_id": project_id,
             "file_parts": ["file"],
@@ -222,7 +247,7 @@ def modrinth(args, files, changelog):
                 {"project_id": MR_MOD_MENU, "dependency_type": "optional"},
             ]
         if args.dry_run:
-            print(f"Modrinth (dry run): {number} -> games {games} loader {f['loader']}")
+            print(f"Modrinth (dry run): {number} -> games {games} loaders {f['loaders']}")
             continue
         with open(f["path"], "rb") as fh:
             body, ctype = multipart({"data": json.dumps(data)}, {"file": (f["name"], fh.read(), "application/java-archive")})
