@@ -2,7 +2,6 @@ package gulliver.client;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import gulliver.api.IResizeableLiving;
-import gulliver.common.GulliverConfig;
 import net.minecraft.client.Camera;
 import net.minecraft.client.CameraType;
 import net.minecraft.client.Minecraft;
@@ -17,8 +16,10 @@ import net.minecraft.world.phys.Vec3;
 
 /**
  * 1.20.1 first-person glider paper above the head (third person is bone-attached).
- * It scales with the player like the bone-attached paper does, and moves with
- * the camera's own previous-position fields and partial tick.
+ * Like the shared renderer, the paper keeps its full size and a fixed spot over
+ * the head whatever the body's size: for a tiny it is a canopy overhead (scaled
+ * with the body it sank to eye level and out of view). It moves with the
+ * camera's own previous-position fields and partial tick.
  */
 public final class GliderPaperWorldRenderer {
     private GliderPaperWorldRenderer() {}
@@ -36,13 +37,11 @@ public final class GliderPaperWorldRenderer {
         double rightX = -Math.cos(yawRad);
         double rightZ = -Math.sin(yawRad);
         pose.pushPose();
-        pose.translate(Mth.lerp(pt, player.xo, player.getX()) - camPos.x + rightX * 0.5D * size,
-                Mth.lerp(pt, player.yo, player.getY()) + height + 0.7D * size - camPos.y,
-                Mth.lerp(pt, player.zo, player.getZ()) - camPos.z + rightZ * 0.5D * size);
+        pose.translate(Mth.lerp(pt, player.xo, player.getX()) - camPos.x + rightX * 0.5D,
+                Mth.lerp(pt, player.yo, player.getY()) + height + 0.7D - camPos.y,
+                Mth.lerp(pt, player.zo, player.getZ()) - camPos.z + rightZ * 0.5D);
         pose.mulPose(com.mojang.math.Axis.YP.rotationDegrees(180.0F - bodyYaw));
         pose.mulPose(com.mojang.math.Axis.XP.rotationDegrees(90.0F));
-        float paper = GulliverConfig.INSTANCE.client.proportionalHeldItems() ? size : (float) Math.sqrt(size);
-        pose.scale(paper, paper, paper);
         pose.translate(-0.5F, 0.0F, 0.5F);
         mc.getItemRenderer().renderStatic(new ItemStack(Items.PAPER), ItemDisplayContext.NONE, 15728880,
                 OverlayTexture.NO_OVERLAY, pose, buffers, player.level(), 0);
