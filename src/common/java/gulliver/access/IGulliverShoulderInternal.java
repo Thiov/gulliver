@@ -35,6 +35,18 @@ public interface IGulliverShoulderInternal {
     int gulliver$getChewTicks();
     void gulliver$setChewTicks(int ticks);
 
+    /**
+     * Where a snatched creature was when a monster grabbed it, relative to
+     * the monster's feet, or null: the lift to the mouth starts there
+     * instead of in the hand, so a grabbed player isn't teleported up.
+     */
+    net.minecraft.world.phys.Vec3 gulliver$getGrabOffset();
+    void gulliver$setGrabOffset(net.minecraft.world.phys.Vec3 offset);
+
+    /** Where this carried entity was last placed, so its render lerp starts from the slot itself. */
+    net.minecraft.world.phys.Vec3 gulliver$getLastSlot();
+    void gulliver$setLastSlot(net.minecraft.world.phys.Vec3 slot);
+
     default boolean gulliver$hasAnyCarry() {
         return gulliver$getHandEntity() != null
             || gulliver$getRightShoulder() != null

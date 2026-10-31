@@ -596,34 +596,44 @@ public final class ShoulderHelper {
             double hz = carrier.getZ() + rightZ * sideUnit + fwdZ * armLength;
             double hy = shoulderY;
             float lift = Appetite.lift(carrier, 0.0F);
+            Vec3 grab = ((IGulliverShoulderInternal) carrier).gulliver$getGrabOffset();
+            if (grab != null && Appetite.isChewing(carrier)) {
+                // A monster's snatch starts where the prey was, not in its hand.
+                hx = carrier.getX() + grab.x;
+                hy = carrier.getY() + grab.y;
+                hz = carrier.getZ() + grab.z;
+            }
             if (lift > 0.0F) {
                 // To the mouth: just in front of the face, the creature's
                 // middle a little under the eyes (in plain view in first
                 // person), dipping into the mouth with every bite.
                 Entity held = lookup(carrier, hand);
                 double half = held == null ? 0.0D : held.getBbHeight() * 0.5D;
+                // The mouth turns with the head (for a player: the view),
+                // which can be well off the body's heading.
+                double head = Math.toRadians(headYaw(carrier));
                 Vec3 eye = carrier.getEyePosition();
                 double reach = carrier.getBbWidth() * 0.55D;
-                double mx = eye.x + fwdX * reach;
-                double mz = eye.z + fwdZ * reach;
+                double mx = eye.x - Math.sin(head) * reach;
+                double mz = eye.z + Math.cos(head) * reach;
                 double my = eye.y - carrier.getBbHeight() * 0.05D - half + Appetite.chomp(carrier, 0.0F);
                 hx += (mx - hx) * lift;
                 hy += (my - hy) * lift;
                 hz += (mz - hz) * lift;
             }
-            place(carrier, hand, SLOT_HAND, hx, hy, hz);
+            place(carrier, hand, SLOT_HAND, hx, hy, hz, lift);
         }
         if (right != null) {
             place(carrier, right, SLOT_RIGHT,
-                    carrier.getX() + rightX * sideUnit, shoulderY, carrier.getZ() + rightZ * sideUnit);
+                    carrier.getX() + rightX * sideUnit, shoulderY, carrier.getZ() + rightZ * sideUnit, 0.0F);
         }
         if (left != null) {
             place(carrier, left, SLOT_LEFT,
-                    carrier.getX() - rightX * sideUnit, shoulderY, carrier.getZ() - rightZ * sideUnit);
+                    carrier.getX() - rightX * sideUnit, shoulderY, carrier.getZ() - rightZ * sideUnit, 0.0F);
         }
     }
 
-    private static void place(LivingEntity carrier, UUID id, byte slot, double x, double y, double z) {
+    private static void place(LivingEntity carrier, UUID id, byte slot, double x, double y, double z, float turn) {
         Entity p = lookup(carrier, id);
         boolean server = !carrier.level().isClientSide();
         if (p == null || !p.isAlive() || !carrier.getUUID().equals(holderOf(p))) {
@@ -666,18 +676,46 @@ public final class ShoulderHelper {
                 z = at.z;
             }
         }
-        // The renderer lerps from {xOld..} to {x..}; the carrier itself is
-        // drawn lerped too, so the passenger's old position must be exactly
-        // last tick's slot position. MixinEntity freezes its own move() and
-        // setOldPosAndRot() while carried, so nothing else disturbs these.
-        double ox = p.getX(), oy = p.getY(), oz = p.getZ();
+        // The renderer (xOld) and the camera (xo) lerp from last tick's
+        // position to this one, and the carrier itself is drawn lerped too,
+        // so the passenger's old position must be exactly last tick's slot -
+        // remembered here, never read back from the entity, which a server
+        // update or its own tick may have nudged in between (that was the
+        // flicker in the hand, and the shaking first-person view of a
+        // carried player). MixinEntity freezes its move(), setOldPosAndRot()
+        // and client interpolation while carried.
+        IGulliverShoulderInternal held = (IGulliverShoulderInternal) p;
+        Vec3 last = held.gulliver$getLastSlot();
+        if (last == null || last.distanceToSqr(x, y, z) > 64.0D * carrier.getBbWidth() * carrier.getBbWidth() + 4.0D) {
+            last = new Vec3(x, y, z);
+        }
         p.setPos(x, y, z);
-        p.xOld = ox;
-        p.yOld = oy;
-        p.zOld = oz;
+        p.xOld = p.xo = last.x;
+        p.yOld = p.yo = last.y;
+        p.zOld = p.zo = last.z;
+        held.gulliver$setLastSlot(new Vec3(x, y, z));
         p.setDeltaMovement(0.0D, 0.0D, 0.0D);
         p.fallDistance = 0.0F;
         p.noPhysics = true;
+        // Held still, facing where the carrier faces - turned towards its
+        // mouth as it is lifted to be eaten. Players keep their own view.
+        if (p instanceof LivingEntity living && !(p instanceof Player)) {
+            float yaw = carrier.yBodyRot
+                    + (net.minecraft.util.Mth.wrapDegrees(headYaw(carrier) - carrier.yBodyRot) + 180.0F) * turn;
+            living.yRotO = living.getYRot();
+            living.setYRot(yaw);
+            living.yBodyRotO = living.yBodyRot;
+            living.yBodyRot = yaw;
+            living.yHeadRotO = living.yHeadRot;
+            living.yHeadRot = yaw;
+            living.xRotO = living.getXRot();
+            living.setXRot(0.0F);
+        }
+    }
+
+    /** Where the carrier's face points: a player's view, a mob's head. */
+    private static float headYaw(LivingEntity carrier) {
+        return carrier instanceof Player ? carrier.getYRot() : carrier.getYHeadRot();
     }
 
     private static void clearSlot(Entity carrier, byte slot) {

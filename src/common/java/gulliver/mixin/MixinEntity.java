@@ -47,6 +47,8 @@ public abstract class MixinEntity implements IResizeableEntity, IGulliverEntityI
     @Unique private java.util.UUID gulliver$rightShoulder = null;
     @Unique private java.util.UUID gulliver$leftShoulder = null;
     @Unique private int gulliver$chewTicks = -1;
+    @Unique private net.minecraft.world.phys.Vec3 gulliver$grabOffset;
+    @Unique private net.minecraft.world.phys.Vec3 gulliver$lastSlot;
 
     @Override @Unique public boolean gulliver$isSizeInitialized() { return gulliver$sizeInitialized; }
     @Override @Unique public void gulliver$setSizeInitialized(boolean v) { gulliver$sizeInitialized = v; }
@@ -227,7 +229,10 @@ public abstract class MixinEntity implements IResizeableEntity, IGulliverEntityI
     @Override @Unique public void gulliver$setSizeItemMultiplier(float v) { gulliver$sizeItemMultiplier = v; gulliver$recomputeSize(); }
 
     @Override @Unique public java.util.UUID gulliver$getHoldingEntity() { return gulliver$holdingEntity; }
-    @Override @Unique public void gulliver$setHoldingEntity(java.util.UUID id) { gulliver$holdingEntity = id; }
+    @Override @Unique public void gulliver$setHoldingEntity(java.util.UUID id) {
+        gulliver$holdingEntity = id;
+        if (id == null) gulliver$lastSlot = null;
+    }
     @Override @Unique public java.util.UUID gulliver$getHandEntity()      { return gulliver$handEntity; }
     @Override @Unique public java.util.UUID gulliver$getRightShoulder()   { return gulliver$rightShoulder; }
     @Override @Unique public java.util.UUID gulliver$getLeftShoulder()    { return gulliver$leftShoulder; }
@@ -236,6 +241,10 @@ public abstract class MixinEntity implements IResizeableEntity, IGulliverEntityI
     @Override @Unique public void gulliver$setLeftShoulder(java.util.UUID id)  { gulliver$leftShoulder = id; }
     @Override @Unique public int gulliver$getChewTicks() { return gulliver$chewTicks; }
     @Override @Unique public void gulliver$setChewTicks(int ticks) { gulliver$chewTicks = ticks; }
+    @Override @Unique public net.minecraft.world.phys.Vec3 gulliver$getGrabOffset() { return gulliver$grabOffset; }
+    @Override @Unique public void gulliver$setGrabOffset(net.minecraft.world.phys.Vec3 offset) { gulliver$grabOffset = offset; }
+    @Override @Unique public net.minecraft.world.phys.Vec3 gulliver$getLastSlot() { return gulliver$lastSlot; }
+    @Override @Unique public void gulliver$setLastSlot(net.minecraft.world.phys.Vec3 slot) { gulliver$lastSlot = slot; }
 
     /**
      * Scale the entity's dimensions (width, height, eye height) uniformly by

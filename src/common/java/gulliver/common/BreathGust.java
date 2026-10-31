@@ -51,8 +51,9 @@ import java.util.concurrent.ConcurrentHashMap;
  * Blowing costs air: full lungs last three seconds of gust at any size
  * (Gulliver gives a giant bigger lungs; it blows them out just as fast),
  * the gust stops when they are empty and only starts again once the key
- * has been let go. It can't be done underwater; creative players never run
- * out. The key rides on the CarryAction packet, so an older server just
+ * has been let go. Creative players never run out. Water stops the wind,
+ * so nothing under the surface is blown; underwater the breath just goes
+ * up as a stream of bubbles, and the air is gone all the same. The key rides on the CarryAction packet, so an older server just
  * ignores it, and the client repeats it while held so a lost "stop" can't
  * leave anyone blowing forever.
  */
@@ -114,16 +115,20 @@ public final class BreathGust {
         if (!state.exhausted && !player.getAbilities().invulnerable && player.getAirSupply() <= 0) {
             state.exhausted = true;
         }
-        boolean blowing = !state.exhausted && !player.isEyeInFluid(FluidTags.WATER);
+        boolean blowing = !state.exhausted;
+        boolean underwater = player.isEyeInFluid(FluidTags.WATER);
         if (blowing != state.shown) {
             state.shown = blowing;
             show(player, blowing);
-            if (blowing) huff((ServerLevel) player.level(), player);
+            if (blowing && !underwater) huff((ServerLevel) player.level(), player);
         }
         if (!blowing) return;
         if (!player.getAbilities().invulnerable) {
-            player.setAirSupply(Math.max(0, player.getAirSupply() - airCost(player)));
+            // Under water vanilla gives nothing back, so the breath alone is the cost.
+            int cost = underwater ? Mth.ceil(player.getMaxAirSupply() / (float) BREATH_TICKS) : airCost(player);
+            player.setAirSupply(Math.max(0, player.getAirSupply() - cost));
         }
+        if (underwater) return; // bubbles, drawn by the clients; no wind
         blow((ServerLevel) player.level(), player, state.ticks++);
     }
 
@@ -169,8 +174,7 @@ public final class BreathGust {
             if (dist > range || dist < 1.0E-4D) continue;
             double cos = to.dot(dir) / dist;
             if (cos < CONE_COS) continue;
-            if (level.clip(new ClipContext(eye, center, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, blower))
-                    .getType() != HitResult.Type.MISS) continue;
+            if (!windReaches(level, blower, eye, e)) continue;
 
             Vec3 before = e.getDeltaMovement();
             Vec3 kick = gust(size, e, along(dir, eye, center, e), dist / range);
@@ -182,6 +186,23 @@ public final class BreathGust {
             if (++blown >= MAX_BLOWN) break;
         }
         return blown;
+    }
+
+    /**
+     * Whether the wind gets to {@code e}: walls and water stop it, so what is
+     * under water is out of the wind, while whatever pokes out of the water
+     * (or over a ledge) still catches it.
+     */
+    private static boolean windReaches(ServerLevel level, LivingEntity blower, Vec3 eye, Entity e) {
+        AABB box = e.getBoundingBox();
+        Vec3 center = box.getCenter();
+        if (openAir(level, blower, eye, center)) return true;
+        return openAir(level, blower, eye, new Vec3(center.x, box.maxY - box.getYsize() * 0.1D, center.z));
+    }
+
+    private static boolean openAir(ServerLevel level, LivingEntity blower, Vec3 from, Vec3 to) {
+        return level.clip(new ClipContext(from, to, ClipContext.Block.COLLIDER, ClipContext.Fluid.ANY, blower))
+                .getType() == HitResult.Type.MISS;
     }
 
     /** How far a body of this size blows: four of its own lengths. */

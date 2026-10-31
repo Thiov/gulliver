@@ -12,6 +12,7 @@ import net.minecraft.tags.FluidTags;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.EntityTypes;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.Pose;
 import net.minecraft.world.entity.ai.attributes.Attributes;
@@ -108,6 +109,19 @@ final class SelfTestIssues {
         check(failures, moved >= 1 && pig.getDeltaMovement().dot(dir) > 0.05D,
                 "a size-8 breath pushes a normal pig away (" + pig.getDeltaMovement().dot(dir) + ")");
 
+        // Water stops the wind: the same pig under the surface stays put.
+        BlockPos wet = BlockPos.containing(pig.position());
+        for (BlockPos pos : BlockPos.betweenClosed(wet.offset(-1, -1, -1), wet.offset(1, 2, 1))) {
+            level.setBlock(pos, Blocks.WATER.defaultBlockState(), 3);
+        }
+        pig.setDeltaMovement(Vec3.ZERO);
+        BreathGust.blow(level, giant, 1);
+        check(failures, pig.getDeltaMovement().lengthSqr() < 1.0E-6D,
+                "the wind stops at the water: a pig under it isn't blown (" + pig.getDeltaMovement() + ")");
+        for (BlockPos pos : BlockPos.betweenClosed(wet.offset(-1, -1, -1), wet.offset(1, 2, 1))) {
+            level.setBlock(pos, Blocks.AIR.defaultBlockState(), 3);
+        }
+
         // The pig would also take the wind; move it out of the cone.
         pig.setPos(eye.x + 30.0D, eye.y, eye.z);
         Vec3 arrowAt = eye.add(dir.scale(8.0D));
@@ -189,8 +203,19 @@ final class SelfTestIssues {
         check(failures, Appetite.canEat(normal, pig), "a normal zombie may eat a quarter-size pig (size difference)");
         ((IResizeableLiving) pig).setBaseSize(4.0F);
         check(failures, !Appetite.canEat(giant, pig), "a meal must be a quarter of the eater's size");
+        ((IResizeableLiving) pig).setBaseSize(0.25F);
+        check(failures, !Appetite.swallowsInFight(normal, pig), "a normal zombie fights a healthy quarter-size pig");
+        pig.setHealth(pig.getMaxHealth() * Appetite.SWALLOW_HEALTH);
+        check(failures, Appetite.swallowsInFight(normal, pig), "...and snatches it once it is weakened");
+        pig.setHealth(pig.getMaxHealth());
+        ((IResizeableLiving) pig).setBaseSize(0.125F);
+        check(failures, !sees(level, normal, pig), "a normal zombie overlooks a size-1/8 pig (Gulliver's tiny rule)");
         ((IResizeableLiving) pig).setBaseSize(1.0F);
-        check(failures, !Appetite.swallowsInFight(giant, pig), "a healthy pig is fought, not snatched");
+        check(failures, sees(level, giant, pig), "a size-8 giant hunts a normal-size target");
+        check(failures, Appetite.swallowsInFight(giant, pig), "a giant snatches its prey at any health");
+        ((IResizeableLiving) pig).setBaseSize(2.2F);
+        check(failures, sees(level, giant, pig), "a size-8 giant fights what is too big to eat");
+        ((IResizeableLiving) pig).setBaseSize(1.0F);
 
         pig.setHealth(3.0F);
         giant.setHealth(50.0F);
@@ -257,6 +282,17 @@ final class SelfTestIssues {
         giant.discard();
         normal.discard();
         if (!pig.isRemoved()) pig.discard();
+    }
+
+    /** Whether {@code attacker}'s hostile targeting sees {@code target} (line of sight aside). */
+    private static boolean sees(ServerLevel level, Mob attacker, LivingEntity target) {
+        net.minecraft.world.entity.ai.targeting.TargetingConditions combat =
+                net.minecraft.world.entity.ai.targeting.TargetingConditions.forCombat().ignoreLineOfSight();
+        //#if MC >= 1.21.2
+        return combat.test(level, attacker, target);
+        //#else
+        //$$ return combat.test(attacker, target);
+        //#endif
     }
 
     private static boolean attack(ServerLevel level, Mob attacker, Entity target) {
