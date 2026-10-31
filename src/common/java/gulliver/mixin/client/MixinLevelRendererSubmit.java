@@ -24,6 +24,10 @@ public abstract class MixinLevelRendererSubmit {
                                       CallbackInfo ci) {
         GliderPaperWorldRenderer.submit(pose, buf);
         LilyRaftWorldRenderer.submit(pose, buf);
+        // The wind goes after the water (see BreathRibbonRenderer); from 26.2
+        // through this submit, routed to the after-terrain phase.
+        //#if MC >= 26.2
         gulliver.client.BreathRibbonRenderer.submit(pose, buf);
+        //#endif
     }
 }

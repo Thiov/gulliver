@@ -37,6 +37,30 @@ public abstract class MixinLivingEntityRenderer {
         if (m != 1.0F) pose.scale(m, m, m);
     }
 
+    /**
+     * A monster eating poses both arms (EatPose.applyMob) after the model's
+     * own setupAnim: zombies and skeletons set theirs after HumanoidModel's.
+     * Armor copies the pose and held items follow the arm, both later.
+     */
+    @Inject(method = "render(Lnet/minecraft/world/entity/LivingEntity;FFLcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/MultiBufferSource;I)V",
+            at = @At(value = "INVOKE",
+                     target = "Lnet/minecraft/client/model/EntityModel;setupAnim(Lnet/minecraft/world/entity/Entity;FFFFF)V",
+                     shift = At.Shift.AFTER),
+            require = 0)
+    private void gulliver$poseMobEater(LivingEntity entity, float yaw, float partialTick, PoseStack pose,
+                                       MultiBufferSource buffers, int light, CallbackInfo ci) {
+        float grip = gulliver.client.EatPose.mobGrip(entity, partialTick);
+        if (grip <= 0.0F) return;
+        if (!(((net.minecraft.client.renderer.entity.LivingEntityRenderer<?, ?>) (Object) this).getModel()
+                instanceof net.minecraft.client.model.HumanoidModel<?> humanoid)) return;
+        gulliver.client.EatPose.applyMob(humanoid.rightArm, humanoid.leftArm, grip,
+                gulliver.client.EatPose.lift(entity, partialTick), gulliver.client.EatPose.bite(entity, partialTick));
+        if (humanoid instanceof net.minecraft.client.model.PlayerModel<?> player) {
+            player.rightSleeve.copyFrom(player.rightArm);
+            player.leftSleeve.copyFrom(player.leftArm);
+        }
+    }
+
     @Inject(method = "setupRotations(Lnet/minecraft/world/entity/LivingEntity;Lcom/mojang/blaze3d/vertex/PoseStack;FFF)V",
             at = @At("HEAD"), require = 0)
     private void gulliver$rememberScale(LivingEntity entity, PoseStack pose, float bob, float bodyRot,

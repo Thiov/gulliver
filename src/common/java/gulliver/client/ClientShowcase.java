@@ -23,9 +23,10 @@ import java.util.function.Consumer;
  * rather than testing them: run the self-test client with a file named
  * "gulliver-showcase" in the run folder and it plays each scene and saves
  * screenshots (run/screenshots), logging how far the wind moved things,
- * instead of the usual checks. Scenes: gusts at 8, 32, 1 and 1/8; eating a
- * pig in first and third person; a size-8 husk snatching a player;
- * wind skimming over water, and bubbles when blowing under it.
+ * instead of the usual checks. Scenes: gusts at 8, 32, 2 and 4 (and the
+ * view right after switching to third person at 32); eating a pig in
+ * first and third person; a size-8 husk grabbing a player with both
+ * hands; wind skimming over water, and bubbles when blowing under it.
  */
 public final class ClientShowcase {
     private ClientShowcase() {}
@@ -90,13 +91,14 @@ public final class ClientShowcase {
                 look(p, 20.0F);
             }
             case 188 -> mc.options.setCameraType(CameraType.THIRD_PERSON_FRONT);
+            case 189, 191, 192, 194 -> shot(mc); // anything see-through right after the switch?
             case 190 -> blow();
             case 205, 215 -> shot(mc);
             case 230 -> {
                 stop();
                 mc.options.setCameraType(CameraType.FIRST_PERSON);
                 cmd(mc, "kill @e[type=!player]");
-                size(mc, 1.0F);
+                size(mc, 2.0F);
                 look(p, 10.0F);
             }
             case 250 -> blow();
@@ -104,7 +106,7 @@ public final class ClientShowcase {
             case 280 -> {
                 stop();
                 cmd(mc, "kill @e[type=!player]");
-                size(mc, 0.125F);
+                size(mc, 4.0F);
                 mc.options.setCameraType(CameraType.THIRD_PERSON_FRONT);
             }
             case 300 -> blow();
@@ -137,47 +139,111 @@ public final class ClientShowcase {
                 onServer(mc, sp -> sp.setHealth(sp.getMaxHealth()));
             }
             case 475 -> {
-                cmd(mc, "execute as @a at @s run summon husk ~ ~ ~7");
+                cmd(mc, "execute as @a at @s run summon husk ~ ~ ~5 {NoAI:1b,Rotation:[180f,0f]}");
                 onServer(mc, sp -> {
                     for (Entity e : ((ServerLevel) sp.level()).getAllEntities()) {
                         if (e instanceof Mob m && m.getType() == EntityTypes.HUSK) ((IResizeableLiving) m).setBaseSize(8.0F);
                     }
                 });
             }
-            case 495, 505, 515, 525, 535, 545 -> {
-                shot(mc);
-                onServer(mc, sp -> Gulliver.LOGGER.info("showcase t={} player health {} held {} husk targets player {}",
-                        t, sp.getHealth(), ((gulliver.access.IGulliverShoulderInternal) sp).gulliver$getHoldingEntity() != null,
-                        targetsPlayer(sp)));
+            case 488 -> {
+                // The husk overlooks a player an eighth its size...
+                onServer(mc, sp -> Gulliver.LOGGER.info("showcase husk notices the player: {}", huskSees(sp)));
+                // Facing away, front camera: the husk towers behind the player.
+                mc.options.setCameraType(CameraType.THIRD_PERSON_FRONT);
+                look(p, 12.0F);
+                p.setYRot(180.0F);
+                p.yRotO = 180.0F;
             }
-            case 560 -> {
+            case 490 -> onServer(mc, sp -> {
+                // ...until it's hurt by it; then a grab that lands (most miss) does this.
+                for (Entity e : ((ServerLevel) sp.level()).getAllEntities()) {
+                    if (e instanceof Mob m && m.getType() == EntityTypes.HUSK) {
+                        m.setLastHurtByMob(sp);
+                        Gulliver.LOGGER.info("showcase hurt husk notices the player: {}", huskSees(sp));
+                        gulliver.common.Appetite.snatch(m, sp);
+                    }
+                }
+            });
+            case 492, 498, 506, 514, 522, 532 -> shot(mc);
+            case 540 -> {
+                mc.options.setCameraType(CameraType.FIRST_PERSON);
+                look(p, 0.0F);
+            }
+            case 545 -> {
+                shot(mc);
+                onServer(mc, sp -> Gulliver.LOGGER.info("showcase t={} player health {} held {}",
+                        t, sp.getHealth(), ((gulliver.access.IGulliverShoulderInternal) sp).gulliver$getHoldingEntity() != null));
+            }
+            case 548 -> {
+                // From the side: a husk grabbing a pig at its feet and lifting it to its mouth.
+                cmd(mc, "gamemode creative @a");
+                cmd(mc, "kill @e[type=!player]");
+                if (arena != null) {
+                    cmd(mc, String.format(java.util.Locale.ROOT, "tp @a %.2f %.2f %.2f", arena.x, arena.y, arena.z));
+                    cmd(mc, String.format(java.util.Locale.ROOT, "summon husk %.2f %.2f %.2f {NoAI:1b,Rotation:[180f,0f]}",
+                            arena.x + 24.0D, arena.y, arena.z));
+                    cmd(mc, String.format(java.util.Locale.ROOT, "summon pig %.2f %.2f %.2f {NoAI:1b}",
+                            arena.x + 24.0D, arena.y, arena.z - 5.0D));
+                }
+                mc.options.setCameraType(CameraType.FIRST_PERSON);
+                look(p, -15.0F);
+                p.setYRot(-90.0F);
+                p.yRotO = -90.0F;
+            }
+            case 550 -> onServer(mc, sp -> {
+                for (Entity e : ((ServerLevel) sp.level()).getAllEntities()) {
+                    if (e instanceof Mob m && m.getType() == EntityTypes.HUSK) ((IResizeableLiving) m).setBaseSize(8.0F);
+                }
+            });
+            case 562 -> onServer(mc, sp -> {
+                Mob husk = null, pig = null;
+                for (Entity e : ((ServerLevel) sp.level()).getAllEntities()) {
+                    if (e instanceof Mob m && m.getType() == EntityTypes.HUSK) husk = m;
+                    if (e instanceof Mob m && m.getType() == EntityTypes.PIG) pig = m;
+                }
+                if (husk != null && pig != null) gulliver.common.Appetite.snatch(husk, pig);
+                Gulliver.LOGGER.info("showcase side grab: husk {} pig {} held {}", husk != null, pig != null,
+                        pig != null && ((gulliver.access.IGulliverShoulderInternal) pig).gulliver$getHoldingEntity() != null);
+            });
+            case 575 -> onServer(mc, sp -> {
+                for (Entity e : ((ServerLevel) sp.level()).getAllEntities()) {
+                    if (e instanceof Mob m && (m.getType() == EntityTypes.PIG || m.getType() == EntityTypes.HUSK)) {
+                        Gulliver.LOGGER.info("showcase side grab t=575: {} at {} size {} held {} chew {}", m.getType().getDescriptionId(),
+                                m.position(), ((gulliver.api.IResizeableEntity) m).getSizeMultiplier(),
+                                ((gulliver.access.IGulliverShoulderInternal) m).gulliver$getHoldingEntity() != null,
+                                ((gulliver.access.IGulliverShoulderInternal) m).gulliver$getChewTicks());
+                    }
+                }
+            });
+            case 564, 572, 582, 594, 604 -> shot(mc);
+            case 620 -> {
                 cmd(mc, "gamemode creative @a");
                 cmd(mc, "kill @e[type=!player]");
                 size(mc, 2.0F);
                 if (arena != null) {
                     cmd(mc, String.format(java.util.Locale.ROOT, "tp @a %.2f %.2f %.2f", arena.x, arena.y, arena.z));
-                    cmd(mc, "execute as @a at @s run fill ~-5 ~-4 ~4 ~5 ~-1 ~12 minecraft:water");
+                    cmd(mc, "execute as @a at @s run fill ~-5 ~-7 ~4 ~5 ~-1 ~12 minecraft:water");
                 }
                 look(p, 35.0F);
             }
-            case 575 -> blow();
-            case 590, 598 -> shot(mc);
-            case 605 -> {
+            case 635 -> blow();
+            case 650, 658 -> shot(mc);
+            case 665 -> {
                 stop();
-                size(mc, 1.0F);
                 if (arena != null) {
-                    cmd(mc, String.format(java.util.Locale.ROOT, "tp @a %.2f %.2f %.2f", arena.x, arena.y - 3.5D, arena.z + 8.0D));
+                    cmd(mc, String.format(java.util.Locale.ROOT, "tp @a %.2f %.2f %.2f", arena.x, arena.y - 6.5D, arena.z + 8.0D));
                 }
                 look(p, -10.0F);
             }
-            case 615 -> blow();
-            case 628, 634 -> shot(mc);
-            case 640 -> {
+            case 675 -> blow();
+            case 688, 694 -> shot(mc);
+            case 700 -> {
                 onServer(mc, sp -> Gulliver.LOGGER.info("showcase underwater: eye in water {}, air {}",
                         sp.isEyeInFluid(net.minecraft.tags.FluidTags.WATER), sp.getAirSupply()));
                 stop();
             }
-            case 660 -> {
+            case 720 -> {
                 Gulliver.LOGGER.info("GULLIVER SHOWCASE DONE");
                 return true;
             }
@@ -238,9 +304,17 @@ public final class ClientShowcase {
         }
     }
 
-    private static boolean targetsPlayer(ServerPlayer sp) {
+    private static boolean huskSees(ServerPlayer sp) {
         for (Entity e : ((ServerLevel) sp.level()).getAllEntities()) {
-            if (e instanceof Mob m && m.getType() == EntityTypes.HUSK) return m.getTarget() == sp;
+            if (e instanceof Mob m && m.getType() == EntityTypes.HUSK) {
+                net.minecraft.world.entity.ai.targeting.TargetingConditions c =
+                        net.minecraft.world.entity.ai.targeting.TargetingConditions.forCombat().ignoreLineOfSight();
+                //#if MC >= 1.21.2
+                return c.test((ServerLevel) sp.level(), m, sp);
+                //#else
+                //$$ return c.test(m, sp);
+                //#endif
+            }
         }
         return false;
     }

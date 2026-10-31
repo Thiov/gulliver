@@ -46,15 +46,16 @@ import java.util.concurrent.ConcurrentHashMap;
  *    first and third person) and the player takes four bites, one every
  *    four ticks, as long as the button stays down. A creature that can't
  *    be eaten is set down instead, as a sneak-click always did.
- *  - Hostile giants (size 2 and up) hunt anything small enough to eat -
- *    unlike normal-size monsters, which overlook what is far smaller than
- *    them - and every blow that lands snatches the prey instead: the
- *    giant reaches down, lifts it to its mouth over a second and a half
- *    and bites four times, half a second apart. Smaller monsters only
- *    snatch prey that is down to a third of its health. Sneaking doesn't
+ *  - Like every mob, a hostile giant (size 2 and up) overlooks what is
+ *    far smaller than itself until it gets hurt by it; then each blow at
+ *    prey small enough to eat is a grab instead - missing as often as a
+ *    blow at something that small would. One that catches it reaches
+ *    down, lifts it to its mouth over a second and a half and bites four
+ *    times, half a second apart. Smaller monsters only snatch prey that
+ *    is down to a third of its health. Sneaking doesn't
  *    get you out of a monster's fist; hurting the monster (or a friend
- *    hurting it) makes it put you down. Prey it spits out can't be
- *    snatched again for three seconds.
+ *    hurting it) makes it let go, and you fall from where it held you.
+ *    Prey that got away can't be snatched again for three seconds.
  *
  * Every bite is real damage of the gulliver:eaten type - a player's
  * attack (at least 2), half a monster's (at least 1.5) - scaled by the
@@ -81,7 +82,7 @@ public final class Appetite {
     public static final float MAX_MEAL_RATIO = 0.25F;
     /** A hostile mob snatches prey at or below this share of its health. */
     public static final float SWALLOW_HEALTH = 1.0F / 3.0F;
-    /** From this size on a hostile mob hunts and snatches small prey at any health. */
+    /** From this size on a hostile mob that fights small prey snatches it at any health. */
     public static final float GIANT = 2.0F;
     /** Ticks a creature that was put down or spat out is safe from another snatch. */
     private static final int SAFE_TICKS = 60;
@@ -144,16 +145,9 @@ public final class Appetite {
         return !GiantAoe.spares(eater, meal);
     }
 
-    /**
-     * Whether a hostile giant goes after {@code target} although Gulliver's
-     * targeting overlooks things under 0.3 of the attacker's size: whatever
-     * it can eat is prey, and whatever is too big to eat is big enough to
-     * fight.
-     */
-    public static boolean hunts(LivingEntity attacker, LivingEntity target) {
-        if (!GulliverConfig.INSTANCE.general.giantAppetite) return false;
-        if (!(attacker instanceof Enemy) || size(attacker) < GIANT) return false;
-        return size(target) > size(attacker) * MAX_MEAL_RATIO || canEat(attacker, target);
+    /** Whether a mob's grab at {@code target} misses, as often as a blow at something that small would. */
+    public static boolean grabMisses(Mob attacker, Entity target) {
+        return attacker.getRandom().nextFloat() < SizeScaling.mobMissChance(size(attacker), size(target));
     }
 
     /** Whether a melee strike by {@code attacker} snatches {@code target} instead of hitting it. */
@@ -256,30 +250,16 @@ public final class Appetite {
         }
     }
 
-    /** A mob that gets hurt while it holds its prey up puts it down. */
+    /** A mob that gets hurt while it holds its prey up lets go: the prey falls from where it was held. */
     public static void onHurt(LivingEntity eater) {
         if (eater instanceof Player || !isChewing(eater) || eater.level().isClientSide()) return;
         Entity prey = ShoulderHelper.detachHand(eater);
         stopChewing(eater);
-        if (prey != null) putDown(eater, prey);
+        if (prey != null) markSafe(eater, prey);
     }
 
-    /**
-     * Back on the ground in front of the eater's feet, unhurt by the drop
-     * (from a giant's mouth it would be a long fall), and safe from another
-     * snatch for a moment.
-     */
-    private static void putDown(LivingEntity eater, Entity prey) {
-        Vec3 fwd = Vec3.directionFromRotation(0.0F, eater.yBodyRot);
-        double out = eater.getBbWidth() * 0.5D + prey.getBbWidth() + 0.3D;
-        Vec3 at = eater.position().add(fwd.scale(out));
-        double half = prey.getBbWidth() * 0.5D;
-        net.minecraft.world.phys.AABB box = new net.minecraft.world.phys.AABB(at.x - half, at.y, at.z - half,
-                at.x + half, at.y + prey.getBbHeight(), at.z + half);
-        // No room in front: at the eater's own feet, which are clear of blocks.
-        if (!eater.level().noCollision(prey, box)) at = eater.position();
-        prey.teleportTo(at.x, at.y, at.z);
-        prey.resetFallDistance();
+    /** Prey that got away (dropped or spat out) can't be snatched again for a moment. */
+    private static void markSafe(LivingEntity eater, Entity prey) {
         long now = eater.level().getGameTime();
         SAFE.values().removeIf(t -> now - t >= SAFE_TICKS);
         SAFE.put(prey.getUUID(), now);
@@ -361,14 +341,14 @@ public final class Appetite {
         return true;
     }
 
-    /** Too tough to swallow: spat out, onto the ground in front of the eater. */
+    /** Too tough to swallow: spat out of the mouth, falling from there. */
     private static void spitOut(LivingEntity eater, LivingEntity meal) {
         Vec3 mouth = mouth(eater);
         ShoulderHelper.detachHand(eater);
         stopChewing(eater);
-        putDown(eater, meal);
-        Vec3 out = Vec3.directionFromRotation(0.0F, eater.yBodyRot).scale(0.3D);
-        meal.setDeltaMovement(out.x, 0.2D, out.z);
+        markSafe(eater, meal);
+        Vec3 out = eater.getLookAngle().scale(0.3D + 0.1D * Math.sqrt(size(eater)));
+        meal.setDeltaMovement(out.x, 0.25D, out.z);
         meal.hurtMarked = true;
         eater.level().playSound(null, mouth.x, mouth.y, mouth.z, SoundEvents.LLAMA_SPIT,
                 eater instanceof Player ? SoundSource.PLAYERS : SoundSource.HOSTILE,

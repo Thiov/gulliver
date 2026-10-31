@@ -134,6 +134,8 @@ final class SelfTestIssues {
 
         check(failures, Math.abs(BreathGust.range(1.0F) - 4.0D) < 1.0E-9D && BreathGust.range(32.0F) <= 48.0D,
                 "breath range is four body lengths, capped");
+        pig.setPos(eye.x + 30.0D, eye.y, eye.z);
+        check(failures, BreathGust.bigEnough(giant) && !BreathGust.bigEnough(pig), "only giants blow a gust (from size 2)");
         arrow.discard();
         giant.discard();
         pig.discard();
@@ -211,19 +213,26 @@ final class SelfTestIssues {
         ((IResizeableLiving) pig).setBaseSize(0.125F);
         check(failures, !sees(level, normal, pig), "a normal zombie overlooks a size-1/8 pig (Gulliver's tiny rule)");
         ((IResizeableLiving) pig).setBaseSize(1.0F);
-        check(failures, sees(level, giant, pig), "a size-8 giant hunts a normal-size target");
-        check(failures, Appetite.swallowsInFight(giant, pig), "a giant snatches its prey at any health");
-        ((IResizeableLiving) pig).setBaseSize(2.2F);
-        check(failures, sees(level, giant, pig), "a size-8 giant fights what is too big to eat");
-        ((IResizeableLiving) pig).setBaseSize(1.0F);
+        check(failures, !sees(level, giant, pig), "a size-8 giant overlooks a normal-size creature");
+        check(failures, !looksAt(level, giant, pig), "...and doesn't even look at it");
+        check(failures, looksAt(level, normal, pig), "a creature its own size is worth a look");
+        giant.setLastHurtByMob(pig);
+        check(failures, sees(level, giant, pig) && looksAt(level, giant, pig), "...until it gets hurt by it");
+        giant.setLastHurtByMob(null);
+        check(failures, Appetite.swallowsInFight(giant, pig), "a giant fighting small prey snatches it at any health");
+        check(failures, Math.abs(gulliver.common.SizeScaling.mobMissChance(8.0F, 1.0F) - 0.875F) < 1.0E-6F
+                        && gulliver.common.SizeScaling.mobMissChance(1.0F, 1.0F) == 0.0F
+                        && gulliver.common.SizeScaling.mobMissChance(32.0F, 0.125F) == 0.9F,
+                "a mob misses something an eighth its size seven times in eight, at most nine in ten");
 
         pig.setHealth(3.0F);
         giant.setHealth(50.0F);
         Vec3 where = pig.position();
-        boolean hit = attack(level, giant, pig);
+        int tries = grab(level, giant, pig);
         boolean held = giant.getUUID().equals(((gulliver.access.IGulliverShoulderInternal) pig).gulliver$getHoldingEntity());
-        check(failures, hit && held && Appetite.isChewing(giant) && pig.isAlive(),
-                "a hostile giant snatches a weakened pig into its hand first");
+        check(failures, held && Appetite.isChewing(giant) && pig.isAlive() && pig.getHealth() == 3.0F,
+                "a hostile giant snatches a pig into its hand first (missed grabs don't hurt)");
+        int misses = tries - 1;
         for (int i = 0; i < Appetite.lastBite(giant) + 2 && !pig.isRemoved(); i++) {
             Appetite.tick(giant);
             gulliver.common.ShoulderHelper.positionPassengers(giant);
@@ -239,7 +248,7 @@ final class SelfTestIssues {
         Mob second = SelfTest.spawnMob(level, EntityTypes.PIG, at);
         if (second != null) {
             second.setHealth(3.0F);
-            attack(level, giant, second);
+            misses += grab(level, giant, second) - 1;
             for (int i = 0; i < 5; i++) Appetite.tick(giant);
             //#if MC >= 1.21.2
             giant.hurtServer(level, level.damageSources().generic(), 2.0F);
@@ -259,7 +268,7 @@ final class SelfTestIssues {
             armored.getAttribute(Attributes.ARMOR).setBaseValue(20.0D);
             armored.getAttribute(Attributes.ARMOR_TOUGHNESS).setBaseValue(12.0D);
             armored.setHealth(2.5F);
-            attack(level, giant, armored);
+            misses += grab(level, giant, armored) - 1;
             for (int i = 0; i < Appetite.firstBite(giant); i++) Appetite.tick(giant);
             boolean afterFirst = armored.isAlive();
             for (int i = 0; i < Appetite.lastBite(giant) && !armored.isRemoved(); i++) Appetite.tick(giant);
@@ -272,16 +281,39 @@ final class SelfTestIssues {
             tough.getAttribute(Attributes.ARMOR_TOUGHNESS).setBaseValue(12.0D);
             tough.addEffect(new MobEffectInstance(MobEffects.RESISTANCE, 600, 3));
             tough.setHealth(3.0F);
-            attack(level, giant, tough);
+            misses += grab(level, giant, tough) - 1;
             for (int i = 0; i < Appetite.lastBite(giant) + 2; i++) Appetite.tick(giant);
             check(failures, tough.isAlive() && !Appetite.isChewing(giant) && tough.getHealth() < 3.0F
                             && ((gulliver.access.IGulliverShoulderInternal) tough).gulliver$getHoldingEntity() == null,
                     "a meal that comes through every bite is spat out, hurt (health " + tough.getHealth() + ")");
             tough.discard();
         }
+        check(failures, misses > 0, "grabs at something an eighth the giant's size miss now and then (" + misses + " misses)");
         giant.discard();
         normal.discard();
         if (!pig.isRemoved()) pig.discard();
+    }
+
+    /** Strikes until the giant holds {@code prey} (each grab may miss); how many it took. */
+    private static int grab(ServerLevel level, Mob giant, Mob prey) {
+        int tries = 0;
+        while (tries < 400 && !giant.getUUID().equals(((gulliver.access.IGulliverShoulderInternal) prey).gulliver$getHoldingEntity())) {
+            attack(level, giant, prey);
+            tries++;
+        }
+        return tries;
+    }
+
+    /** Whether an idle {@code mob} would pick {@code target} to look at (LookAtPlayerGoal's conditions). */
+    private static boolean looksAt(ServerLevel level, Mob mob, LivingEntity target) {
+        net.minecraft.world.entity.ai.targeting.TargetingConditions look =
+                net.minecraft.world.entity.ai.targeting.TargetingConditions.forNonCombat().range(64.0D);
+        ((gulliver.access.IGulliverTargeting) look).gulliver$setOverlooksSmall(true);
+        //#if MC >= 1.21.2
+        return look.test(level, mob, target);
+        //#else
+        //$$ return look.test(mob, target);
+        //#endif
     }
 
     /** Whether {@code attacker}'s hostile targeting sees {@code target} (line of sight aside). */

@@ -38,6 +38,13 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
  *
  * The probe corner-bias (the 0.1F in getMaxZoom) scales the same way.
  *
+ * A giant's third-person camera pulls back over a third of a second
+ * instead of jumping 30+ blocks in one frame. The jump put the camera
+ * where the world had never had to be drawn (behind hills, high above
+ * the ground) and showed holes - see-through terrain - until the chunk
+ * builder caught up, once per place; gliding out lets it build them on
+ * the way. Normal-size players keep vanilla's instant switch.
+ *
  * Eye height: vanilla eases the camera's eye height toward the entity's
  * (sneaking, swimming), and does it in the entity's own, already resized,
  * units — so after a resize the eye would slide on a second clock. The
@@ -80,7 +87,37 @@ public abstract class MixinCamera {
         if (entity.isPassenger() && entity.getVehicle() instanceof LivingEntity vehicle) {
             mount = gulliver$unscaledDistance(vehicle, (float) maxDist) * VisualSize.of(vehicle);
         }
-        return Math.min(Math.max(rider, mount), GULLIVER$MAX_DISTANCE);
+        return gulliver$pullBack(Math.min(Math.max(rider, mount), GULLIVER$MAX_DISTANCE));
+    }
+
+    /** Seconds a giant's third-person camera takes to pull back. */
+    @Unique private static final float GULLIVER$PULL_SECONDS = 0.35F;
+    /** At or below this distance (a normal-size view) the camera switches instantly, as in vanilla. */
+    @Unique private static final float GULLIVER$PULL_FROM = 6.0F;
+    @Unique private boolean gulliver$wasFirstPerson = true;
+    @Unique private Object gulliver$pullView;
+    @Unique private long gulliver$pullStart;
+
+    @Inject(method = "alignWithEntity", at = @At("TAIL"), require = 0)
+    private void gulliver$noteFirstPerson(CallbackInfo ci) {
+        if (!((Camera) (Object) this).isDetached()) gulliver$wasFirstPerson = true;
+    }
+
+    /** The third-person distance this frame: eased out from close in after a switch of view. */
+    @Unique
+    private float gulliver$pullBack(float distance) {
+        Object view = net.minecraft.client.Minecraft.getInstance().options.getCameraType();
+        long now = System.nanoTime();
+        if (gulliver$wasFirstPerson || view != gulliver$pullView) {
+            gulliver$wasFirstPerson = false;
+            gulliver$pullView = view;
+            gulliver$pullStart = now;
+        }
+        if (distance <= GULLIVER$PULL_FROM) return distance;
+        float t = (now - gulliver$pullStart) / (GULLIVER$PULL_SECONDS * 1.0E9F);
+        if (t >= 1.0F) return distance;
+        float out = 1.0F - (1.0F - t) * (1.0F - t) * (1.0F - t);
+        return distance * (0.3F + 0.7F * out);
     }
 
     /** Vanilla's distance for one entity before any Gulliver size: scale x the camera-distance attribute. */

@@ -13,8 +13,9 @@ import net.minecraft.server.level.ServerLevel;
 //#endif
 
 /**
- * A hostile mob's melee strike on weakened prey a quarter its size snatches
- * it instead (Appetite); while it holds its meal up it doesn't strike.
+ * A hostile mob's melee strike on prey a quarter its size snatches it
+ * instead (Appetite) - or misses it, as often as a blow at something that
+ * small would; while it holds its meal up it doesn't strike.
  */
 @Mixin(Mob.class)
 public abstract class MixinMobAppetite {
@@ -32,6 +33,10 @@ public abstract class MixinMobAppetite {
         if (Appetite.isChewing(self)) {
             cir.setReturnValue(false);
         } else if (Appetite.swallowsInFight(self, target)) {
+            if (Appetite.grabMisses(self, target)) {
+                cir.setReturnValue(false);
+                return;
+            }
             Appetite.snatch(self, (LivingEntity) target);
             cir.setReturnValue(true);
         }

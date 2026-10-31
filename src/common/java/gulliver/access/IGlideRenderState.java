@@ -32,4 +32,7 @@ public interface IGlideRenderState {
     float gulliver$getEatLift();
     float gulliver$getEatBite();
     void gulliver$setEat(float lift, float bite);
+    /** A monster eating: how far its hands have closed on the prey (EatPose.mobGrip), 0 otherwise. */
+    float gulliver$getMobGrip();
+    void gulliver$setMobGrip(float grip);
 }

@@ -12,6 +12,9 @@ For every mixin class in a preprocessed source tree:
     the invoked method, @ModifyVariable(argsOnly) ordinals and indices,
     @ModifyConstant constants actually present in the target's bytecode.
 
+A target on the line after a "// loader patch" comment (a method Forge or
+NeoForge patch into vanilla) may be missing from the vanilla jar.
+
 Usage: check_mixins.py <preprocessed-java-dir> <minecraft.jar> [more.jar...]
 Exit code 1 when something is wrong. Uses the JDK's javap (JAVAP env var).
 """
@@ -412,6 +415,11 @@ for root, _, files in os.walk(os.path.join(src, "gulliver", "mixin")):
             if members(oc) is None:
                 bad(f"INVOKE owner {oc} not found")
             elif not find_method(oc, name, "(" + desc):
+                # A loader's own patch of a vanilla method isn't in the vanilla
+                # jar: the source marks those targets "// loader patch".
+                at = text.find(tgt)
+                if at >= 0 and "// loader patch" in text[text.rfind("\n", 0, at - 1) - 120 if at > 120 else 0:at]:
+                    continue
                 bad(f"INVOKE {oc}.{name}({desc} not found on the owner or its supertypes")
         for tgt in re.findall(r'target\s*=\s*"(L[^;"]+;[\w$]+:[^"]+)"', live):
             owner, rest = tgt[1:].split(";", 1)

@@ -65,8 +65,7 @@ public abstract class MixinLivingEntityDamage {
 
         // A mob swinging at something much smaller often whiffs over it.
         if (attackerLiv instanceof Mob && targetSize < attackerSize && !pointy) {
-            float missChance = Math.min(0.9F, 1.0F - targetSize / attackerSize);
-            if (self.getRandom().nextFloat() < missChance) {
+            if (self.getRandom().nextFloat() < gulliver.common.SizeScaling.mobMissChance(attackerSize, targetSize)) {
                 AttackContext.pop(self);
                 cir.setReturnValue(false);
                 return;
