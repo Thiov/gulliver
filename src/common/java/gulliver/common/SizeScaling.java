@@ -52,6 +52,16 @@ public final class SizeScaling {
         return floor + (random.nextDouble() < value - floor ? 1 : 0);
     }
 
+    /**
+     * How often a mob's blow or grab at something smaller than itself misses:
+     * 1 - target/attacker, at most 90%. Half its size, every other blow
+     * misses; an eighth, seven in eight.
+     */
+    public static float mobMissChance(float attackerSize, float targetSize) {
+        if (!(attackerSize > 0.0F) || !(targetSize < attackerSize)) return 0.0F;
+        return Math.min(0.9F, 1.0F - targetSize / attackerSize);
+    }
+
     /** Food value multiplier for an eater of this size: inverse of size, kept inside 1/32..32. */
     public static float foodFactor(float size) {
         if (size == 1.0F || !(size > 0.0F)) return 1.0F;

@@ -144,6 +144,10 @@ public class GulliverConfigScreen extends Screen {
         addRenderableWidget(toggle(right, y, "breathGust", g.breathGust, v -> g.breathGust = v));
         y += ROW;
         addRenderableWidget(toggle(left, y, "giantAppetite", g.giantAppetite, v -> g.giantAppetite = v));
+        addRenderableWidget(slider(right, y, range(0.0, 8.0, 0.25), g.breathGustMinSize,
+                v -> v <= 0.0 ? Component.translatable("gulliver.config.breathGustMinSize.any")
+                        : Component.translatable("gulliver.config.breathGustMinSize", fmt(v)),
+                v -> g.breathGustMinSize = v, "breathGustMinSize"));
     }
 
     private void initSpawn(int left, int right, int y) {

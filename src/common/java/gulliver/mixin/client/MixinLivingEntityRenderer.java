@@ -64,6 +64,7 @@ public abstract class MixinLivingEntityRenderer {
             g.gulliver$setHandPassenger(((gulliver.access.IGulliverShoulderInternal) entity)
                     .gulliver$getHandEntity() != null);
             g.gulliver$setEat(gulliver.client.EatPose.lift(entity, partialTick), gulliver.client.EatPose.bite(entity, partialTick));
+            g.gulliver$setMobGrip(gulliver.client.EatPose.mobGrip(entity, partialTick));
             // Which arm holds the active prop (lily-pad raft/umbrella or
             // glider paper) — either hand works.
             g.gulliver$setPropArm(sized.isRafting() || sized.doesUmbrella()
@@ -76,6 +77,22 @@ public abstract class MixinLivingEntityRenderer {
         // itself is scaled by state.scale, so visually the swing
         // amplitude is body-proportional. This is exactly how 1.6.4
         // bbj.java handled it (no per-size adjustment in the model anim).
+    }
+
+    /**
+     * A monster eating poses its arms after the model's own setupAnim
+     * (zombies and skeletons set theirs after HumanoidModel's), here for
+     * what is placed at submit time (held items) and in
+     * MixinModelFeatureRendererEatPose for the drawing itself.
+     */
+    @org.spongepowered.asm.mixin.injection.Redirect(
+            method = "submit(Lnet/minecraft/client/renderer/entity/state/LivingEntityRenderState;Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/SubmitNodeCollector;Lnet/minecraft/client/renderer/state/level/CameraRenderState;)V",
+            at = @At(value = "INVOKE", target = "Lnet/minecraft/client/model/EntityModel;setupAnim(Ljava/lang/Object;)V"),
+            require = 0)
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    private void gulliver$poseMobEater(net.minecraft.client.model.EntityModel model, Object state) {
+        model.setupAnim(state);
+        gulliver.client.EatPose.afterSetupAnim(model, state);
     }
 
     /**

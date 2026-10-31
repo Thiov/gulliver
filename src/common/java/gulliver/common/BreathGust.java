@@ -53,9 +53,13 @@ import java.util.concurrent.ConcurrentHashMap;
  * the gust stops when they are empty and only starts again once the key
  * has been let go. Creative players never run out. Water stops the wind,
  * so nothing under the surface is blown; underwater the breath just goes
- * up as a stream of bubbles, and the air is gone all the same. The key rides on the CarryAction packet, so an older server just
- * ignores it, and the client repeats it while held so a lost "stop" can't
- * leave anyone blowing forever.
+ * up as a stream of bubbles, and the air is gone all the same.
+ *
+ * Only giants blow: from general.breathGustMinSize (size 2 by default);
+ * anyone smaller is told so on the action bar instead. The key rides on
+ * the CarryAction packet, so an older server just ignores it, and the
+ * client repeats it while held so a lost "stop" can't leave anyone
+ * blowing forever.
  */
 public final class BreathGust {
     private BreathGust() {}
@@ -85,9 +89,33 @@ public final class BreathGust {
 
     private static final Map<UUID, State> BLOWERS = new ConcurrentHashMap<>();
 
+    /** When each too-small player was last told they can't blow, by game time. */
+    private static final Map<UUID, Long> TOLD = new ConcurrentHashMap<>();
+
+    /** Whether this body is big enough to blow a gust. */
+    public static boolean bigEnough(LivingEntity blower) {
+        return ((IResizeableEntity) blower).getSizeMultiplier() >= GulliverConfig.INSTANCE.general.breathGustMinSize - 1.0E-4D;
+    }
+
     /** The breath key went down (or is still down: the client repeats this while held). */
     public static void start(ServerPlayer player) {
         if (!GulliverConfig.INSTANCE.general.breathGust || player.isSpectator()) return;
+        if (!bigEnough(player)) {
+            long now = player.level().getGameTime();
+            Long told = TOLD.get(player.getUUID());
+            if (told == null || now - told > 40L) {
+                TOLD.put(player.getUUID(), now);
+                String min = String.format(java.util.Locale.ROOT, "%.3f", GulliverConfig.INSTANCE.general.breathGustMinSize)
+                        .replaceAll("0+$", "").replaceAll("\\.$", "");
+                net.minecraft.network.chat.Component text = net.minecraft.network.chat.Component.translatable("gulliver.breath.tooSmall", min);
+                //#if MC >= 26.1
+                player.sendOverlayMessage(text);
+                //#else
+                //$$ player.displayClientMessage(text, true);
+                //#endif
+            }
+            return;
+        }
         State state = BLOWERS.computeIfAbsent(player.getUUID(), id -> new State());
         state.lastRequest = player.level().getGameTime();
     }
@@ -107,7 +135,7 @@ public final class BreathGust {
     public static void tick(ServerPlayer player) {
         State state = BLOWERS.get(player.getUUID());
         if (state == null) return;
-        if (!GulliverConfig.INSTANCE.general.breathGust || !player.isAlive() || player.isSpectator()
+        if (!GulliverConfig.INSTANCE.general.breathGust || !bigEnough(player) || !player.isAlive() || player.isSpectator()
                 || player.isSleeping() || player.level().getGameTime() - state.lastRequest > KEEP_ALIVE) {
             stop(player);
             return;

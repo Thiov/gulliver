@@ -37,6 +37,10 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
  * Fleeing is exempt: AvoidEntityGoal's conditions are marked
  * (MixinAvoidEntityGoal) so a creeper still sees, and runs from, a tiny cat.
  *
+ * Looking is not exempt: the conditions an idle mob picks something to
+ * look at with are marked too (MixinLookAtPlayerGoal), so a giant doesn't
+ * even glance at what is beneath its notice - until it gets hurt by it.
+ *
  * HurtByTargetGoal compat: when the attacker has been hit by this
  * target (attacker.lastHurtByMob == target), retaliation is allowed
  * regardless of size. Without this branch, a tiny attacking a zombie
@@ -51,11 +55,19 @@ public abstract class MixinTargetingConditionsTinyHide implements IGulliverTarge
 
     /** Set for the conditions of a fleeing goal, which are combat conditions but must see small threats. */
     @Unique private boolean gulliver$seesSmall;
+    /** Set for the conditions an idle mob picks something to look at with, which aren't combat conditions. */
+    @Unique private boolean gulliver$overlooksSmall;
 
     @Override
     @Unique
     public void gulliver$setSeesSmall(boolean seesSmall) {
         gulliver$seesSmall = seesSmall;
+    }
+
+    @Override
+    @Unique
+    public void gulliver$setOverlooksSmall(boolean overlooksSmall) {
+        gulliver$overlooksSmall = overlooksSmall;
     }
 
     @Inject(method = "test", at = @At("HEAD"), cancellable = true)
@@ -66,7 +78,8 @@ public abstract class MixinTargetingConditionsTinyHide implements IGulliverTarge
                                                 LivingEntity attacker,
                                                 LivingEntity target,
                                                 CallbackInfoReturnable<Boolean> cir) {
-        if (target == null || attacker == null || !isCombat || gulliver$seesSmall) return;
+        if (target == null || attacker == null || gulliver$seesSmall) return;
+        if (!isCombat && !gulliver$overlooksSmall) return;
         float targetSize = ((IResizeableEntity) target).getSizeMultiplier();
         float attackerSize = ((IResizeableEntity) attacker).getSizeMultiplier();
         // Relative size threshold: target is "invisible" to this attacker
@@ -78,8 +91,8 @@ public abstract class MixinTargetingConditionsTinyHide implements IGulliverTarge
         // Retaliation: the goal that's calling test() is validating an
         // already-set HurtByTarget; allow it.
         if (attacker.getLastHurtByMob() == target) return;
-        // Hostile giants hunt what they can eat (Appetite).
-        if (gulliver.common.Appetite.hunts(attacker, target)) return;
+        // Already fighting it: keeps it in sight.
+        if (attacker instanceof net.minecraft.world.entity.Mob mob && mob.getTarget() == target) return;
         cir.setReturnValue(false);
     }
 
