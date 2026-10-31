@@ -58,6 +58,9 @@ public abstract class MixinHumanoidModelPose {
             rightArm.xRot = -(float) (Math.PI / 2.0);
             rightArm.yRot = 0.0F;
             rightArm.zRot = 0.0F;
+            float partial = age - entity.tickCount;
+            gulliver.client.EatPose.apply(rightArm, gulliver.client.EatPose.lift(entity, partial),
+                    gulliver.client.EatPose.bite(entity, partial));
         }
         if (g.isRafting()) {
             rightArm.xRot = Mth.cos(pos * 0.6662F * 0.125F + (float) Math.PI) * 2.0F * speed * 0.5F;

@@ -27,6 +27,14 @@ public interface IGulliverShoulderInternal {
      * Convenience: returns true iff the entity is carried in any slot
      * by the given carrier UUID.
      */
+    /**
+     * Ticks since this body started bringing its hand-held creature to its
+     * mouth (Appetite), or -1 while it isn't eating. Kept on both sides:
+     * the server counts it, clients count from the ActionState packet.
+     */
+    int gulliver$getChewTicks();
+    void gulliver$setChewTicks(int ticks);
+
     default boolean gulliver$hasAnyCarry() {
         return gulliver$getHandEntity() != null
             || gulliver$getRightShoulder() != null

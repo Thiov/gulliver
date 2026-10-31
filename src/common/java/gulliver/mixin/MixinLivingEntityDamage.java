@@ -79,6 +79,18 @@ public abstract class MixinLivingEntityDamage {
         }
     }
 
+    /** A monster holding its prey up drops it when it gets hurt (Appetite). */
+    //#if MC >= 1.21.2
+    @Inject(method = "hurtServer", at = @At("RETURN"))
+    private void gulliver$dropMealWhenHurt(ServerLevel level, DamageSource source, float amount,
+                                           CallbackInfoReturnable<Boolean> cir) {
+    //#else
+    //$$ @Inject(method = "hurt", at = @At("RETURN"))
+    //$$ private void gulliver$dropMealWhenHurt(DamageSource source, float amount, CallbackInfoReturnable<Boolean> cir) {
+    //#endif
+        if (cir.getReturnValueZ()) gulliver.common.Appetite.onHurt((LivingEntity) (Object) this);
+    }
+
     //#if MC >= 1.21.2
     @ModifyVariable(method = "hurtServer", at = @At("HEAD"), argsOnly = true, ordinal = 0)
     private float gulliver$scaleAmount(float amount, ServerLevel level, DamageSource source) {
@@ -90,7 +102,7 @@ public abstract class MixinLivingEntityDamage {
         LivingEntity self = (LivingEntity) (Object) this;
         Entity attacker = source.getEntity();
         if (!(attacker instanceof LivingEntity attackerLiv) || attacker == self) return amount;
-        if (source.is(GulliverDamageTypes.PASSIVE) || source.is(GulliverDamageTypes.EATEN)) return amount; // already size-scaled / always lethal
+        if (source.is(GulliverDamageTypes.PASSIVE)) return amount; // already size-scaled
         float targetSize = ((IResizeableEntity) self).getSizeMultiplier();
         float attackerSize = ((IResizeableEntity) attacker).getSizeMultiplier();
         float ratio = 1.0F;

@@ -2,7 +2,7 @@
 
 Shrink down to explore the world from an ant's-eye view, or grow into a world-crushing giant. Resize yourself and other entities anywhere from **0.125× to 8×** (configurable from 1/32× up to 32×), and everything scales to match: how far you reach, how hard you hit, how mobs react to you, how the world sounds, and how it *feels* when something enormous walks past.
 
-Inspired by UncleMion's classic Gulliver mod for 1.6.4. No scaling library is needed: on Fabric the only dependency is the Fabric API, on NeoForge and Forge there are none.
+Inspired by UncleMion's classic Gulliver mod for 1.6.4; on CurseForge and Modrinth it's **Gulliver Unbound**. No scaling library is needed: on Fabric the only dependency is the Fabric API, on NeoForge and Forge there are none.
 
 ## Downloads
 
@@ -15,14 +15,14 @@ Inspired by UncleMion's classic Gulliver mod for 1.6.4. No scaling library is ne
 | 1.21.10   | ✓ | ✓ | ✓ |
 | 1.20.1    | ✓ | ✓ | ✓ |
 
-Get the jars from the [releases page](https://github.com/Thiov/gulliver/releases) and pick the one whose name matches your loader and Minecraft version, e.g. `gulliver-1.2.0+neoforge-26.3.jar`. Fabric needs the Fabric API; Mod Menu is optional (settings button).
+Download **Gulliver Unbound** from [CurseForge](https://www.curseforge.com/projects/1539752) or [Modrinth](https://modrinth.com/mod/gulliver-unbound), or get the jars from the [releases page](https://github.com/Thiov/gulliver/releases) and pick the one whose name matches your loader and Minecraft version, e.g. `gulliver-1.3.0+neoforge-26.3.jar`. Fabric needs the Fabric API; Mod Menu is optional (settings button). Install it on the server and on every client.
 
 ## Features
 
 **Everything scales with your size**
 - **Movement**: walk speed, jump height, step height, and fall damage.
 - **Falling**: the smaller you are, the lower your terminal velocity, so long falls become a leaf-light drift while jumps stay snappy. Giants fall normally, but landing from a real height sets off a ground-shock that booms, kicks up dust, and knocks smaller creatures off their feet.
-- **Reach**: interaction range scales with size. Tinies get a bump when holding a tool. With Better Combat on 1.20.1, weapon swings reach as far as you do.
+- **Reach**: interaction range scales with size. Tinies get a bump when holding a tool. Better Combat's weapon swings reach as far as you do.
 - **Combat**: damage and knockback scale with the size gap. A much bigger mob often swings right over a tiny. Drawing a bow, cranking a crossbow, or winding up a trident takes longer the smaller you are.
 - **Trampling**: anything walking over a creature well under half its size tramples it, so a normal zombie is a real danger to a quarter-size player. Giants also trample crops, trip pressure plates, and crack brittle floors. Sneak or crawl (vanilla, ParCool or Crawl) to step carefully and trample nothing; how hard a step hits is a setting.
 - **Mob AI**: mobs ignore prey far smaller than themselves, though spiders, silverfish, endermites, and bees will always hunt tinies.
@@ -35,8 +35,8 @@ Get the jars from the [releases page](https://github.com/Thiov/gulliver/releases
 **Giant powers**
 - **Fists that span blocks**: breaking a block shatters a fist-shaped crater around it, up to a 7×7 disc at size 8. Collateral blocks only drop what your tool can harvest, and wear the tool.
 - **Sweeping blows**: melee hits splash damage onto creatures around your target.
-- **Giant appetite**: as a giant (size 2+), hold sneak + right-click with a creature in your hand to eat it (a quarter of your size or smaller). Hostile giants swallow small prey that is down to a third of its health, and heal from it.
-- **Breath gust**: hold **G** to blow a cone of wind. It pushes creatures smaller than you away (a giant knocks normal mobs back, a normal player only stirs a tiny), turns arrows and fireballs around, and blows out candles, campfires and fire. Bigger lungs blow harder and further; it costs air, so you can't blow forever.
+- **Appetite**: anything can eat a creature a quarter of its size or smaller. Hold a creature in your hand and hold sneak + right-click: you lift it to your mouth (you see your arm come up in first and third person) and bite it. Hostile mobs snatch small prey that is down to a third of its health, lift it to their mouth and bite it four times. Every bite is real damage that armor, Protection and Resistance reduce, so a well-armored tiny takes more bites, and one that survives them all is spat out, hurt but alive. Hurting the monster makes it drop you; sneaking doesn't. Eaten creatures leave no loot and feed the eater.
+- **Breath gust**: hold **G** to blow a cone of wind, four of your own lengths long. It only moves what's lighter than you, harder the lighter it is: a giant knocks normal mobs back, a normal player only stirs a tiny, and nobody can shove something their own size. It turns arrows and fireballs around and blows out candles, campfires and fire. The gust is drawn to your size: a faint whisper for a tiny, a stream of breath at normal size, a corkscrewing gale that kicks up the ground and whips up spray for a giant, rolling rings of wind for a colossus. It costs air, so you can't blow forever.
 - **Precision mode**: hold sneak for a single block and a single target.
 - **Growing pains**: grow indoors and your body bursts through weak blocks above you.
 
@@ -55,7 +55,7 @@ Get the jars from the [releases page](https://github.com/Thiov/gulliver/releases
 **Carry**
 - Sneak + right-click (empty hand) a creature under 0.4× your size to scoop it into your hand.
 - Press **V** to move carried creatures between hand and shoulders, up to three at once.
-- Right-click to set one down, left-click to throw it. The bigger you are, the further it flies. As a giant, hold sneak + right-click to eat it instead.
+- Right-click to set one down, left-click to throw it. The bigger you are, the further it flies. Hold sneak + right-click to eat it instead (if it's a quarter of your size or smaller).
 - Other players can only be carried where PvP is allowed, and can always break free by sneaking. Bosses can't be carried.
 
 **Polish**: resizing animates smoothly with a puff and a rising or falling sound, and the action bar shows your new size. Held items, name tags, shadows, view-bobbing, the third-person camera distance, water splashes and eating speed all scale with size. Giant mobs drop more loot, tiny ones less, and can optionally show a boss bar. A Gulliver advancement tab tracks the milestones.
@@ -67,7 +67,7 @@ Get the jars from the [releases page](https://github.com/Thiov/gulliver/releases
 - **Potions**: brew Ensmallening from an awkward potion + red mushroom, Embiggening with a brown mushroom. Redstone extends, glowstone strengthens.
 - **Drink Me / Eat Me**: right-click cyan dye or a red mushroom to shrink, purple dye or a brown mushroom to grow.
 - **Commands** (operators): `/gulliver size <targets> <size>`, `/gulliver scale <targets> <factor>`, `/gulliver get <target>` and `/gulliver reload` take normal selectors (`@e[type=cow,distance=..10]`, player names). The classic `/basesize`, `/halfsize`, `/doublesize`, `/showsize`, `/instantkarma` and their `entity…` variants (by entity id) still work. `/showmysize` and `/shoulderentity` work for everyone.
-- **Keybinds** (creative): **U** grow, **I** shrink. Hold a **stick** and they resize the creature under your crosshair instead.
+- **Keybinds** (creative): **U** grow, **I** shrink. Hold a **stick** and they resize the creature under your crosshair instead. For everyone: **V** moves carried creatures between hand and shoulders, **G** (hold) blows a breath gust. All of them can be rebound in Controls.
 
 ## Configuration
 

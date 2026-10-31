@@ -22,6 +22,8 @@ public abstract class MixinHumanoidRenderState implements IGlideRenderState {
     @Unique private float gulliver$sizeMultiplier = 1.0F;
     @Unique private float gulliver$extractScale = 1.0F;
     @Unique private net.minecraft.world.entity.HumanoidArm gulliver$propArm;
+    @Unique private float gulliver$eatLift;
+    @Unique private float gulliver$eatBite;
 
     @Override @Unique public boolean gulliver$isGliding() { return gulliver$isGliding; }
     @Override @Unique public boolean gulliver$doesUmbrella() { return gulliver$doesUmbrella; }
@@ -37,5 +39,8 @@ public abstract class MixinHumanoidRenderState implements IGlideRenderState {
     @Override @Unique public void gulliver$setExtractScale(float v) { gulliver$extractScale = v; }
     @Override @Unique public net.minecraft.world.entity.HumanoidArm gulliver$getPropArm() { return gulliver$propArm; }
     @Override @Unique public void gulliver$setPropArm(net.minecraft.world.entity.HumanoidArm arm) { gulliver$propArm = arm; }
+    @Override @Unique public float gulliver$getEatLift() { return gulliver$eatLift; }
+    @Override @Unique public float gulliver$getEatBite() { return gulliver$eatBite; }
+    @Override @Unique public void gulliver$setEat(float lift, float bite) { gulliver$eatLift = lift; gulliver$eatBite = bite; }
 }
 //#endif

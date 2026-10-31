@@ -1,11 +1,18 @@
 # Changelog
 
-## Unreleased
+## 1.3.0
 
 ### New
 
-- **Breath gust** (#10): hold **G** to blow a cone of wind out of your mouth. Creatures smaller than you are pushed away (the wind's strength is your size, their weight is theirs), arrows and fireballs are turned around and become yours, and lit candles, campfires and fire straight ahead go out. Walls stop the wind, and your pets, teammates and carried creatures are left alone. It costs air: full lungs last about three seconds, and once they are empty you have to let go and catch your breath. Not underwater; creative players never run out. Can be turned off (`general.breathGust`).
-- **Giant appetite**: giants (size 2 and up) eat creatures a quarter of their size or smaller. Holding a creature in your hand, **hold sneak + right-click** on nothing to eat it like food: you get food from its health (undead taste like rotten flesh, spiders like spider eyes). Hostile giant mobs swallow small prey that is down to a third of its health, and heal from it — keep your health up near giants. Eaten creatures leave no body and no loot (what they carried still drops); pets, teammates and bosses are never eaten, players only where PvP is on. New advancement **Fee-Fi-Fo-Fum**. Can be turned off (`general.giantAppetite`).
+- **Appetite**: anything can eat a creature a quarter of its size or smaller (by size difference, like trampling and carrying).
+  - Hold a creature in your hand and **hold sneak + right-click** on nothing: you lift it to your mouth, your arm following in first and third person, and bite it. A creature that can't be eaten is set down as before.
+  - Hostile mobs snatch small prey that is down to a third of its health, lift it to their mouth and bite it four times. Sneaking doesn't get you out; hurting the monster (you or a friend) makes it drop you.
+  - Every bite is real damage, scaled by the size gap and reduced by armor, Protection and Resistance (shields can't stop it). The bite that finishes the meal swallows it ("was eaten by…"); a meal that survives every bite is spat out, hurt but alive. Armor is what keeps a tiny from being eaten.
+  - Eaten creatures leave no body, loot or experience (players still drop their inventory). Players gain food from the meal's health, monsters heal; undead meals cause hunger, spiders and other arthropods poison. Pets, teammates and bosses are never eaten, players only where PvP is allowed. New advancement **Fee-Fi-Fo-Fum**. Can be turned off (`general.giantAppetite`).
+- **Breath gust** (#10): hold **G** to blow a cone of wind, four of your own lengths long.
+  - It only moves what's lighter than you, harder the lighter it is: a giant knocks normal mobs back, a normal player only stirs a tiny, nobody can shove something their own size. Arrows and fireballs are turned around and become yours; lit candles, campfires and fire straight ahead go out. Walls stop the wind, and your pets, teammates and carried creatures are left alone.
+  - Drawn and heard at your size: a faint whisper for a tiny, a stream of breath at normal size, a corkscrewing gale that kicks up the ground under it (dirt, sand, leaves) and whips up spray from water for a giant, and rings of wind rolling out from a colossus. The rush of wind deepens and carries further the bigger you are. The particle setting thins it out.
+  - It costs air: full lungs last about three seconds, and once they are empty you have to let go and catch your breath. Not underwater; creative players never run out. Can be turned off (`general.breathGust`).
 - **Trample damage setting** (#8): `general.trampleDamage` (0 to 10×, default 1) scales how hard trampling hits, and its cap. At 10× a giant's step flattens what it crushes; 0 turns the damage off.
 
 ### Fixed

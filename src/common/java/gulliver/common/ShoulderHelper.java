@@ -215,12 +215,38 @@ public final class ShoulderHelper {
      * still gets a detach so its slot clears). Single source of truth for
      * every hand-drop: swap, set-down, place-on-block, throw.
      */
-    public static Entity detachHand(ServerPlayer carrier) {
+    public static Entity detachHand(LivingEntity carrier) {
         IGulliverShoulderInternal cs = (IGulliverShoulderInternal) carrier;
         UUID handId = cs.gulliver$getHandEntity();
         if (handId == null) return null;
         cs.gulliver$setHandEntity(null);
-        return release(carrier, handId, SLOT_HAND);
+        return release(carrier, handId, SLOT_HAND, true);
+    }
+
+    /**
+     * Like detachHand, but the creature is not set down anywhere: it is
+     * about to be eaten (Appetite) where it is, at the carrier's mouth.
+     */
+    public static Entity takeFromHand(LivingEntity carrier) {
+        IGulliverShoulderInternal cs = (IGulliverShoulderInternal) carrier;
+        UUID handId = cs.gulliver$getHandEntity();
+        if (handId == null) return null;
+        cs.gulliver$setHandEntity(null);
+        return release(carrier, handId, SLOT_HAND, false);
+    }
+
+    /**
+     * A giant mob snatches its prey into its hand (Appetite): the same
+     * carry the players use, without the player-only pick-up rules.
+     */
+    public static void grab(LivingEntity carrier, Entity prey) {
+        ((IGulliverShoulderInternal) carrier).gulliver$setHandEntity(prey.getUUID());
+        ((IGulliverShoulderInternal) prey).gulliver$setHoldingEntity(carrier.getUUID());
+        prey.noPhysics = true;
+        prey.setDeltaMovement(0.0D, 0.0D, 0.0D);
+        // Everyone tracking the carrier, the prey's own client included.
+        Services.platform().sendToTrackingAndSelf(carrier, new Payloads.AttachEntitySpecial(
+                prey.getId(), carrier.getId(), SLOT_HAND));
     }
 
     /**
@@ -229,11 +255,19 @@ public final class ShoulderHelper {
      * when the entity is gone (disconnected, converted, changed dimension).
      * Only an entity this carrier really holds is touched.
      */
-    private static Entity release(ServerPlayer carrier, UUID id, byte slot) {
+    private static Entity release(LivingEntity carrier, UUID id, byte slot) {
+        return release(carrier, id, slot, true);
+    }
+
+    private static Entity release(LivingEntity carrier, UUID id, byte slot, boolean setDown) {
         Entity held = resolve((ServerLevel) carrier.level(), id);
         if (held != null && carrier.getUUID().equals(holderOf(held))) {
             ((IGulliverShoulderInternal) held).gulliver$setHoldingEntity(null);
-            settle(held, carrier);
+            if (setDown) {
+                settle(held, carrier);
+            } else {
+                held.noPhysics = false;
+            }
         } else {
             held = null;
         }
@@ -358,10 +392,11 @@ public final class ShoulderHelper {
         carried.noPhysics = false;
         if (!(carried.level() instanceof ServerLevel sl)) return;
         Entity carrier = sl.getEntity(carrierId);
-        if (!(carrier instanceof ServerPlayer cp)) return;
+        if (!(carrier instanceof LivingEntity cp)) return;
         byte slot = slotOf(cp, carried.getUUID());
         if (slot == SLOT_DETACH) return;
         clearSlot(cp, slot);
+        if (slot == SLOT_HAND) Appetite.stopChewing(cp);
         Services.platform().sendToTrackingAndSelf(cp, new Payloads.AttachEntitySpecial(
                 carried.getId(), cp.getId(), (byte) (RELEASED + slot)));
     }
@@ -531,9 +566,11 @@ public final class ShoulderHelper {
     /**
      * Snap each carried entity to its slot. Runs on the server and on every
      * client — for the local player via Player.aiStep, for other players
-     * via their client-side tick — so everybody sees the same thing.
+     * via their client-side tick, for mobs via LivingEntity.aiStep — so
+     * everybody sees the same thing. While the carrier eats (Appetite) the
+     * hand brings its creature up to the mouth and chews.
      */
-    public static void positionPassengers(Player carrier) {
+    public static void positionPassengers(LivingEntity carrier) {
         IGulliverShoulderInternal cs = (IGulliverShoulderInternal) carrier;
         UUID hand = cs.gulliver$getHandEntity();
         UUID right = cs.gulliver$getRightShoulder();
@@ -555,9 +592,25 @@ public final class ShoulderHelper {
         double shoulderY = carrier.getY() + carrier.getBbHeight() * (24.0D / 32.0D);
 
         if (hand != null) {
-            place(carrier, hand, SLOT_HAND,
-                    carrier.getX() + rightX * sideUnit + fwdX * armLength, shoulderY,
-                    carrier.getZ() + rightZ * sideUnit + fwdZ * armLength);
+            double hx = carrier.getX() + rightX * sideUnit + fwdX * armLength;
+            double hz = carrier.getZ() + rightZ * sideUnit + fwdZ * armLength;
+            double hy = shoulderY;
+            float lift = Appetite.lift(carrier, 0.0F);
+            if (lift > 0.0F) {
+                // To the mouth: just in front of the face, the creature's
+                // middle at mouth height, bobbing with every bite.
+                Entity held = lookup(carrier, hand);
+                double half = held == null ? 0.0D : held.getBbHeight() * 0.5D;
+                Vec3 eye = carrier.getEyePosition();
+                double reach = carrier.getBbWidth() * 0.55D;
+                double mx = eye.x + fwdX * reach;
+                double mz = eye.z + fwdZ * reach;
+                double my = eye.y - carrier.getBbHeight() * 0.07D - half + Appetite.chomp(carrier, 0.0F);
+                hx += (mx - hx) * lift;
+                hy += (my - hy) * lift;
+                hz += (mz - hz) * lift;
+            }
+            place(carrier, hand, SLOT_HAND, hx, hy, hz);
         }
         if (right != null) {
             place(carrier, right, SLOT_RIGHT,
@@ -569,28 +622,32 @@ public final class ShoulderHelper {
         }
     }
 
-    private static void place(Player carrier, UUID id, byte slot, double x, double y, double z) {
+    private static void place(LivingEntity carrier, UUID id, byte slot, double x, double y, double z) {
         Entity p = lookup(carrier, id);
-        boolean server = carrier instanceof ServerPlayer;
+        boolean server = !carrier.level().isClientSide();
         if (p == null || !p.isAlive() || !carrier.getUUID().equals(holderOf(p))) {
             // Gone, dead, or a respawned twin with the same UUID: free the slot.
             if (server) {
                 clearSlot(carrier, slot);
-                release((ServerPlayer) carrier, id, slot);
+                release(carrier, id, slot);
             }
             return;
         }
         if (server) {
-            // A carried player breaks free by sneaking; anything that grew too
-            // big for the hand slips out; a carrier turned spectator lets go;
-            // a carried creature that boarded something is no longer in hand.
-            boolean breakFree = p instanceof Player pl && (pl.isShiftKeyDown() || pl.isCreative() || pl.isSpectator())
+            // A carried player breaks free by sneaking (not from a monster's
+            // fist: that takes hurting the monster, see Appetite); anything
+            // that grew too big for the hand slips out; a carrier turned
+            // spectator lets go; a carried creature that boarded something
+            // is no longer in hand.
+            boolean breakFree = p instanceof Player pl && (pl.isCreative() || pl.isSpectator()
+                            || (pl.isShiftKeyDown() && carrier instanceof Player))
                     || carrier.isSpectator() || p.isPassenger();
             boolean tooBig = ((IResizeableEntity) p).getSizeMultiplier()
                     >= ((IResizeableEntity) carrier).getSizeMultiplier() * MAX_SIZE_RATIO * 1.25F;
             if (breakFree || tooBig) {
                 clearSlot(carrier, slot);
-                release((ServerPlayer) carrier, id, slot);
+                release(carrier, id, slot);
+                if (slot == SLOT_HAND) Appetite.stopChewing(carrier);
                 return;
             }
         }
@@ -622,7 +679,7 @@ public final class ShoulderHelper {
         p.noPhysics = true;
     }
 
-    private static void clearSlot(Player carrier, byte slot) {
+    private static void clearSlot(Entity carrier, byte slot) {
         IGulliverShoulderInternal cs = (IGulliverShoulderInternal) carrier;
         switch (slot) {
             case SLOT_HAND -> cs.gulliver$setHandEntity(null);
@@ -632,7 +689,7 @@ public final class ShoulderHelper {
         }
     }
 
-    private static Entity lookup(Player carrier, UUID id) {
+    private static Entity lookup(Entity carrier, UUID id) {
         if (carrier.level() instanceof ServerLevel sl) return sl.getEntity(id);
         // The slots are within an arm's length of the body; capped so a 32x giant doesn't scan a 150-block box every tick.
         double r = Math.min(Math.max(8.0D, carrier.getBbWidth() * 4.0D), 24.0D);

@@ -25,6 +25,13 @@ public final class ClientPacketHandlers {
             TremorHandler.groundShock(p.x(), p.y(), p.z(), p.sourceSize(), p.strength());
         } else if (payload instanceof Payloads.AttachEntitySpecial p) {
             onAttach(p);
+        } else if (payload instanceof Payloads.ActionState p) {
+            Entity e = entityById(p.entityId());
+            if (p.action() == Payloads.ActionState.BREATH) {
+                BreathFx.set(p.entityId(), p.active());
+            } else if (p.action() == Payloads.ActionState.CHEW && e != null) {
+                ((IGulliverShoulderInternal) e).gulliver$setChewTicks(p.active() ? 0 : -1);
+            }
         } else if (payload instanceof Payloads.HookAnchor p) {
             Entity hook = entityById(p.hookId());
             if (hook instanceof gulliver.access.IGulliverHookInternal h) {

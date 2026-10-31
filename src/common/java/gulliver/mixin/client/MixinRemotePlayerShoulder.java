@@ -17,6 +17,7 @@ public abstract class MixinRemotePlayerShoulder {
 
     @Inject(method = "aiStep", at = @At("RETURN"))
     private void gulliver$positionPassengers(CallbackInfo ci) {
+        gulliver.common.Appetite.tick((RemotePlayer) (Object) this);
         ShoulderHelper.positionPassengers((RemotePlayer) (Object) this);
     }
 }

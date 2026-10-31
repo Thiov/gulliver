@@ -12,7 +12,10 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import net.minecraft.server.level.ServerLevel;
 //#endif
 
-/** A hostile giant's melee strike on weakened prey a quarter its size swallows it (Appetite). */
+/**
+ * A hostile mob's melee strike on weakened prey a quarter its size snatches
+ * it instead (Appetite); while it holds its meal up it doesn't strike.
+ */
 @Mixin(Mob.class)
 public abstract class MixinMobAppetite {
 
@@ -25,8 +28,12 @@ public abstract class MixinMobAppetite {
     //$$ private void gulliver$swallow(Entity target, CallbackInfoReturnable<Boolean> cir) {
     //#endif
         Mob self = (Mob) (Object) this;
-        if (!self.level().isClientSide() && Appetite.swallowsInFight(self, target)) {
-            cir.setReturnValue(Appetite.eat(self, (LivingEntity) target));
+        if (self.level().isClientSide()) return;
+        if (Appetite.isChewing(self)) {
+            cir.setReturnValue(false);
+        } else if (Appetite.swallowsInFight(self, target)) {
+            Appetite.snatch(self, (LivingEntity) target);
+            cir.setReturnValue(true);
         }
     }
 }

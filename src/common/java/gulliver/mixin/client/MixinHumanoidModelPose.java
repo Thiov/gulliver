@@ -74,6 +74,7 @@ public abstract class MixinHumanoidModelPose {
             rightArm.xRot = -(float) (Math.PI / 2.0);
             rightArm.yRot = 0.0F;
             rightArm.zRot = 0.0F;
+            gulliver.client.EatPose.apply(rightArm, g.gulliver$getEatLift(), g.gulliver$getEatBite());
         }
         if (g.gulliver$isRafting()) {
             float pos = state.walkAnimationPos;

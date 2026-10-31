@@ -14,6 +14,9 @@ import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.EntityTypes;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.Pose;
+import net.minecraft.world.entity.ai.attributes.Attributes;
+import net.minecraft.world.effect.MobEffectInstance;
+import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.projectile.Projectile;
 import net.minecraft.world.level.block.Blocks;
@@ -168,7 +171,11 @@ final class SelfTestIssues {
         }
     }
 
-    /** Giants eat: who may eat whom, and a hostile giant swallowing weakened prey through its real attack. */
+    /**
+     * Bigger things eat smaller things: who may eat whom, and a hostile giant
+     * snatching weakened prey through its real attack, lifting it to its
+     * mouth and swallowing it - or dropping it when it gets hurt.
+     */
     private static void appetite(ServerLevel level, List<String> failures) {
         BlockPos at = new BlockPos(32, 0, 8);
         Mob giant = SelfTest.spawnMob(level, EntityTypes.ZOMBIE, at);
@@ -177,31 +184,87 @@ final class SelfTestIssues {
         if (giant == null || pig == null || normal == null) return;
         ((IResizeableLiving) giant).setBaseSize(8.0F);
         check(failures, Appetite.canEat(giant, pig), "a size-8 giant may eat a normal pig");
-        check(failures, !Appetite.canEat(normal, pig), "a normal zombie eats nobody");
+        check(failures, !Appetite.canEat(normal, pig), "a zombie can't eat a pig its own size");
+        ((IResizeableLiving) pig).setBaseSize(0.25F);
+        check(failures, Appetite.canEat(normal, pig), "a normal zombie may eat a quarter-size pig (size difference)");
         ((IResizeableLiving) pig).setBaseSize(4.0F);
         check(failures, !Appetite.canEat(giant, pig), "a meal must be a quarter of the eater's size");
         ((IResizeableLiving) pig).setBaseSize(1.0F);
-        check(failures, !Appetite.swallowsInFight(giant, pig), "a healthy pig is fought, not swallowed");
+        check(failures, !Appetite.swallowsInFight(giant, pig), "a healthy pig is fought, not snatched");
 
         pig.setHealth(3.0F);
         giant.setHealth(50.0F);
         Vec3 where = pig.position();
-        //#if MC >= 1.21.2
-        boolean hit = giant.doHurtTarget(level, pig);
-        //#else
-        //$$ boolean hit = giant.doHurtTarget(pig);
-        //#endif
+        boolean hit = attack(level, giant, pig);
+        boolean held = giant.getUUID().equals(((gulliver.access.IGulliverShoulderInternal) pig).gulliver$getHoldingEntity());
+        check(failures, hit && held && Appetite.isChewing(giant) && pig.isAlive(),
+                "a hostile giant snatches a weakened pig into its hand first");
+        for (int i = 0; i < Appetite.GULP_TICKS + 2 && !pig.isRemoved(); i++) {
+            Appetite.tick(giant);
+            gulliver.common.ShoulderHelper.positionPassengers(giant);
+        }
         List<ItemEntity> loot = level.getEntitiesOfClass(ItemEntity.class,
-                new net.minecraft.world.phys.AABB(where, where).inflate(3.0D));
+                new net.minecraft.world.phys.AABB(where, where).inflate(16.0D));
         // (the giant's growth may have broken some dirt; the pig's own loot is pork)
         boolean noLoot = loot.stream().noneMatch(i -> i.getItem().is(net.minecraft.world.item.Items.PORKCHOP));
-        check(failures, hit && pig.isRemoved() && giant.getHealth() > 50.0F && noLoot,
-                "a hostile giant swallows a weakened pig whole and heals (removed " + pig.isRemoved()
-                        + ", health " + giant.getHealth() + ", loot " + loot.stream()
-                        .map(i -> i.getItem().getItem().toString()).toList() + ")");
+        check(failures, pig.isRemoved() && giant.getHealth() > 50.0F && noLoot && !Appetite.isChewing(giant),
+                "...then lifts it to its mouth and swallows it whole, healing (removed " + pig.isRemoved()
+                        + ", health " + giant.getHealth() + ", no pork " + noLoot + ")");
+
+        Mob second = SelfTest.spawnMob(level, EntityTypes.PIG, at);
+        if (second != null) {
+            second.setHealth(3.0F);
+            attack(level, giant, second);
+            for (int i = 0; i < 5; i++) Appetite.tick(giant);
+            //#if MC >= 1.21.2
+            giant.hurtServer(level, level.damageSources().generic(), 2.0F);
+            //#else
+            //$$ giant.hurt(level.damageSources().generic(), 2.0F);
+            //#endif
+            check(failures, second.isAlive() && !Appetite.isChewing(giant)
+                            && ((gulliver.access.IGulliverShoulderInternal) second).gulliver$getHoldingEntity() == null,
+                    "a giant that gets hurt drops the creature it was about to eat");
+            second.discard();
+        }
+
+        // Armor is what keeps a small meal from being eaten: it takes more bites,
+        // and a meal that comes through every bite is spat out, hurt but alive.
+        Mob armored = SelfTest.spawnMob(level, EntityTypes.PIG, at);
+        if (armored != null) {
+            armored.getAttribute(Attributes.ARMOR).setBaseValue(20.0D);
+            armored.getAttribute(Attributes.ARMOR_TOUGHNESS).setBaseValue(12.0D);
+            armored.setHealth(3.0F);
+            attack(level, giant, armored);
+            for (int i = 0; i < (int) Appetite.LIFT_TICKS + 3; i++) Appetite.tick(giant);
+            boolean afterFirst = armored.isAlive();
+            for (int i = 0; i < Appetite.GULP_TICKS && !armored.isRemoved(); i++) Appetite.tick(giant);
+            check(failures, afterFirst && armored.isRemoved(), "an armored meal takes more than one bite");
+            if (!armored.isRemoved()) armored.discard();
+        }
+        Mob tough = SelfTest.spawnMob(level, EntityTypes.PIG, at);
+        if (tough != null) {
+            tough.getAttribute(Attributes.ARMOR).setBaseValue(20.0D);
+            tough.getAttribute(Attributes.ARMOR_TOUGHNESS).setBaseValue(12.0D);
+            tough.addEffect(new MobEffectInstance(MobEffects.RESISTANCE, 600, 3));
+            tough.setHealth(3.0F);
+            attack(level, giant, tough);
+            for (int i = 0; i < Appetite.GULP_TICKS + 2; i++) Appetite.tick(giant);
+            check(failures, tough.isAlive() && !Appetite.isChewing(giant) && tough.getHealth() < 3.0F
+                            && ((gulliver.access.IGulliverShoulderInternal) tough).gulliver$getHoldingEntity() == null,
+                    "a meal that comes through every bite is spat out, hurt (health " + tough.getHealth() + ")");
+            tough.discard();
+        }
         giant.discard();
         normal.discard();
         if (!pig.isRemoved()) pig.discard();
+    }
+
+    private static boolean attack(ServerLevel level, Mob attacker, Entity target) {
+        //#if MC >= 1.21.2
+        return attacker.doHurtTarget(level, target);
+        //#else
+        //$$ return attacker.doHurtTarget(target);
+        //#endif
     }
 
     private static EntityType<?> boatType() {

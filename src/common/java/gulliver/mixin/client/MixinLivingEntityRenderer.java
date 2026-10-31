@@ -63,6 +63,7 @@ public abstract class MixinLivingEntityRenderer {
             g.gulliver$setExtractScale(state.scale);
             g.gulliver$setHandPassenger(((gulliver.access.IGulliverShoulderInternal) entity)
                     .gulliver$getHandEntity() != null);
+            g.gulliver$setEat(gulliver.client.EatPose.lift(entity, partialTick), gulliver.client.EatPose.bite(entity, partialTick));
             // Which arm holds the active prop (lily-pad raft/umbrella or
             // glider paper) — either hand works.
             g.gulliver$setPropArm(sized.isRafting() || sized.doesUmbrella()

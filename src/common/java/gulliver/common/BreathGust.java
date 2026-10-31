@@ -4,7 +4,6 @@ import gulliver.access.IGulliverShoulderInternal;
 import gulliver.api.IResizeableEntity;
 import gulliver.platform.Services;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
@@ -34,13 +33,18 @@ import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Breath gusts (issue #10): holding the breath key blows a cone of wind
- * out of the mouth. The wind's strength is the blower's size and each
- * thing's inertia its own size, so a giant knocks normal mobs back the way
- * a normal player only stirs a tiny, and a giant's gust turns arrows and
- * fireballs around (deflected projectiles count as the blower's). Lit
- * candles, campfires and fire straight ahead are blown out, walls stop the
- * wind, and the blower's pets, teammates and anything it carries are left
- * alone, like with trampling.
+ * out of the mouth, four of the blower's own lengths long. The wind only
+ * moves what is lighter than the blower: the push grows with how many
+ * times lighter a thing is (its size, items and projectiles counting a
+ * quarter), so a giant knocks normal mobs back the way a normal player
+ * stirs a tiny, nobody can shove something its own size, and a giant's
+ * gust turns arrows and fireballs around (deflected projectiles count as
+ * the blower's). Lit candles, campfires and fire straight ahead are blown
+ * out, walls stop the wind, and the blower's pets, teammates and anything
+ * it carries are left alone, like with trampling.
+ *
+ * The server only says who is blowing (ActionState); every client draws
+ * the gust itself, sized to the blower (client.BreathFx).
  *
  * Blowing costs air: lungs that are full last three seconds of gust, the
  * gust stops when they are empty and only starts again once the key has
@@ -67,6 +71,8 @@ public final class BreathGust {
     private static final class State {
         long lastRequest;
         boolean exhausted;
+        /** Whether clients were told this body is blowing. */
+        boolean shown;
         int ticks;
     }
 
@@ -81,7 +87,13 @@ public final class BreathGust {
 
     /** The breath key came up: the gust ends and empty lungs may blow again next time. */
     public static void stop(ServerPlayer player) {
-        BLOWERS.remove(player.getUUID());
+        State state = BLOWERS.remove(player.getUUID());
+        if (state != null && state.shown) show(player, false);
+    }
+
+    private static void show(ServerPlayer player, boolean on) {
+        Services.platform().sendToTrackingAndSelf(player,
+                new gulliver.network.Payloads.ActionState(player.getId(), gulliver.network.Payloads.ActionState.BREATH, on));
     }
 
     /** Server tick of every player (from LivingEntity.aiStep). */
@@ -90,19 +102,31 @@ public final class BreathGust {
         if (state == null) return;
         if (!GulliverConfig.INSTANCE.general.breathGust || !player.isAlive() || player.isSpectator()
                 || player.isSleeping() || player.level().getGameTime() - state.lastRequest > KEEP_ALIVE) {
-            BLOWERS.remove(player.getUUID());
+            stop(player);
             return;
         }
-        if (state.exhausted || player.isEyeInFluid(FluidTags.WATER)) return;
+        if (!state.exhausted && !player.getAbilities().invulnerable && player.getAirSupply() <= 0) {
+            state.exhausted = true;
+        }
+        boolean blowing = !state.exhausted && !player.isEyeInFluid(FluidTags.WATER);
+        if (blowing != state.shown) {
+            state.shown = blowing;
+            show(player, blowing);
+            if (blowing) huff((ServerLevel) player.level(), player);
+        }
+        if (!blowing) return;
         if (!player.getAbilities().invulnerable) {
-            int air = player.getAirSupply();
-            if (air <= 0) {
-                state.exhausted = true;
-                return;
-            }
-            player.setAirSupply(Math.max(0, air - AIR_PER_TICK));
+            player.setAirSupply(Math.max(0, player.getAirSupply() - AIR_PER_TICK));
         }
         blow((ServerLevel) player.level(), player, state.ticks++);
+    }
+
+    /** The intake of breath that starts a gust. */
+    private static void huff(ServerLevel level, LivingEntity blower) {
+        float size = ((IResizeableEntity) blower).getSizeMultiplier();
+        Vec3 eye = blower.getEyePosition();
+        level.playSound(null, eye.x, eye.y, eye.z, SoundEvents.HORSE_BREATHE, SoundSource.PLAYERS,
+                SizeSound.scaleVolume((IResizeableEntity) blower, 0.7F), Mth.clamp(1.3F / (float) Math.sqrt(size), 0.4F, 2.0F));
     }
 
     /**
@@ -116,11 +140,6 @@ public final class BreathGust {
         Vec3 eye = blower.getEyePosition();
         Vec3 dir = blower.getLookAngle();
 
-        if (tick % 10 == 0) {
-            level.playSound(null, eye.x, eye.y, eye.z, SoundEvents.HORSE_BREATHE, SoundSource.PLAYERS,
-                    SizeSound.scaleVolume((IResizeableEntity) blower, 0.6F), Mth.clamp(1.3F / (float) Math.sqrt(size), 0.4F, 2.0F));
-        }
-        puffs(level, eye, dir, range, size, blower);
         if (tick % 5 == 0 && blower instanceof ServerPlayer player) blowOutFlames(level, player, eye, dir, range);
 
         AABB box = new AABB(eye, eye.add(dir.scale(range))).inflate(range * 0.5D);
@@ -157,13 +176,19 @@ public final class BreathGust {
 
     /** How far a body of this size blows: four of its own lengths. */
     public static double range(float size) {
-        return Mth.clamp(4.0D * size, 1.0D, MAX_RANGE);
+        return Mth.clamp(4.0D * size, 0.25D, MAX_RANGE);
     }
 
-    /** Speed added this tick to {@code target} at {@code reach} (0 at the mouth, 1 at the end of the cone). */
+    /**
+     * Speed added this tick to {@code target} at {@code reach} (0 at the
+     * mouth, 1 at the end of the cone): nothing for what is as heavy as the
+     * blower or heavier, then growing with how many times lighter it is.
+     */
     static double push(float blowerSize, Entity target, double reach) {
         double mass = ((IResizeableEntity) target).getSizeMultiplier() * inertia(target);
-        double push = PUSH_PER_SIZE * blowerSize / Math.max(mass, 1.0E-3D) * (1.0D - reach);
+        double lighter = blowerSize / Math.max(mass, 1.0E-3D) - 1.0D;
+        if (lighter <= 0.0D) return 0.0D;
+        double push = PUSH_PER_SIZE * lighter * (1.0D - reach);
         if (target instanceof LivingEntity living) {
             push *= 1.0D - Mth.clamp(living.getAttributeValue(Attributes.KNOCKBACK_RESISTANCE), 0.0D, 1.0D);
         }
@@ -191,23 +216,6 @@ public final class BreathGust {
         //$$     fireball.zPower = along.z;
         //$$ }
         //#endif
-    }
-
-    /** Wisps of air streaming out of the mouth, more of them for a bigger mouth. */
-    private static void puffs(ServerLevel level, Vec3 eye, Vec3 dir, double range, float size, LivingEntity blower) {
-        int count = Mth.clamp(2 + Math.round(size * 1.5F), 2, 16);
-        double speed = Mth.clamp(0.25D * Math.sqrt(size), 0.08D, 1.5D);
-        double spread = range * 0.25D;
-        var random = blower.getRandom();
-        for (int i = 0; i < count; i++) {
-            double along = random.nextDouble() * range * 0.6D + 0.3D * size;
-            double off = random.nextDouble() * spread * (along / range);
-            double x = eye.x + dir.x * along + (random.nextDouble() - 0.5D) * off;
-            double y = eye.y + dir.y * along + (random.nextDouble() - 0.5D) * off;
-            double z = eye.z + dir.z * along + (random.nextDouble() - 0.5D) * off;
-            // count 0: the three offsets are the particle's velocity
-            level.sendParticles(ParticleTypes.CLOUD, x, y, z, 0, dir.x, dir.y, dir.z, speed);
-        }
     }
 
     /** Lit candles, campfires and fire in the middle of the gust go out. */

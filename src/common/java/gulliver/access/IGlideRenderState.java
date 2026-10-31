@@ -28,4 +28,8 @@ public interface IGlideRenderState {
     void gulliver$setHandPassenger(boolean v);
     void gulliver$setSizeMultiplier(float v);
     void gulliver$setExtractScale(float v);
+    /** Eating (Appetite): how far the hand is up at the mouth, 0..1, and the depth of the current bite, 0..1. */
+    float gulliver$getEatLift();
+    float gulliver$getEatBite();
+    void gulliver$setEat(float lift, float bite);
 }
