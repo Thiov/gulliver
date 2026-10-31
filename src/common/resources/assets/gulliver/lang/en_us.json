@@ -39,6 +39,9 @@
   "death.attack.gulliver.passive.player": "%1$s was crushed by %2$s whilst trying to escape %3$s",
   "death.attack.gulliver.rain": "%1$s drowned in the rain",
   "death.attack.gulliver.rain.player": "%1$s drowned in the rain whilst trying to escape %2$s",
+  "death.attack.gulliver.eaten": "%1$s was eaten by %2$s",
+  "death.attack.gulliver.eaten.item": "%1$s was eaten by %2$s",
+  "death.attack.gulliver.eaten.player": "%1$s was eaten by %2$s",
   "gulliver.size_readout": "Size %s×",
   "gulliver.tooltip.glide": "Hold while falling to glide",
   "gulliver.tooltip.raft": "Float on water, or hold up in the rain as an umbrella",
@@ -91,6 +94,8 @@
   "gulliver.config.trampleDamage.tooltip": "How hard trampling hits. Raise it and a giant's step flattens whatever it crushes; sneaking or crawling never tramples.",
   "gulliver.config.breathGust": "Breath Gust",
   "gulliver.config.breathGust.tooltip": "Hold the breath key to blow smaller creatures, items and projectiles away. Bigger lungs blow harder and further; it costs air.",
+  "gulliver.config.giantAppetite": "Giant Appetite",
+  "gulliver.config.giantAppetite.tooltip": "Giants (size 2 and up) eat creatures a quarter of their size: players by holding sneak + right-click with a creature in hand, hostile giants by swallowing prey that is down to a third of its health.",
   "gulliver.config.screenShake": "Screen Shake: %s",
   "gulliver.config.screenShake.off": "Screen Shake: Off",
   "gulliver.config.screenShake.tooltip": "How strongly the screen shakes when something huge walks past or lands. Vanilla's Damage Tilt option applies on top.",
@@ -120,5 +125,7 @@
   "advancements.gulliver.pocket_friend.title": "Pocket Friend",
   "advancements.gulliver.pocket_friend.description": "Pick up a creature and carry it in your hand",
   "advancements.gulliver.watch_your_step.title": "Watch Your Step",
-  "advancements.gulliver.watch_your_step.description": "Trample a creature far smaller than you"
+  "advancements.gulliver.watch_your_step.description": "Trample a creature far smaller than you",
+  "advancements.gulliver.fee_fi_fo_fum.title": "Fee-Fi-Fo-Fum",
+  "advancements.gulliver.fee_fi_fo_fum.description": "As a giant, eat a creature you are holding"
 }

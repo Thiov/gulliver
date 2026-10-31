@@ -90,7 +90,7 @@ public abstract class MixinLivingEntityDamage {
         LivingEntity self = (LivingEntity) (Object) this;
         Entity attacker = source.getEntity();
         if (!(attacker instanceof LivingEntity attackerLiv) || attacker == self) return amount;
-        if (source.is(GulliverDamageTypes.PASSIVE)) return amount; // already size-scaled
+        if (source.is(GulliverDamageTypes.PASSIVE) || source.is(GulliverDamageTypes.EATEN)) return amount; // already size-scaled / always lethal
         float targetSize = ((IResizeableEntity) self).getSizeMultiplier();
         float attackerSize = ((IResizeableEntity) attacker).getSizeMultiplier();
         float ratio = 1.0F;
@@ -125,6 +125,7 @@ public abstract class MixinLivingEntityDamage {
                 && source.getDirectEntity() == attacker
                 && !source.is(DamageTypeTags.IS_PROJECTILE)
                 && !source.is(DamageTypeTags.IS_EXPLOSION)
-                && !source.is(GulliverDamageTypes.PASSIVE);
+                && !source.is(GulliverDamageTypes.PASSIVE)
+                && !source.is(GulliverDamageTypes.EATEN);
     }
 }

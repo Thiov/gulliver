@@ -1,6 +1,7 @@
 package gulliver.debug;
 
 import gulliver.api.IResizeableLiving;
+import gulliver.common.Appetite;
 import gulliver.common.BreathGust;
 import gulliver.common.GulliverConfig;
 import gulliver.common.GulliverEnvoy;
@@ -13,13 +14,14 @@ import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.EntityTypes;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.Pose;
+import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.projectile.Projectile;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.phys.Vec3;
 
 import java.util.List;
 
-/** Checks for the fixes to issues #8 to #12; run by SelfTest. */
+/** Checks for the fixes to issues #8 to #12 and giant appetite; run by SelfTest. */
 final class SelfTestIssues {
     private SelfTestIssues() {}
 
@@ -32,6 +34,7 @@ final class SelfTestIssues {
         trampling(level, failures);
         breath(level, failures);
         boats(level, failures);
+        appetite(level, failures);
     }
 
     /** #9: sneaking and crawling tread carefully; #8: the damage setting scales trampling. */
@@ -163,6 +166,42 @@ final class SelfTestIssues {
                 }
             }
         }
+    }
+
+    /** Giants eat: who may eat whom, and a hostile giant swallowing weakened prey through its real attack. */
+    private static void appetite(ServerLevel level, List<String> failures) {
+        BlockPos at = new BlockPos(32, 0, 8);
+        Mob giant = SelfTest.spawnMob(level, EntityTypes.ZOMBIE, at);
+        Mob pig = SelfTest.spawnMob(level, EntityTypes.PIG, at);
+        Mob normal = SelfTest.spawnMob(level, EntityTypes.ZOMBIE, at);
+        if (giant == null || pig == null || normal == null) return;
+        ((IResizeableLiving) giant).setBaseSize(8.0F);
+        check(failures, Appetite.canEat(giant, pig), "a size-8 giant may eat a normal pig");
+        check(failures, !Appetite.canEat(normal, pig), "a normal zombie eats nobody");
+        ((IResizeableLiving) pig).setBaseSize(4.0F);
+        check(failures, !Appetite.canEat(giant, pig), "a meal must be a quarter of the eater's size");
+        ((IResizeableLiving) pig).setBaseSize(1.0F);
+        check(failures, !Appetite.swallowsInFight(giant, pig), "a healthy pig is fought, not swallowed");
+
+        pig.setHealth(3.0F);
+        giant.setHealth(50.0F);
+        Vec3 where = pig.position();
+        //#if MC >= 1.21.2
+        boolean hit = giant.doHurtTarget(level, pig);
+        //#else
+        //$$ boolean hit = giant.doHurtTarget(pig);
+        //#endif
+        List<ItemEntity> loot = level.getEntitiesOfClass(ItemEntity.class,
+                new net.minecraft.world.phys.AABB(where, where).inflate(3.0D));
+        // (the giant's growth may have broken some dirt; the pig's own loot is pork)
+        boolean noLoot = loot.stream().noneMatch(i -> i.getItem().is(net.minecraft.world.item.Items.PORKCHOP));
+        check(failures, hit && pig.isRemoved() && giant.getHealth() > 50.0F && noLoot,
+                "a hostile giant swallows a weakened pig whole and heals (removed " + pig.isRemoved()
+                        + ", health " + giant.getHealth() + ", loot " + loot.stream()
+                        .map(i -> i.getItem().getItem().toString()).toList() + ")");
+        giant.discard();
+        normal.discard();
+        if (!pig.isRemoved()) pig.discard();
     }
 
     private static EntityType<?> boatType() {

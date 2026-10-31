@@ -39,6 +39,9 @@
   "death.attack.gulliver.passive.player": "%1$s wurde von %2$s zerquetscht, während er versuchte, %3$s zu entkommen",
   "death.attack.gulliver.rain": "%1$s ertrank im Regen",
   "death.attack.gulliver.rain.player": "%1$s ertrank im Regen, während er versuchte, %2$s zu entkommen",
+  "death.attack.gulliver.eaten": "%1$s wurde von %2$s gefressen",
+  "death.attack.gulliver.eaten.item": "%1$s wurde von %2$s gefressen",
+  "death.attack.gulliver.eaten.player": "%1$s wurde von %2$s gefressen",
   "gulliver.size_readout": "Größe %s×",
   "gulliver.tooltip.glide": "Beim Fallen halten, um zu gleiten",
   "gulliver.tooltip.raft": "Schwimmt auf dem Wasser oder dient im Regen hochgehalten als Regenschirm",
@@ -91,6 +94,8 @@
   "gulliver.config.trampleDamage.tooltip": "Wie hart Trampeln trifft. Höher eingestellt, plättet der Schritt eines Riesen, was er zertritt; wer schleicht oder kriecht, trampelt nie.",
   "gulliver.config.breathGust": "Atemstoß",
   "gulliver.config.breathGust.tooltip": "Halte die Pustetaste, um kleinere Wesen, Gegenstände und Geschosse wegzublasen. Größere Lungen pusten stärker und weiter; es kostet Luft.",
+  "gulliver.config.giantAppetite": "Riesenhunger",
+  "gulliver.config.giantAppetite.tooltip": "Riesen (ab Größe 2) fressen Wesen bis zu einem Viertel ihrer Größe: Spieler, indem sie mit einem Wesen in der Hand Schleichen + Rechtsklick halten, feindliche Riesen, indem sie Beute mit höchstens einem Drittel Leben verschlingen.",
   "gulliver.config.screenShake": "Bildschirmwackeln: %s",
   "gulliver.config.screenShake.off": "Bildschirmwackeln: Aus",
   "gulliver.config.screenShake.tooltip": "Wie stark der Bildschirm wackelt, wenn etwas Riesiges vorbeiläuft oder landet. Die Vanilla-Option „Schadensneigung“ wirkt zusätzlich.",
@@ -120,5 +125,7 @@
   "advancements.gulliver.pocket_friend.title": "Taschenfreund",
   "advancements.gulliver.pocket_friend.description": "Nimm eine Kreatur auf und trage sie in deiner Hand",
   "advancements.gulliver.watch_your_step.title": "Pass auf, wo du hintrittst",
-  "advancements.gulliver.watch_your_step.description": "Zertrample eine Kreatur, die viel kleiner ist als du"
+  "advancements.gulliver.watch_your_step.description": "Zertrample eine Kreatur, die viel kleiner ist als du",
+  "advancements.gulliver.fee_fi_fo_fum.title": "Ich rieche Menschenfleisch!",
+  "advancements.gulliver.fee_fi_fo_fum.description": "Friss als Riese ein Wesen, das du in der Hand hältst"
 }

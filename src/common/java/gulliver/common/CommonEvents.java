@@ -76,6 +76,7 @@ public final class CommonEvents {
     public static void onPlayerLeave(ServerPlayer player) {
         ShoulderInteractHandler.onDisconnect(player);
         BreathGust.stop(player);
+        Appetite.forget(player);
     }
 
     public static void onPlayerChangedDimension(ServerPlayer player) {

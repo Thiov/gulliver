@@ -39,6 +39,9 @@
   "death.attack.gulliver.passive.player": "%1$s在試圖逃離%3$s時被%2$s壓扁了",
   "death.attack.gulliver.rain": "%1$s在雨中溺水了",
   "death.attack.gulliver.rain.player": "%1$s在試圖逃離%2$s時於雨中溺水了",
+  "death.attack.gulliver.eaten": "%1$s被%2$s吃掉了",
+  "death.attack.gulliver.eaten.item": "%1$s被%2$s吃掉了",
+  "death.attack.gulliver.eaten.player": "%1$s被%2$s吃掉了",
   "gulliver.size_readout": "體型 %s×",
   "gulliver.tooltip.glide": "墜落時按住即可滑翔",
   "gulliver.tooltip.raft": "可浮在水上，下雨時舉起可當作雨傘",
@@ -91,6 +94,8 @@
   "gulliver.config.trampleDamage.tooltip": "踐踏的傷害有多大。調高後，巨人一腳就能把踩到的東西踩扁；潛行或爬行時永遠不會踐踏。",
   "gulliver.config.breathGust": "氣息衝擊",
   "gulliver.config.breathGust.tooltip": "按住吹氣鍵，把比你小的生物、物品和投射物吹走。肺越大，吹得越猛越遠；會消耗空氣。",
+  "gulliver.config.giantAppetite": "巨人胃口",
+  "gulliver.config.giantAppetite.tooltip": "巨人（體型 2 以上）會吃掉體型不超過自己四分之一的生物：玩家手持生物時按住潛行 + 右鍵，敵對巨人則會整個吞下生命值降到三分之一以下的獵物。",
   "gulliver.config.screenShake": "畫面震動：%s",
   "gulliver.config.screenShake.off": "畫面震動：關",
   "gulliver.config.screenShake.tooltip": "巨大生物經過或落地時畫面的震動幅度。原版的「受傷傾斜」選項會疊加生效。",
@@ -120,5 +125,7 @@
   "advancements.gulliver.pocket_friend.title": "口袋夥伴",
   "advancements.gulliver.pocket_friend.description": "撿起一隻生物並抱在手中",
   "advancements.gulliver.watch_your_step.title": "小心腳下",
-  "advancements.gulliver.watch_your_step.description": "踐踏一隻比你小很多的生物"
+  "advancements.gulliver.watch_your_step.description": "踐踏一隻比你小很多的生物",
+  "advancements.gulliver.fee_fi_fo_fum.title": "我聞到了人肉味！",
+  "advancements.gulliver.fee_fi_fo_fum.description": "作為巨人，吃掉你手中拿著的生物"
 }

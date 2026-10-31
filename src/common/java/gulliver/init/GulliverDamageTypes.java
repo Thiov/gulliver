@@ -29,6 +29,9 @@ public final class GulliverDamageTypes {
             ResourceKey.create(Registries.DAMAGE_TYPE, Gulliver.id("passive"));
     public static final ResourceKey<DamageType> RAIN =
             ResourceKey.create(Registries.DAMAGE_TYPE, Gulliver.id("rain"));
+    /** Swallowed by a giant (Appetite). */
+    public static final ResourceKey<DamageType> EATEN =
+            ResourceKey.create(Registries.DAMAGE_TYPE, Gulliver.id("eaten"));
 
     public static DamageSource passive(Level level, Entity direct) {
         return new DamageSource(
@@ -40,6 +43,12 @@ public final class GulliverDamageTypes {
         return new DamageSource(
                 access.lookupOrThrow(Registries.DAMAGE_TYPE).getOrThrow(PASSIVE),
                 direct);
+    }
+
+    public static DamageSource eaten(Level level, Entity eater) {
+        return new DamageSource(
+                level.registryAccess().lookupOrThrow(Registries.DAMAGE_TYPE).getOrThrow(EATEN),
+                eater);
     }
 
     public static DamageSource rain(Level level) {

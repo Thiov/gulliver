@@ -1,6 +1,7 @@
 {
   "replace": false,
   "values": [
-    "gulliver:rain"
+    "gulliver:rain",
+    "gulliver:eaten"
   ]
 }

@@ -39,6 +39,9 @@
   "death.attack.gulliver.passive.player": "%1$s раздавлен %2$s при попытке сбежать от %3$s",
   "death.attack.gulliver.rain": "%1$s утонул под дождём",
   "death.attack.gulliver.rain.player": "%1$s утонул под дождём при попытке сбежать от %2$s",
+  "death.attack.gulliver.eaten": "%1$s был съеден %2$s",
+  "death.attack.gulliver.eaten.item": "%1$s был съеден %2$s",
+  "death.attack.gulliver.eaten.player": "%1$s был съеден %2$s",
   "gulliver.size_readout": "Размер %s×",
   "gulliver.tooltip.glide": "Удерживайте при падении, чтобы планировать",
   "gulliver.tooltip.raft": "Держится на воде, а в дождь, поднятый над головой, служит зонтом",
@@ -91,6 +94,8 @@
   "gulliver.config.trampleDamage.tooltip": "Насколько сильно бьёт растаптывание. Если поднять, шаг великана расплющит всё, на что наступит; крадущийся или ползущий никогда не растаптывает.",
   "gulliver.config.breathGust": "Порыв дыхания",
   "gulliver.config.breathGust.tooltip": "Удерживайте клавишу, чтобы сдувать существ поменьше, предметы и снаряды. Большие лёгкие дуют сильнее и дальше; это тратит воздух.",
+  "gulliver.config.giantAppetite": "Аппетит великана",
+  "gulliver.config.giantAppetite.tooltip": "Великаны (размер 2 и больше) едят существ размером до четверти своего: игроки — удерживая присед + правый клик с существом в руке, враждебные великаны — проглатывая добычу, у которой осталась треть здоровья.",
   "gulliver.config.screenShake": "Тряска экрана: %s",
   "gulliver.config.screenShake.off": "Тряска экрана: выкл.",
   "gulliver.config.screenShake.tooltip": "Насколько сильно трясётся экран, когда рядом проходит или приземляется что-то огромное. Стандартная настройка «Наклон при уроне» применяется дополнительно.",
@@ -120,5 +125,7 @@
   "advancements.gulliver.pocket_friend.title": "Друг в кармане",
   "advancements.gulliver.pocket_friend.description": "Возьмите существо и несите его в руке",
   "advancements.gulliver.watch_your_step.title": "Смотрите под ноги",
-  "advancements.gulliver.watch_your_step.description": "Растопчите существо, которое намного меньше вас"
+  "advancements.gulliver.watch_your_step.description": "Растопчите существо, которое намного меньше вас",
+  "advancements.gulliver.fee_fi_fo_fum.title": "Русским духом пахнет!",
+  "advancements.gulliver.fee_fi_fo_fum.description": "Будучи великаном, съешьте существо, которое держите в руке"
 }

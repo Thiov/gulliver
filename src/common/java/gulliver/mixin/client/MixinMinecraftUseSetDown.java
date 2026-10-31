@@ -14,8 +14,10 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 /**
  * Right-click on nothing while carrying in the (empty) hand sets the
- * creature down. Vanilla sends no use packet for an empty hand aimed at
- * the air, so the use-item events never see this click.
+ * creature down; while sneaking it takes a bite instead (Appetite: held
+ * like eating food; the server sets down what can't be eaten). Vanilla
+ * sends no use packet for an empty hand aimed at the air, so the use-item
+ * events never see this click.
  */
 @Mixin(Minecraft.class)
 public abstract class MixinMinecraftUseSetDown {
@@ -29,8 +31,8 @@ public abstract class MixinMinecraftUseSetDown {
         if (player == null || !ShoulderHelper.handOccupied(player)) return;
         if (!player.getMainHandItem().isEmpty()) return; // an item in hand goes through the use-item event
         if (hitResult != null && hitResult.getType() != HitResult.Type.MISS) return; // block/entity paths
-        if (gulliver.platform.Services.platform().sendToServer(
-                new Payloads.CarryAction(Payloads.CarryAction.SET_DOWN))) {
+        byte action = player.isShiftKeyDown() ? Payloads.CarryAction.EAT : Payloads.CarryAction.SET_DOWN;
+        if (gulliver.platform.Services.platform().sendToServer(new Payloads.CarryAction(action))) {
             rightClickDelay = 4;
             //#if MC >= 26.3
             player.swing(InteractionHand.MAIN_HAND, net.minecraft.world.item.component.SwingAnimation.DEFAULT, false);

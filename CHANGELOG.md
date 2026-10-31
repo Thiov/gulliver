@@ -5,6 +5,7 @@
 ### New
 
 - **Breath gust** (#10): hold **G** to blow a cone of wind out of your mouth. Creatures smaller than you are pushed away (the wind's strength is your size, their weight is theirs), arrows and fireballs are turned around and become yours, and lit candles, campfires and fire straight ahead go out. Walls stop the wind, and your pets, teammates and carried creatures are left alone. It costs air: full lungs last about three seconds, and once they are empty you have to let go and catch your breath. Not underwater; creative players never run out. Can be turned off (`general.breathGust`).
+- **Giant appetite**: giants (size 2 and up) eat creatures a quarter of their size or smaller. Holding a creature in your hand, **hold sneak + right-click** on nothing to eat it like food: you get food from its health (undead taste like rotten flesh, spiders like spider eyes). Hostile giant mobs swallow small prey that is down to a third of its health, and heal from it — keep your health up near giants. Eaten creatures leave no body and no loot (what they carried still drops); pets, teammates and bosses are never eaten, players only where PvP is on. New advancement **Fee-Fi-Fo-Fum**. Can be turned off (`general.giantAppetite`).
 - **Trample damage setting** (#8): `general.trampleDamage` (0 to 10×, default 1) scales how hard trampling hits, and its cap. At 10× a giant's step flattens what it crushes; 0 turns the damage off.
 
 ### Fixed

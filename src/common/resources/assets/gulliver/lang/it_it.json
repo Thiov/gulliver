@@ -39,6 +39,9 @@
   "death.attack.gulliver.passive.player": "%1$s è stato schiacciato da %2$s mentre cercava di sfuggire a %3$s",
   "death.attack.gulliver.rain": "%1$s è annegato sotto la pioggia",
   "death.attack.gulliver.rain.player": "%1$s è annegato sotto la pioggia mentre cercava di sfuggire a %2$s",
+  "death.attack.gulliver.eaten": "%1$s è stato divorato da %2$s",
+  "death.attack.gulliver.eaten.item": "%1$s è stato divorato da %2$s",
+  "death.attack.gulliver.eaten.player": "%1$s è stato divorato da %2$s",
   "gulliver.size_readout": "Dimensione %s×",
   "gulliver.tooltip.glide": "Tieni premuto mentre cadi per planare",
   "gulliver.tooltip.raft": "Galleggia sull'acqua o, tenuto in alto sotto la pioggia, fa da ombrello",
@@ -91,6 +94,8 @@
   "gulliver.config.trampleDamage.tooltip": "Quanto fa male il calpestio. Alzalo e il passo di un gigante schiaccia ciò che calpesta; chi è accovacciato o striscia non calpesta mai.",
   "gulliver.config.breathGust": "Raffica di fiato",
   "gulliver.config.breathGust.tooltip": "Tieni premuto il tasto per soffiare via creature più piccole, oggetti e proiettili. Polmoni più grandi soffiano più forte e più lontano; costa aria.",
+  "gulliver.config.giantAppetite": "Appetito da gigante",
+  "gulliver.config.giantAppetite.tooltip": "I giganti (taglia 2 e oltre) mangiano creature grandi un quarto di loro: i giocatori tenendo premuto accovacciarsi + clic destro con una creatura in mano, i giganti ostili inghiottendo prede ridotte a un terzo della vita.",
   "gulliver.config.screenShake": "Tremore dello schermo: %s",
   "gulliver.config.screenShake.off": "Tremore dello schermo: disattivato",
   "gulliver.config.screenShake.tooltip": "Quanto trema lo schermo quando qualcosa di enorme passa o atterra. L'opzione base «Inclinazione per danni» si applica in aggiunta.",
@@ -120,5 +125,7 @@
   "advancements.gulliver.pocket_friend.title": "Amico tascabile",
   "advancements.gulliver.pocket_friend.description": "Raccogli una creatura e portala in mano",
   "advancements.gulliver.watch_your_step.title": "Attento a dove metti i piedi",
-  "advancements.gulliver.watch_your_step.description": "Calpesta una creatura molto più piccola di te"
+  "advancements.gulliver.watch_your_step.description": "Calpesta una creatura molto più piccola di te",
+  "advancements.gulliver.fee_fi_fo_fum.title": "Ucci ucci, sento odor di cristianucci!",
+  "advancements.gulliver.fee_fi_fo_fum.description": "Da gigante, mangia una creatura che tieni in mano"
 }
