@@ -24,5 +24,6 @@ public abstract class MixinLevelRendererSubmit {
                                       CallbackInfo ci) {
         GliderPaperWorldRenderer.submit(pose, buf);
         LilyRaftWorldRenderer.submit(pose, buf);
+        gulliver.client.BreathRibbonRenderer.submit(pose, buf);
     }
 }

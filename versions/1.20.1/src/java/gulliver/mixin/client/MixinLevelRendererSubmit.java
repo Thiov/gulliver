@@ -30,5 +30,6 @@ public abstract class MixinLevelRendererSubmit {
         MultiBufferSource.BufferSource buffers = Minecraft.getInstance().renderBuffers().bufferSource();
         GliderPaperWorldRenderer.submit(pose, buffers, camera, partialTick);
         LilyRaftWorldRenderer.submit(pose, buffers, camera, partialTick);
+        gulliver.client.BreathRibbonRenderer.submit(pose, buffers, camera, partialTick);
     }
 }

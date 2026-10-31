@@ -97,6 +97,15 @@ public final class ClientSelfTest {
         }
         LocalPlayer p = mc.player;
         if (p == null || mc.level == null) return;
+        // With a "gulliver-showcase" file in the run folder: the scripted tour instead of the checks.
+        if (ClientShowcase.active(mc)) {
+            ticksTotal = 0;
+            if (ClientShowcase.tick(mc)) {
+                finished = true;
+                mc.stop();
+            }
+            return;
+        }
         ticksInWorld++;
         if (ticksInWorld > 262 && ticksInWorld < 285) grapplePeakY = Math.max(grapplePeakY, p.getY());
         // Opt-in: a "selftest-screenshots" file in the run folder saves each settings tab.

@@ -5,7 +5,9 @@ import gulliver.network.Payloads;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.world.InteractionHand;
+import net.minecraft.world.phys.EntityHitResult;
 import net.minecraft.world.phys.HitResult;
+import gulliver.access.IGulliverShoulderInternal;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
@@ -30,15 +32,22 @@ public abstract class MixinMinecraftUseSetDown {
     private void gulliver$setDownOnEmptyClick(CallbackInfo ci) {
         if (player == null || !ShoulderHelper.handOccupied(player)) return;
         if (!player.getMainHandItem().isEmpty()) return; // an item in hand goes through the use-item event
-        if (hitResult != null && hitResult.getType() != HitResult.Type.MISS) return; // block/entity paths
-        byte action = player.isShiftKeyDown() ? Payloads.CarryAction.EAT : Payloads.CarryAction.SET_DOWN;
+        // Block and entity clicks have their own paths - except the creature
+        // in your own hand, which is right in front of you while you eat it.
+        if (hitResult != null && hitResult.getType() != HitResult.Type.MISS
+                && !(hitResult instanceof EntityHitResult ehr && player.getUUID().equals(
+                        ((IGulliverShoulderInternal) ehr.getEntity()).gulliver$getHoldingEntity()))) return;
+        boolean eat = player.isShiftKeyDown();
+        byte action = eat ? Payloads.CarryAction.EAT : Payloads.CarryAction.SET_DOWN;
         if (gulliver.platform.Services.platform().sendToServer(new Payloads.CarryAction(action))) {
             rightClickDelay = 4;
-            //#if MC >= 26.3
-            player.swing(InteractionHand.MAIN_HAND, net.minecraft.world.item.component.SwingAnimation.DEFAULT, false);
-            //#else
-            //$$ player.swing(InteractionHand.MAIN_HAND);
-            //#endif
+            if (!eat) {
+                //#if MC >= 26.3
+                player.swing(InteractionHand.MAIN_HAND, net.minecraft.world.item.component.SwingAnimation.DEFAULT, false);
+                //#else
+                //$$ player.swing(InteractionHand.MAIN_HAND);
+                //#endif
+            }
             ci.cancel();
         }
     }

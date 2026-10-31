@@ -14,10 +14,10 @@ import net.minecraft.world.entity.Entity;
 public final class EatPose {
     private EatPose() {}
 
-    /** Arm pitch with the hand at the mouth (straight forward is -PI/2). */
-    private static final float MOUTH_X_ROT = -2.15F;
+    /** Arm pitch with the fist under the meal at the mouth (straight forward is -PI/2). */
+    private static final float MOUTH_X_ROT = -2.0F;
     /** Arm yaw across the chest towards the face. */
-    private static final float MOUTH_Y_ROT = -0.62F;
+    private static final float MOUTH_Y_ROT = -0.5F;
 
     /** How far up the hand is (0..1) and how deep the current bite is (0..1), for this frame. */
     public static float lift(Entity e, float partialTick) {
@@ -26,7 +26,7 @@ public final class EatPose {
 
     public static float bite(Entity e, float partialTick) {
         double chomp = Appetite.chomp(e, partialTick);
-        return e.getBbHeight() <= 0.0F ? 0.0F : (float) (-chomp / (e.getBbHeight() * 0.035D));
+        return e.getBbHeight() <= 0.0F ? 0.0F : (float) (-chomp / (e.getBbHeight() * 0.02D));
     }
 
     public static void apply(ModelPart rightArm, float lift, float bite) {

@@ -199,7 +199,7 @@ final class SelfTestIssues {
         boolean held = giant.getUUID().equals(((gulliver.access.IGulliverShoulderInternal) pig).gulliver$getHoldingEntity());
         check(failures, hit && held && Appetite.isChewing(giant) && pig.isAlive(),
                 "a hostile giant snatches a weakened pig into its hand first");
-        for (int i = 0; i < Appetite.GULP_TICKS + 2 && !pig.isRemoved(); i++) {
+        for (int i = 0; i < Appetite.lastBite(giant) + 2 && !pig.isRemoved(); i++) {
             Appetite.tick(giant);
             gulliver.common.ShoulderHelper.positionPassengers(giant);
         }
@@ -233,11 +233,11 @@ final class SelfTestIssues {
         if (armored != null) {
             armored.getAttribute(Attributes.ARMOR).setBaseValue(20.0D);
             armored.getAttribute(Attributes.ARMOR_TOUGHNESS).setBaseValue(12.0D);
-            armored.setHealth(3.0F);
+            armored.setHealth(2.5F);
             attack(level, giant, armored);
-            for (int i = 0; i < (int) Appetite.LIFT_TICKS + 3; i++) Appetite.tick(giant);
+            for (int i = 0; i < Appetite.firstBite(giant); i++) Appetite.tick(giant);
             boolean afterFirst = armored.isAlive();
-            for (int i = 0; i < Appetite.GULP_TICKS && !armored.isRemoved(); i++) Appetite.tick(giant);
+            for (int i = 0; i < Appetite.lastBite(giant) && !armored.isRemoved(); i++) Appetite.tick(giant);
             check(failures, afterFirst && armored.isRemoved(), "an armored meal takes more than one bite");
             if (!armored.isRemoved()) armored.discard();
         }
@@ -248,7 +248,7 @@ final class SelfTestIssues {
             tough.addEffect(new MobEffectInstance(MobEffects.RESISTANCE, 600, 3));
             tough.setHealth(3.0F);
             attack(level, giant, tough);
-            for (int i = 0; i < Appetite.GULP_TICKS + 2; i++) Appetite.tick(giant);
+            for (int i = 0; i < Appetite.lastBite(giant) + 2; i++) Appetite.tick(giant);
             check(failures, tough.isAlive() && !Appetite.isChewing(giant) && tough.getHealth() < 3.0F
                             && ((gulliver.access.IGulliverShoulderInternal) tough).gulliver$getHoldingEntity() == null,
                     "a meal that comes through every bite is spat out, hurt (health " + tough.getHealth() + ")");

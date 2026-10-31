@@ -33,22 +33,25 @@ import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Breath gusts (issue #10): holding the breath key blows a cone of wind
- * out of the mouth, four of the blower's own lengths long. The wind only
- * moves what is lighter than the blower: the push grows with how many
- * times lighter a thing is (its size, items and projectiles counting a
- * quarter), so a giant knocks normal mobs back the way a normal player
- * stirs a tiny, nobody can shove something its own size, and a giant's
- * gust turns arrows and fireballs around (deflected projectiles count as
- * the blower's). Lit candles, campfires and fire straight ahead are blown
+ * out of the mouth, four of the blower's own lengths long. The wind blows
+ * at a speed that grows with the blower (0.35 x sqrt(size) blocks a tick
+ * at the mouth) and drags things towards that speed - the lighter they
+ * are next to the blower, the harder (items and projectiles weigh a
+ * quarter of their size), and things on the ground get lifted off it so
+ * they really fly. Nothing as heavy as the blower moves at all, so a
+ * giant blows normal mobs away the way a normal player blows a tiny
+ * away, and a giant's gust turns arrows and fireballs around (deflected
+ * projectiles count as the blower's). Lit candles, campfires and fire straight ahead are blown
  * out, walls stop the wind, and the blower's pets, teammates and anything
  * it carries are left alone, like with trampling.
  *
  * The server only says who is blowing (ActionState); every client draws
  * the gust itself, sized to the blower (client.BreathFx).
  *
- * Blowing costs air: lungs that are full last three seconds of gust, the
- * gust stops when they are empty and only starts again once the key has
- * been let go. It can't be done underwater; creative players never run
+ * Blowing costs air: full lungs last three seconds of gust at any size
+ * (Gulliver gives a giant bigger lungs; it blows them out just as fast),
+ * the gust stops when they are empty and only starts again once the key
+ * has been let go. It can't be done underwater; creative players never run
  * out. The key rides on the CarryAction packet, so an older server just
  * ignores it, and the client repeats it while held so a lost "stop" can't
  * leave anyone blowing forever.
@@ -56,15 +59,18 @@ import java.util.concurrent.ConcurrentHashMap;
 public final class BreathGust {
     private BreathGust() {}
 
-    /** Air spent per tick of gust; vanilla gives 4 back each tick on land, so a full 300 lasts 60 ticks. */
-    static final int AIR_PER_TICK = 9;
+    /** Ticks a full breath lasts. */
+    static final int BREATH_TICKS = 60;
+    /** Air vanilla gives back each tick on land. */
+    private static final int AIR_REGEN = 4;
     /** Ticks without a repeat from the client after which the gust stops. */
     private static final int KEEP_ALIVE = 20;
     /** Half-angle of the wind cone (cos 30 degrees). */
     private static final double CONE_COS = 0.866D;
-    /** Push per tick for each unit of blower size against a size-1 body, before falloff. */
-    private static final double PUSH_PER_SIZE = 0.025D;
-    private static final double MAX_PUSH = 0.8D;
+    /** How strongly the wind drags something weightless towards its own speed, per tick. */
+    private static final double COUPLING = 0.35D;
+    /** Fastest wind, blocks per tick. */
+    private static final double MAX_WIND = 2.0D;
     private static final double MAX_RANGE = 48.0D;
     private static final int MAX_BLOWN = 48;
 
@@ -116,9 +122,14 @@ public final class BreathGust {
         }
         if (!blowing) return;
         if (!player.getAbilities().invulnerable) {
-            player.setAirSupply(Math.max(0, player.getAirSupply() - AIR_PER_TICK));
+            player.setAirSupply(Math.max(0, player.getAirSupply() - airCost(player)));
         }
         blow((ServerLevel) player.level(), player, state.ticks++);
+    }
+
+    /** Air one tick of gust costs: a full breath in BREATH_TICKS, whatever its size, net of vanilla's regain. */
+    static int airCost(LivingEntity blower) {
+        return Mth.ceil(blower.getMaxAirSupply() / (float) BREATH_TICKS) + AIR_REGEN;
     }
 
     /** The intake of breath that starts a gust. */
@@ -161,11 +172,10 @@ public final class BreathGust {
             if (level.clip(new ClipContext(eye, center, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, blower))
                     .getType() != HitResult.Type.MISS) continue;
 
-            double push = push(size, e, dist / range);
-            if (push < 0.002D) continue;
             Vec3 before = e.getDeltaMovement();
-            double lift = e.onGround() ? push * 0.2D : 0.0D;
-            Vec3 after = before.add(dir.x * push, dir.y * push + lift, dir.z * push);
+            Vec3 kick = gust(size, e, along(dir, eye, center, e), dist / range);
+            if (kick == null) continue;
+            Vec3 after = before.add(kick);
             e.setDeltaMovement(after);
             e.hurtMarked = true;
             if (e instanceof Projectile projectile) turnProjectile(projectile, blower, dir, before, after);
@@ -180,19 +190,43 @@ public final class BreathGust {
     }
 
     /**
-     * Speed added this tick to {@code target} at {@code reach} (0 at the
-     * mouth, 1 at the end of the cone): nothing for what is as heavy as the
-     * blower or heavier, then growing with how many times lighter it is.
+     * Which way the wind blows where it meets {@code e}: along the look, but
+     * wind that hits the ground spreads out over it, so something standing
+     * on the ground is blown away across it rather than pressed into it
+     * (looking straight down, it is blown away from the blower).
      */
-    static double push(float blowerSize, Entity target, double reach) {
+    static Vec3 along(Vec3 dir, Vec3 eye, Vec3 center, Entity e) {
+        if (!e.onGround() || dir.y >= -0.2D) return dir;
+        Vec3 flat = new Vec3(dir.x, 0.0D, dir.z);
+        if (flat.lengthSqr() < 0.04D) flat = new Vec3(center.x - eye.x, 0.0D, center.z - eye.z);
+        if (flat.lengthSqr() < 1.0E-6D) return dir;
+        return flat.normalize();
+    }
+
+    /** Wind speed at the mouth, blocks per tick: a bigger mouth moves more air. */
+    public static double windSpeed(float size) {
+        return Math.min(MAX_WIND, 0.35D * Math.sqrt(size));
+    }
+
+    /**
+     * Velocity the wind adds to {@code target} this tick at {@code reach}
+     * (0 at the mouth, 1 at the end of the cone), or null when it doesn't
+     * move it: as heavy as the blower or heavier, or already flying with
+     * the wind as fast as the wind.
+     */
+    static Vec3 gust(float blowerSize, Entity target, Vec3 dir, double reach) {
         double mass = ((IResizeableEntity) target).getSizeMultiplier() * inertia(target);
-        double lighter = blowerSize / Math.max(mass, 1.0E-3D) - 1.0D;
-        if (lighter <= 0.0D) return 0.0D;
-        double push = PUSH_PER_SIZE * lighter * (1.0D - reach);
+        double lighter = 1.0D - mass / blowerSize;
+        if (lighter <= 0.0D) return null;
+        double k = COUPLING * lighter;
         if (target instanceof LivingEntity living) {
-            push *= 1.0D - Mth.clamp(living.getAttributeValue(Attributes.KNOCKBACK_RESISTANCE), 0.0D, 1.0D);
+            k *= 1.0D - Mth.clamp(living.getAttributeValue(Attributes.KNOCKBACK_RESISTANCE), 0.0D, 1.0D);
         }
-        return Math.min(MAX_PUSH, push);
+        double wind = windSpeed(blowerSize) * (1.0D - 0.6D * reach);
+        double dv = (wind - target.getDeltaMovement().dot(dir)) * k;
+        if (dv < 0.002D) return null;
+        double lift = target.onGround() ? wind * k * 0.5D : 0.0D;
+        return new Vec3(dir.x * dv, dir.y * dv + lift, dir.z * dv);
     }
 
     /** Light things (items, orbs, arrows) fly off; everything else weighs what its size says. */
