@@ -1,5 +1,19 @@
 # Changelog
 
+## Unreleased
+
+### New
+
+- **Breath gust** (#10): hold **G** to blow a cone of wind out of your mouth. Creatures smaller than you are pushed away (the wind's strength is your size, their weight is theirs), arrows and fireballs are turned around and become yours, and lit candles, campfires and fire straight ahead go out. Walls stop the wind, and your pets, teammates and carried creatures are left alone. It costs air: full lungs last about three seconds, and once they are empty you have to let go and catch your breath. Not underwater; creative players never run out. Can be turned off (`general.breathGust`).
+- **Trample damage setting** (#8): `general.trampleDamage` (0 to 10×, default 1) scales how hard trampling hits, and its cap. At 10× a giant's step flattens what it crushes; 0 turns the damage off.
+
+### Fixed
+
+- **Careful steps** (#9): sneaking or crawling never tramples anything. Crawling from vanilla, ParCool and Crawl all count.
+- **Reach on Forge and NeoForge 1.20.1** (#11): reach didn't scale with size at all there, so giants couldn't hit or mine what was in front of them. Gulliver now uses Forge's reach attributes.
+- **Better Combat on 1.20.1** (#11): weapon swings used each weapon's own range and ignored size; they now scale like reach. (Newer Better Combat versions already follow reach.)
+- **Tinies in boats on 1.20.1** (#12): a tiny sat under the boat's hull and drowned. Riders of any size now sit in boats, on chickens, camels, horses and llamas where a normal rider would.
+
 ## 1.2.1
 
 ### Fixed

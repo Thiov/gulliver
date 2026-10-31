@@ -47,6 +47,8 @@ public final class GulliverConfig {
     public static final float MAX_SIZE = 32.0F;
     private static final double DEFAULT_MIN = 0.125D;
     private static final double DEFAULT_MAX = 8.0D;
+    /** Largest trample damage multiplier. */
+    public static final double MAX_TRAMPLE_DAMAGE = 10.0D;
 
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     private static final String FILENAME = "gulliver.json";
@@ -216,6 +218,7 @@ public final class GulliverConfig {
         }
         g.grappleMaxSize = sizeValue(g.grappleMaxSize, 0.3D, MIN_SIZE, MAX_SIZE, "general.grappleMaxSize", fixes);
         g.trampleSizeRatio = ratioValue(g.trampleSizeRatio, 0.4D, "general.trampleSizeRatio", fixes);
+        g.trampleDamage = sizeValue(g.trampleDamage, 1.0D, 0.0D, MAX_TRAMPLE_DAMAGE, "general.trampleDamage", fixes);
 
         SizeLimit l = sizeLimit;
         l.minPlayerSize = limitValue(l.minPlayerSize, lo, hi, "sizeLimit.minPlayerSize", fixes);
@@ -365,6 +368,13 @@ public final class GulliverConfig {
          * own size tramples it (1.6.4 "quite smaller"). 0 disables trampling.
          */
         public double trampleSizeRatio = 0.4D;
+        /**
+         * Multiplies trample damage and its cap: 0 turns the damage off,
+         * 10 lets a giant's step flatten whatever it crushes.
+         */
+        public double trampleDamage = 1.0D;
+        /** Holding the breath key blows smaller creatures and projectiles away; costs air. */
+        public boolean breathGust = true;
         /** Mob loot grows with the mob's size (a giant cow drops more beef). */
         public boolean lootScaling = true;
         /** Mobs at size 4 and above show a boss bar to nearby players. */

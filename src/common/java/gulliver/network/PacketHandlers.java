@@ -50,6 +50,8 @@ public final class PacketHandlers {
                     //#endif
                 }
             }
+            case Payloads.CarryAction.BREATH -> gulliver.common.BreathGust.start(player);
+            case Payloads.CarryAction.BREATH_STOP -> gulliver.common.BreathGust.stop(player);
             default -> { }
         }
     }

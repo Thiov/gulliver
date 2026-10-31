@@ -7,3 +7,5 @@ InputConstants.Type.KEYSYM InputConstants.Type.KEYBOARD
 setInvulnerable setPermanentlyInvulnerable
 # PoseStack.mulPose(Quaternionf) -> rotate(Quaternionfc); mulPose(Matrix4fc) is unchanged.
 .mulPose(com.mojang.math.Axis. .rotate(com.mojang.math.Axis.
+# CampfireBlock.dowse -> douse.
+CampfireBlock.dowse( CampfireBlock.douse(

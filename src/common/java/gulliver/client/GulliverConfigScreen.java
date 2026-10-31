@@ -136,6 +136,12 @@ public class GulliverConfigScreen extends Screen {
         y += ROW;
         addRenderableWidget(toggle(left, y, "giantBossBars", g.giantBossBars, v -> g.giantBossBars = v));
         addRenderableWidget(toggle(right, y, "tinyMounts", g.tinyMounts, v -> g.tinyMounts = v));
+        y += ROW;
+        addRenderableWidget(slider(left, y, range(0.0, GulliverConfig.MAX_TRAMPLE_DAMAGE, 0.25), g.trampleDamage,
+                v -> v <= 0.0 ? Component.translatable("gulliver.config.trampleDamage.off")
+                        : Component.translatable("gulliver.config.trampleDamage", fmt(v)),
+                v -> g.trampleDamage = v, "trampleDamage"));
+        addRenderableWidget(toggle(right, y, "breathGust", g.breathGust, v -> g.breathGust = v));
     }
 
     private void initSpawn(int left, int right, int y) {
