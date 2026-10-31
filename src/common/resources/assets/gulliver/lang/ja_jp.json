@@ -39,6 +39,9 @@
   "death.attack.gulliver.passive.player": "%1$sは%3$sから逃れようとして%2$sに押し潰された",
   "death.attack.gulliver.rain": "%1$sは雨の中で溺れた",
   "death.attack.gulliver.rain.player": "%1$sは%2$sから逃れようとして雨の中で溺れた",
+  "death.attack.gulliver.eaten": "%1$sは%2$sに食べられた",
+  "death.attack.gulliver.eaten.item": "%1$sは%2$sに食べられた",
+  "death.attack.gulliver.eaten.player": "%1$sは%2$sに食べられた",
   "gulliver.size_readout": "サイズ %s×",
   "gulliver.tooltip.glide": "落下中に長押しで滑空",
   "gulliver.tooltip.raft": "水に浮かぶ。雨の中では掲げると傘代わりになる",
@@ -91,6 +94,8 @@
   "gulliver.config.trampleDamage.tooltip": "踏みつけの強さ。上げると巨人の一歩で踏んだものがぺしゃんこに。スニーク中やはいはい中は踏みつけません。",
   "gulliver.config.breathGust": "息の突風",
   "gulliver.config.breathGust.tooltip": "キーを押し続けると、自分より小さい生き物・アイテム・飛び道具を吹き飛ばします。肺が大きいほど強く遠くまで届き、空気を消費します。",
+  "gulliver.config.giantAppetite": "巨人の食欲",
+  "gulliver.config.giantAppetite.tooltip": "巨人（サイズ2以上）は自分の4分の1以下の生き物を食べます。プレイヤーは生き物を手に持ってスニーク＋右クリックを長押し、敵対的な巨人は体力が3分の1以下になった獲物を丸のみにします。",
   "gulliver.config.screenShake": "画面の揺れ: %s",
   "gulliver.config.screenShake.off": "画面の揺れ: オフ",
   "gulliver.config.screenShake.tooltip": "巨大なものが通り過ぎたり着地したりしたときの画面の揺れの強さ。バニラの「ダメージ傾き」設定も加わる。",
@@ -120,5 +125,7 @@
   "advancements.gulliver.pocket_friend.title": "ポケットの友だち",
   "advancements.gulliver.pocket_friend.description": "生き物を拾って手に乗せて運ぶ",
   "advancements.gulliver.watch_your_step.title": "足元注意",
-  "advancements.gulliver.watch_your_step.description": "自分よりはるかに小さい生き物を踏みつぶす"
+  "advancements.gulliver.watch_your_step.description": "自分よりはるかに小さい生き物を踏みつぶす",
+  "advancements.gulliver.fee_fi_fo_fum.title": "人間の匂いがするぞ！",
+  "advancements.gulliver.fee_fi_fo_fum.description": "巨人になって、手に持った生き物を食べる"
 }

@@ -375,6 +375,8 @@ public final class GulliverConfig {
         public double trampleDamage = 1.0D;
         /** Holding the breath key blows smaller creatures and projectiles away; costs air. */
         public boolean breathGust = true;
+        /** Giants (size 2+) eat creatures a quarter of their size: players by hand, hostile mobs in a fight. */
+        public boolean giantAppetite = true;
         /** Mob loot grows with the mob's size (a giant cow drops more beef). */
         public boolean lootScaling = true;
         /** Mobs at size 4 and above show a boss bar to nearby players. */

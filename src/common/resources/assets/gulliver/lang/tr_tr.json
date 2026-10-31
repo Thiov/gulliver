@@ -39,6 +39,9 @@
   "death.attack.gulliver.passive.player": "%1$s, %3$s'den kaçmaya çalışırken %2$s tarafından ezildi",
   "death.attack.gulliver.rain": "%1$s yağmurda boğuldu",
   "death.attack.gulliver.rain.player": "%1$s, %2$s'den kaçmaya çalışırken yağmurda boğuldu",
+  "death.attack.gulliver.eaten": "%1$s, %2$s tarafından yendi",
+  "death.attack.gulliver.eaten.item": "%1$s, %2$s tarafından yendi",
+  "death.attack.gulliver.eaten.player": "%1$s, %2$s tarafından yendi",
   "gulliver.size_readout": "Boyut %s×",
   "gulliver.tooltip.glide": "Düşerken basılı tutarak süzül",
   "gulliver.tooltip.raft": "Suda yüzer, yağmurda yukarı tutulunca şemsiye olur",
@@ -91,6 +94,8 @@
   "gulliver.config.trampleDamage.tooltip": "Ezmenin ne kadar sert vurduğu. Artırırsan bir devin adımı bastığı her şeyi yassılaştırır; eğilen ya da sürünen asla ezmez.",
   "gulliver.config.breathGust": "Nefes esintisi",
   "gulliver.config.breathGust.tooltip": "Daha küçük canlıları, eşyaları ve mermileri uçurmak için üfleme tuşunu basılı tut. Büyük ciğerler daha güçlü ve uzağa üfler; hava harcar.",
+  "gulliver.config.giantAppetite": "Dev iştahı",
+  "gulliver.config.giantAppetite.tooltip": "Devler (boyut 2 ve üstü) kendi boylarının dörtte biri kadar canlıları yer: oyuncular elinde bir canlıyla eğilme + sağ tıkı basılı tutarak, düşman devler ise canının üçte birine düşmüş avı yutarak.",
   "gulliver.config.screenShake": "Ekran Sarsıntısı: %s",
   "gulliver.config.screenShake.off": "Ekran Sarsıntısı: Kapalı",
   "gulliver.config.screenShake.tooltip": "Devasa bir şey yanından geçtiğinde ya da yere indiğinde ekranın ne kadar şiddetli sarsılacağı. Oyunun hasar eğimi seçeneği ayrıca uygulanır.",
@@ -120,5 +125,7 @@
   "advancements.gulliver.pocket_friend.title": "Cep Arkadaşı",
   "advancements.gulliver.pocket_friend.description": "Bir yaratığı al ve elinde taşı",
   "advancements.gulliver.watch_your_step.title": "Nereye Bastığına Dikkat Et",
-  "advancements.gulliver.watch_your_step.description": "Senden çok daha küçük bir yaratığı çiğne"
+  "advancements.gulliver.watch_your_step.description": "Senden çok daha küçük bir yaratığı çiğne",
+  "advancements.gulliver.fee_fi_fo_fum.title": "İnsan kokusu alıyorum!",
+  "advancements.gulliver.fee_fi_fo_fum.description": "Dev olarak elinde tuttuğun bir canlıyı ye"
 }

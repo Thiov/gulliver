@@ -39,6 +39,9 @@
   "death.attack.gulliver.passive.player": "%1$s został zmiażdżony przez %2$s, próbując uciec przed %3$s",
   "death.attack.gulliver.rain": "%1$s utonął w deszczu",
   "death.attack.gulliver.rain.player": "%1$s utonął w deszczu, próbując uciec przed %2$s",
+  "death.attack.gulliver.eaten": "%1$s został zjedzony przez %2$s",
+  "death.attack.gulliver.eaten.item": "%1$s został zjedzony przez %2$s",
+  "death.attack.gulliver.eaten.player": "%1$s został zjedzony przez %2$s",
   "gulliver.size_readout": "Rozmiar %s×",
   "gulliver.tooltip.glide": "Przytrzymaj podczas spadania, aby szybować",
   "gulliver.tooltip.raft": "Unosi się na wodzie, a podniesiony w deszczu służy za parasol",
@@ -91,6 +94,8 @@
   "gulliver.config.trampleDamage.tooltip": "Jak mocno rani deptanie. Po zwiększeniu krok olbrzyma spłaszcza to, na co nadepnie; skradając się lub czołgając, nigdy nie depczesz.",
   "gulliver.config.breathGust": "Podmuch oddechu",
   "gulliver.config.breathGust.tooltip": "Przytrzymaj klawisz, by zdmuchnąć mniejsze stworzenia, przedmioty i pociski. Większe płuca dmuchają mocniej i dalej; zużywa to powietrze.",
+  "gulliver.config.giantAppetite": "Apetyt olbrzyma",
+  "gulliver.config.giantAppetite.tooltip": "Olbrzymy (rozmiar 2 i więcej) zjadają stworzenia o rozmiarze do jednej czwartej własnego: gracze przytrzymując skradanie + prawy przycisk ze stworzeniem w ręce, wrogie olbrzymy połykając ofiary, którym została jedna trzecia zdrowia.",
   "gulliver.config.screenShake": "Trzęsienie ekranu: %s",
   "gulliver.config.screenShake.off": "Trzęsienie ekranu: wyłączone",
   "gulliver.config.screenShake.tooltip": "Jak mocno trzęsie się ekran, gdy obok przechodzi lub ląduje coś ogromnego. Opcja podstawowej gry „Przechył po obrażeniach” działa dodatkowo.",
@@ -120,5 +125,7 @@
   "advancements.gulliver.pocket_friend.title": "Kieszonkowy przyjaciel",
   "advancements.gulliver.pocket_friend.description": "Podnieś stworzenie i noś je w dłoni",
   "advancements.gulliver.watch_your_step.title": "Uważaj, gdzie stąpasz",
-  "advancements.gulliver.watch_your_step.description": "Zdepcz stworzenie znacznie mniejsze od siebie"
+  "advancements.gulliver.watch_your_step.description": "Zdepcz stworzenie znacznie mniejsze od siebie",
+  "advancements.gulliver.fee_fi_fo_fum.title": "Czuję ludzkie mięso!",
+  "advancements.gulliver.fee_fi_fo_fum.description": "Jako olbrzym zjedz stworzenie trzymane w ręce"
 }

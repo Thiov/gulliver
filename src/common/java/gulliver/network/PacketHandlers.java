@@ -38,21 +38,26 @@ public final class PacketHandlers {
             case Payloads.CarryAction.CYCLE -> ShoulderHelper.cycleOrPickUp(player);
             case Payloads.CarryAction.THROW -> ShoulderHelper.throwHeld(player);
             case Payloads.CarryAction.DROP -> ShoulderHelper.drop(player);
+            case Payloads.CarryAction.EAT -> {
+                if (!player.isSpectator() && !gulliver.common.Appetite.bite(player)) setDown(player);
+            }
             case Payloads.CarryAction.SET_DOWN -> {
-                if (!player.isSpectator()) {
-                    //#if MC >= 26.3
-                    // 26.3 clients no longer send a swing packet: show the set-down to onlookers from here.
-                    if (ShoulderHelper.detachHand(player) != null) {
-                        player.swing(InteractionHand.MAIN_HAND, net.minecraft.world.item.component.SwingAnimation.DEFAULT, false);
-                    }
-                    //#else
-                    //$$ ShoulderHelper.detachHand(player);
-                    //#endif
-                }
+                if (!player.isSpectator()) setDown(player);
             }
             case Payloads.CarryAction.BREATH -> gulliver.common.BreathGust.start(player);
             case Payloads.CarryAction.BREATH_STOP -> gulliver.common.BreathGust.stop(player);
             default -> { }
         }
+    }
+
+    private static void setDown(ServerPlayer player) {
+        //#if MC >= 26.3
+        // 26.3 clients no longer send a swing packet: show the set-down to onlookers from here.
+        if (ShoulderHelper.detachHand(player) != null) {
+            player.swing(InteractionHand.MAIN_HAND, net.minecraft.world.item.component.SwingAnimation.DEFAULT, false);
+        }
+        //#else
+        //$$ ShoulderHelper.detachHand(player);
+        //#endif
     }
 }

@@ -35,6 +35,7 @@ Get the jars from the [releases page](https://github.com/Thiov/gulliver/releases
 **Giant powers**
 - **Fists that span blocks**: breaking a block shatters a fist-shaped crater around it, up to a 7×7 disc at size 8. Collateral blocks only drop what your tool can harvest, and wear the tool.
 - **Sweeping blows**: melee hits splash damage onto creatures around your target.
+- **Giant appetite**: as a giant (size 2+), hold sneak + right-click with a creature in your hand to eat it (a quarter of your size or smaller). Hostile giants swallow small prey that is down to a third of its health, and heal from it.
 - **Breath gust**: hold **G** to blow a cone of wind. It pushes creatures smaller than you away (a giant knocks normal mobs back, a normal player only stirs a tiny), turns arrows and fireballs around, and blows out candles, campfires and fire. Bigger lungs blow harder and further; it costs air, so you can't blow forever.
 - **Precision mode**: hold sneak for a single block and a single target.
 - **Growing pains**: grow indoors and your body bursts through weak blocks above you.
@@ -54,7 +55,7 @@ Get the jars from the [releases page](https://github.com/Thiov/gulliver/releases
 **Carry**
 - Sneak + right-click (empty hand) a creature under 0.4× your size to scoop it into your hand.
 - Press **V** to move carried creatures between hand and shoulders, up to three at once.
-- Right-click to set one down, left-click to throw it. The bigger you are, the further it flies.
+- Right-click to set one down, left-click to throw it. The bigger you are, the further it flies. As a giant, hold sneak + right-click to eat it instead.
 - Other players can only be carried where PvP is allowed, and can always break free by sneaking. Bosses can't be carried.
 
 **Polish**: resizing animates smoothly with a puff and a rising or falling sound, and the action bar shows your new size. Held items, name tags, shadows, view-bobbing, the third-person camera distance, water splashes and eating speed all scale with size. Giant mobs drop more loot, tiny ones less, and can optionally show a boss bar. A Gulliver advancement tab tracks the milestones.
@@ -74,7 +75,7 @@ In game: **Mods → Gulliver → Config** on NeoForge and Forge, or the settings
 
 Everything is stored in `config/gulliver.json` (reload with `/gulliver reload`):
 
-- `general`: size limits (`minEntitySize`/`maxEntitySize`, default 0.125 and 8, allowed 1/32 to 32; outside 1/8–8 is experimental), `enableDyeResizing`, `enableKarmaMode` (reset size on death), `fishingRodGrapple` and `grappleMaxSize` (default 0.3, i.e. tiny), `trampleSizeRatio` (default 0.4, 0 disables trampling), `trampleDamage` (0 to 10, default 1), `breathGust`.
+- `general`: size limits (`minEntitySize`/`maxEntitySize`, default 0.125 and 8, allowed 1/32 to 32; outside 1/8–8 is experimental), `enableDyeResizing`, `enableKarmaMode` (reset size on death), `fishingRodGrapple` and `grappleMaxSize` (default 0.3, i.e. tiny), `trampleSizeRatio` (default 0.4, 0 disables trampling), `trampleDamage` (0 to 10, default 1), `breathGust`, `giantAppetite`.
 - `spawnSize`: starting sizes for players, animals, monsters, villagers, and per-entity overrides. Accepts plain sizes (`"0.5"`), ranges (`"0.5-2"`), sets (`"0.5,1,2"`) and heights (`"5'9\""`, `"120cm"`).
 - `sizeLimit`: minimum and maximum sizes per class and per entity.
 - `client.screenShake` (0 to 1, also follows vanilla's Damage Tilt and Distortion Effects), `client.smoothResize`, `client.sizeReadout`.

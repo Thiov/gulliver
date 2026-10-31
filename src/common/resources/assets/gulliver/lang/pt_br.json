@@ -39,6 +39,9 @@
   "death.attack.gulliver.passive.player": "%1$s foi esmagado por %2$s ao tentar escapar de %3$s",
   "death.attack.gulliver.rain": "%1$s se afogou na chuva",
   "death.attack.gulliver.rain.player": "%1$s se afogou na chuva ao tentar escapar de %2$s",
+  "death.attack.gulliver.eaten": "%1$s foi devorado por %2$s",
+  "death.attack.gulliver.eaten.item": "%1$s foi devorado por %2$s",
+  "death.attack.gulliver.eaten.player": "%1$s foi devorado por %2$s",
   "gulliver.size_readout": "Tamanho %s×",
   "gulliver.tooltip.glide": "Segure enquanto cai para planar",
   "gulliver.tooltip.raft": "Flutua na água ou, erguido na chuva, serve de guarda-chuva",
@@ -91,6 +94,8 @@
   "gulliver.config.trampleDamage.tooltip": "O quanto o pisoteio machuca. Aumente e o passo de um gigante esmaga o que pisar; agachado ou rastejando, você nunca pisoteia.",
   "gulliver.config.breathGust": "Rajada de fôlego",
   "gulliver.config.breathGust.tooltip": "Segure a tecla de soprar para afastar criaturas menores, itens e projéteis. Pulmões maiores sopram mais forte e mais longe; gasta ar.",
+  "gulliver.config.giantAppetite": "Apetite de gigante",
+  "gulliver.config.giantAppetite.tooltip": "Gigantes (tamanho 2 ou mais) comem criaturas com um quarto do seu tamanho: jogadores segurando agachar + clique direito com uma criatura na mão, gigantes hostis engolindo presas com um terço da vida ou menos.",
   "gulliver.config.screenShake": "Tremor de tela: %s",
   "gulliver.config.screenShake.off": "Tremor de tela: desligado",
   "gulliver.config.screenShake.tooltip": "Quão forte a tela treme quando algo enorme passa ou aterrissa. A opção Inclinação de dano do jogo se aplica por cima.",
@@ -120,5 +125,7 @@
   "advancements.gulliver.pocket_friend.title": "Amigo de bolso",
   "advancements.gulliver.pocket_friend.description": "Pegue uma criatura e carregue-a na mão",
   "advancements.gulliver.watch_your_step.title": "Olhe por onde pisa",
-  "advancements.gulliver.watch_your_step.description": "Pisoteie uma criatura muito menor que você"
+  "advancements.gulliver.watch_your_step.description": "Pisoteie uma criatura muito menor que você",
+  "advancements.gulliver.fee_fi_fo_fum.title": "Sinto cheiro de carne humana!",
+  "advancements.gulliver.fee_fi_fo_fum.description": "Como gigante, coma uma criatura que estiver segurando"
 }

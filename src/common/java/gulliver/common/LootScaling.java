@@ -25,6 +25,9 @@ import net.minecraft.world.item.ItemStack;
  * Wither, Warden and Dragon would be a free beacon each) and players are
  * left alone.
  *
+ * A creature a giant has eaten (Appetite) drops nothing from its table
+ * and gives no experience.
+ *
  * The window is opened around LivingEntity.dropFromLootTable
  * (MixinLivingEntityLoot) and the drops are adjusted where they are
  * spawned (MixinEntityLootScale).
@@ -36,7 +39,7 @@ public final class LootScaling {
     private static final ThreadLocal<LivingEntity> DYING = new ThreadLocal<>();
 
     public static void begin(LivingEntity entity) {
-        if (applies(entity)) DYING.set(entity);
+        if (applies(entity) || Appetite.isEaten(entity)) DYING.set(entity);
     }
 
     public static void end() {
@@ -59,6 +62,7 @@ public final class LootScaling {
     public static ItemStack scaleDrop(Entity spawner, ItemStack stack) {
         LivingEntity dying = DYING.get();
         if (dying == null || dying != spawner || stack.isEmpty()) return stack;
+        if (Appetite.isEaten(dying)) return ItemStack.EMPTY; // the meal is gone
         double factor = factor(((IResizeableEntity) dying).getSizeMultiplier());
         if (factor == 1.0D) return stack;
         int count = Math.min(stack.getMaxStackSize(),
@@ -72,6 +76,7 @@ public final class LootScaling {
 
     /** The experience a dying mob gives. */
     public static int scaleExperience(LivingEntity dying, int amount) {
+        if (amount > 0 && Appetite.isEaten(dying)) return 0;
         if (amount <= 0 || !applies(dying)) return amount;
         double factor = factor(((IResizeableEntity) dying).getSizeMultiplier());
         return factor == 1.0D ? amount : SizeScaling.stochasticRound(amount * factor, dying.getRandom());

@@ -39,6 +39,9 @@
   "death.attack.gulliver.passive.player": "%1$s fue aplastado por %2$s mientras intentaba escapar de %3$s",
   "death.attack.gulliver.rain": "%1$s se ahogó bajo la lluvia",
   "death.attack.gulliver.rain.player": "%1$s se ahogó bajo la lluvia mientras intentaba escapar de %2$s",
+  "death.attack.gulliver.eaten": "%1$s fue devorado por %2$s",
+  "death.attack.gulliver.eaten.item": "%1$s fue devorado por %2$s",
+  "death.attack.gulliver.eaten.player": "%1$s fue devorado por %2$s",
   "gulliver.size_readout": "Tamaño %s×",
   "gulliver.tooltip.glide": "Mantén pulsado mientras caes para planear",
   "gulliver.tooltip.raft": "Flota sobre el agua o, en alto bajo la lluvia, sirve de paraguas",
@@ -91,6 +94,8 @@
   "gulliver.config.trampleDamage.tooltip": "Cuánto daño hacen los pisotones. Súbelo y el paso de un gigante aplasta lo que pisa; agachado o gateando nunca pisoteas.",
   "gulliver.config.breathGust": "Ráfaga de aliento",
   "gulliver.config.breathGust.tooltip": "Mantén la tecla de soplar para alejar criaturas más pequeñas, objetos y proyectiles. Los pulmones grandes soplan más fuerte y más lejos; gasta aire.",
+  "gulliver.config.giantAppetite": "Apetito gigante",
+  "gulliver.config.giantAppetite.tooltip": "Los gigantes (tamaño 2 o más) se comen criaturas de una cuarta parte de su tamaño: los jugadores manteniendo agacharse + clic derecho con una criatura en la mano, los gigantes hostiles tragándose presas con un tercio de vida o menos.",
   "gulliver.config.screenShake": "Temblor de pantalla: %s",
   "gulliver.config.screenShake.off": "Temblor de pantalla: desactivado",
   "gulliver.config.screenShake.tooltip": "Cuánto tiembla la pantalla cuando algo enorme pasa cerca o aterriza. La opción de vanilla «Inclinación por daño» se aplica además.",
@@ -120,5 +125,7 @@
   "advancements.gulliver.pocket_friend.title": "Amigo de bolsillo",
   "advancements.gulliver.pocket_friend.description": "Recoge a una criatura y llévala en la mano",
   "advancements.gulliver.watch_your_step.title": "Mira por dónde pisas",
-  "advancements.gulliver.watch_your_step.description": "Pisotea a una criatura mucho más pequeña que tú"
+  "advancements.gulliver.watch_your_step.description": "Pisotea a una criatura mucho más pequeña que tú",
+  "advancements.gulliver.fee_fi_fo_fum.title": "¡Huelo a carne humana!",
+  "advancements.gulliver.fee_fi_fo_fum.description": "Como gigante, cómete una criatura que lleves en la mano"
 }

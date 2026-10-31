@@ -1,0 +1,23 @@
+{
+  "parent": "gulliver:watch_your_step",
+  "display": {
+    "icon": {
+      "item": "minecraft:cooked_beef"
+    },
+    "title": {
+      "translate": "advancements.gulliver.fee_fi_fo_fum.title"
+    },
+    "description": {
+      "translate": "advancements.gulliver.fee_fi_fo_fum.description"
+    },
+    "frame": "goal",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "criteria": {
+    "code": {
+      "trigger": "minecraft:impossible"
+    }
+  }
+}

@@ -39,6 +39,9 @@
   "death.attack.gulliver.passive.player": "%1$s був розчавлений %2$s, намагаючись втекти від %3$s",
   "death.attack.gulliver.rain": "%1$s втопився під дощем",
   "death.attack.gulliver.rain.player": "%1$s втопився під дощем, намагаючись втекти від %2$s",
+  "death.attack.gulliver.eaten": "%1$s був з'їдений %2$s",
+  "death.attack.gulliver.eaten.item": "%1$s був з'їдений %2$s",
+  "death.attack.gulliver.eaten.player": "%1$s був з'їдений %2$s",
   "gulliver.size_readout": "Розмір %s×",
   "gulliver.tooltip.glide": "Утримуйте під час падіння, щоб планувати",
   "gulliver.tooltip.raft": "Тримається на воді, а під дощем, піднятий над головою, править за парасольку",
@@ -91,6 +94,8 @@
   "gulliver.config.trampleDamage.tooltip": "Наскільки сильно б'є розтоптування. Якщо підняти, крок велетня розплющить усе, на що наступить; хто скрадається чи повзе, ніколи не розтоптує.",
   "gulliver.config.breathGust": "Порив подиху",
   "gulliver.config.breathGust.tooltip": "Утримуйте клавішу, щоб здувати менших істот, предмети й снаряди. Більші легені дмухають сильніше й далі; це витрачає повітря.",
+  "gulliver.config.giantAppetite": "Апетит велетня",
+  "gulliver.config.giantAppetite.tooltip": "Велетні (розмір 2 і більше) їдять істот розміром до чверті свого: гравці — утримуючи присід + правий клік з істотою в руці, ворожі велетні — ковтаючи здобич, у якої лишилася третина здоров'я.",
   "gulliver.config.screenShake": "Тряска екрана: %s",
   "gulliver.config.screenShake.off": "Тряска екрана: вимкнено",
   "gulliver.config.screenShake.tooltip": "Наскільки сильно трясеться екран, коли повз проходить чи приземляється щось велетенське. Стандартний параметр «Нахил від ушкоджень» діє додатково.",
@@ -120,5 +125,7 @@
   "advancements.gulliver.pocket_friend.title": "Друг у кишені",
   "advancements.gulliver.pocket_friend.description": "Візьміть істоту й носіть її в руці",
   "advancements.gulliver.watch_your_step.title": "Дивіться під ноги",
-  "advancements.gulliver.watch_your_step.description": "Розчавте істоту, значно меншу за вас"
+  "advancements.gulliver.watch_your_step.description": "Розчавте істоту, значно меншу за вас",
+  "advancements.gulliver.fee_fi_fo_fum.title": "Людським духом пахне!",
+  "advancements.gulliver.fee_fi_fo_fum.description": "Будучи велетнем, з'їжте істоту, яку тримаєте в руці"
 }

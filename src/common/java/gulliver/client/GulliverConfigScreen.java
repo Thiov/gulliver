@@ -142,6 +142,8 @@ public class GulliverConfigScreen extends Screen {
                         : Component.translatable("gulliver.config.trampleDamage", fmt(v)),
                 v -> g.trampleDamage = v, "trampleDamage"));
         addRenderableWidget(toggle(right, y, "breathGust", g.breathGust, v -> g.breathGust = v));
+        y += ROW;
+        addRenderableWidget(toggle(left, y, "giantAppetite", g.giantAppetite, v -> g.giantAppetite = v));
     }
 
     private void initSpawn(int left, int right, int y) {

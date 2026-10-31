@@ -39,6 +39,9 @@
   "death.attack.gulliver.passive.player": "%1$s a été écrasé par %2$s en essayant d'échapper à %3$s",
   "death.attack.gulliver.rain": "%1$s s'est noyé sous la pluie",
   "death.attack.gulliver.rain.player": "%1$s s'est noyé sous la pluie en essayant d'échapper à %2$s",
+  "death.attack.gulliver.eaten": "%1$s a été dévoré par %2$s",
+  "death.attack.gulliver.eaten.item": "%1$s a été dévoré par %2$s",
+  "death.attack.gulliver.eaten.player": "%1$s a été dévoré par %2$s",
   "gulliver.size_readout": "Taille %s×",
   "gulliver.tooltip.glide": "Maintenir pendant une chute pour planer",
   "gulliver.tooltip.raft": "Flotte sur l'eau, ou se brandit sous la pluie comme un parapluie",
@@ -91,6 +94,8 @@
   "gulliver.config.trampleDamage.tooltip": "La force du piétinement. Plus haut, le pas d'un géant aplatit tout ce qu'il écrase ; accroupi ou en rampant, on ne piétine jamais.",
   "gulliver.config.breathGust": "Rafale de souffle",
   "gulliver.config.breathGust.tooltip": "Maintenez la touche de souffle pour repousser les créatures plus petites, les objets et les projectiles. De plus grands poumons soufflent plus fort et plus loin ; cela coûte de l'air.",
+  "gulliver.config.giantAppetite": "Appétit de géant",
+  "gulliver.config.giantAppetite.tooltip": "Les géants (taille 2 et plus) mangent les créatures d'un quart de leur taille : les joueurs en maintenant s'accroupir + clic droit avec une créature en main, les géants hostiles en avalant les proies réduites à un tiers de leur vie.",
   "gulliver.config.screenShake": "Tremblement de l'écran : %s",
   "gulliver.config.screenShake.off": "Tremblement de l'écran : désactivé",
   "gulliver.config.screenShake.tooltip": "Force du tremblement de l'écran quand quelque chose d'énorme passe ou atterrit. L'option « Inclinaison lors des dégâts » du jeu de base s'applique en plus.",
@@ -120,5 +125,7 @@
   "advancements.gulliver.pocket_friend.title": "Ami de poche",
   "advancements.gulliver.pocket_friend.description": "Ramassez une créature et portez-la dans votre main",
   "advancements.gulliver.watch_your_step.title": "Attention où vous marchez",
-  "advancements.gulliver.watch_your_step.description": "Piétinez une créature bien plus petite que vous"
+  "advancements.gulliver.watch_your_step.description": "Piétinez une créature bien plus petite que vous",
+  "advancements.gulliver.fee_fi_fo_fum.title": "Je sens la chair fraîche !",
+  "advancements.gulliver.fee_fi_fo_fum.description": "En géant, mangez une créature que vous tenez en main"
 }

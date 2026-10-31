@@ -39,6 +39,9 @@
   "death.attack.gulliver.passive.player": "%1$s werd verpletterd door %2$s terwijl hij probeerde te ontsnappen aan %3$s",
   "death.attack.gulliver.rain": "%1$s verdronk in de regen",
   "death.attack.gulliver.rain.player": "%1$s verdronk in de regen terwijl hij probeerde te ontsnappen aan %2$s",
+  "death.attack.gulliver.eaten": "%1$s werd opgegeten door %2$s",
+  "death.attack.gulliver.eaten.item": "%1$s werd opgegeten door %2$s",
+  "death.attack.gulliver.eaten.player": "%1$s werd opgegeten door %2$s",
   "gulliver.size_readout": "Grootte %s×",
   "gulliver.tooltip.glide": "Ingedrukt houden tijdens het vallen om te zweven",
   "gulliver.tooltip.raft": "Drijft op water, of houd het omhoog in de regen als paraplu",
@@ -91,6 +94,8 @@
   "gulliver.config.trampleDamage.tooltip": "Hoe hard vertrappen aankomt. Hoger gezet plet de stap van een reus alles wat hij vertrapt; wie sluipt of kruipt, vertrapt nooit.",
   "gulliver.config.breathGust": "Ademstoot",
   "gulliver.config.breathGust.tooltip": "Houd de blaastoets ingedrukt om kleinere wezens, voorwerpen en projectielen weg te blazen. Grotere longen blazen harder en verder; het kost lucht.",
+  "gulliver.config.giantAppetite": "Reuzenhonger",
+  "gulliver.config.giantAppetite.tooltip": "Reuzen (grootte 2 en meer) eten wezens van een kwart van hun grootte: spelers door met een wezen in de hand sluipen + rechtsklik ingedrukt te houden, vijandige reuzen door prooi met nog maar een derde van zijn leven in te slikken.",
   "gulliver.config.screenShake": "Schermtrilling: %s",
   "gulliver.config.screenShake.off": "Schermtrilling: uit",
   "gulliver.config.screenShake.tooltip": "Hoe sterk het scherm trilt wanneer iets enorms voorbijloopt of landt. De standaardoptie Schadehelling werkt daar bovenop.",
@@ -120,5 +125,7 @@
   "advancements.gulliver.pocket_friend.title": "Zakvriendje",
   "advancements.gulliver.pocket_friend.description": "Raap een wezen op en draag het in je hand",
   "advancements.gulliver.watch_your_step.title": "Kijk uit waar je loopt",
-  "advancements.gulliver.watch_your_step.description": "Vertrap een wezen dat veel kleiner is dan jij"
+  "advancements.gulliver.watch_your_step.description": "Vertrap een wezen dat veel kleiner is dan jij",
+  "advancements.gulliver.fee_fi_fo_fum.title": "Ik ruik mensenvlees!",
+  "advancements.gulliver.fee_fi_fo_fum.description": "Eet als reus een wezen dat je in je hand hebt"
 }

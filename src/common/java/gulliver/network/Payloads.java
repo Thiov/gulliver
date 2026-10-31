@@ -186,6 +186,8 @@ public final class Payloads {
          */
         public static final byte BREATH = 4;
         public static final byte BREATH_STOP = 5;
+        /** Sneak + right-click on nothing with a creature in hand: one bite (Appetite); repeated while held. */
+        public static final byte EAT = 6;
 
         public static CarryAction read(FriendlyByteBuf b) {
             return new CarryAction(b.readByte());
