@@ -6,9 +6,11 @@ Shrink down to an ant's-eye view or grow into a world-crushing giant. Your size 
 
 - **Resize anything**: players, animals and monsters, from 1/8× to 8× by default (up to 1/32× and 32× if you allow it).
 - **Everything scales**: speed, jumps, step height, falling, reach, damage, knockback, food and health.
-- **Giants** shake the ground, crack weak floors, punch craters and trample what's beneath them.
+- **Giants** shake the ground, crack weak floors, punch craters and trample what's beneath them (sneak or crawl to step carefully).
 - **Tinies** glide, climb, float, hide in flowers and ride small animals. A few everyday items help; their tooltips tell you how.
 - **Carry creatures** in your hand or on your shoulders, and throw them.
+- **Eat what's small enough**: anything can eat a creature a quarter of its size. Lift it to your mouth and take a bite; hostile giants snatch weakened tinies the same way. Every bite is real damage, so armor is what keeps a tiny alive, and a meal that survives every bite gets spat out.
+- **Breath gust**: hold **G** to blow away anything lighter than you, turn arrows around and blow out candles. The gust is drawn at your size, from a tiny's whisper to a colossus's rolling rings of wind.
 - **Mobs react to size**: most ignore what's far too small to notice, some hunt it on purpose.
 - **Presence**: footsteps you feel, sounds pitched to your size, smooth resizing, a Gulliver advancement tab.
 
@@ -23,6 +25,7 @@ Shrink down to an ant's-eye view or grow into a world-crushing giant. Your size 
 - Minecraft **1.20.1, 1.21.10, 1.21.11, 26.1.x, 26.2 and 26.3**
 - **Fabric** (needs Fabric API; Mod Menu optional), **NeoForge** and **Forge**
 - No scaling library needed. Works in singleplayer and on servers (install on both).
+- Plays well with Better Combat (weapon reach scales with your size), ParCool and Crawl (crawling counts as stepping carefully).
 
 Settings are in-game (Mods → Gulliver) and in `config/gulliver.json`.
 

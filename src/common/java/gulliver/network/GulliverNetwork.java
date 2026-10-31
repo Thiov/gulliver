@@ -43,7 +43,8 @@ public final class GulliverNetwork {
             new Spec<>(Payloads.ServerSettings.ID, Payloads.ServerSettings.class, Payloads.ServerSettings::read),
             new Spec<>(Payloads.AttachEntitySpecial.ID, Payloads.AttachEntitySpecial.class, Payloads.AttachEntitySpecial::read),
             new Spec<>(Payloads.GroundShock.ID, Payloads.GroundShock.class, Payloads.GroundShock::read),
-            new Spec<>(Payloads.HookAnchor.ID, Payloads.HookAnchor.class, Payloads.HookAnchor::read));
+            new Spec<>(Payloads.HookAnchor.ID, Payloads.HookAnchor.class, Payloads.HookAnchor::read),
+            new Spec<>(Payloads.ActionState.ID, Payloads.ActionState.class, Payloads.ActionState::read));
 
     public static final List<Spec<?>> SERVERBOUND = List.of(
             new Spec<>(Payloads.ConsumeResizingItem.ID, Payloads.ConsumeResizingItem.class, Payloads.ConsumeResizingItem::read),

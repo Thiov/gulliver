@@ -46,6 +46,7 @@ public abstract class MixinEntity implements IResizeableEntity, IGulliverEntityI
     @Unique private java.util.UUID gulliver$handEntity = null;
     @Unique private java.util.UUID gulliver$rightShoulder = null;
     @Unique private java.util.UUID gulliver$leftShoulder = null;
+    @Unique private int gulliver$chewTicks = -1;
 
     @Override @Unique public boolean gulliver$isSizeInitialized() { return gulliver$sizeInitialized; }
     @Override @Unique public void gulliver$setSizeInitialized(boolean v) { gulliver$sizeInitialized = v; }
@@ -233,6 +234,8 @@ public abstract class MixinEntity implements IResizeableEntity, IGulliverEntityI
     @Override @Unique public void gulliver$setHandEntity(java.util.UUID id)    { gulliver$handEntity = id; }
     @Override @Unique public void gulliver$setRightShoulder(java.util.UUID id) { gulliver$rightShoulder = id; }
     @Override @Unique public void gulliver$setLeftShoulder(java.util.UUID id)  { gulliver$leftShoulder = id; }
+    @Override @Unique public int gulliver$getChewTicks() { return gulliver$chewTicks; }
+    @Override @Unique public void gulliver$setChewTicks(int ticks) { gulliver$chewTicks = ticks; }
 
     /**
      * Scale the entity's dimensions (width, height, eye height) uniformly by

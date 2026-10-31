@@ -203,4 +203,31 @@ public final class Payloads {
         @Override public Type<CarryAction> type() { return TYPE; }
         //#endif
     }
+
+    /**
+     * S2C: a body started or stopped an action others should see:
+     * blowing a breath gust (BreathGust) or bringing its hand-held creature
+     * to its mouth (Appetite).
+     */
+    public record ActionState(int entityId, byte action, boolean active) implements GulliverPayload {
+        public static final Identifier ID = Gulliver.id("action_state");
+        public static final byte BREATH = 0;
+        public static final byte CHEW = 1;
+
+        public static ActionState read(FriendlyByteBuf b) {
+            return new ActionState(b.readVarInt(), b.readByte(), b.readBoolean());
+        }
+
+        @Override
+        public void write(FriendlyByteBuf b) {
+            b.writeVarInt(entityId);
+            b.writeByte(action);
+            b.writeBoolean(active);
+        }
+
+        //#if MC >= 1.20.5
+        public static final Type<ActionState> TYPE = new Type<>(ID);
+        @Override public Type<ActionState> type() { return TYPE; }
+        //#endif
+    }
 }
