@@ -23,10 +23,11 @@ import java.util.function.Consumer;
  * rather than testing them: run the self-test client with a file named
  * "gulliver-showcase" in the run folder and it plays each scene and saves
  * screenshots (run/screenshots), logging how far the wind moved things,
- * instead of the usual checks. Scenes: gusts at 8, 32, 2 and 4 (and the
+ * instead of the usual checks. Scenes: gusts at 8, 32, 4 and 16 (and the
  * view right after switching to third person at 32); eating a pig in
  * first and third person; a size-8 husk grabbing a player with both
- * hands; wind skimming over water, and bubbles when blowing under it.
+ * hands; wind skimming over water, bubbles when blowing under it, and
+ * wind blown up at the clouds.
  */
 public final class ClientShowcase {
     private ClientShowcase() {}
@@ -98,7 +99,7 @@ public final class ClientShowcase {
                 stop();
                 mc.options.setCameraType(CameraType.FIRST_PERSON);
                 cmd(mc, "kill @e[type=!player]");
-                size(mc, 2.0F);
+                size(mc, 4.0F);
                 look(p, 10.0F);
             }
             case 250 -> blow();
@@ -106,7 +107,7 @@ public final class ClientShowcase {
             case 280 -> {
                 stop();
                 cmd(mc, "kill @e[type=!player]");
-                size(mc, 4.0F);
+                size(mc, 16.0F);
                 mc.options.setCameraType(CameraType.THIRD_PERSON_FRONT);
             }
             case 300 -> blow();
@@ -220,10 +221,10 @@ public final class ClientShowcase {
             case 620 -> {
                 cmd(mc, "gamemode creative @a");
                 cmd(mc, "kill @e[type=!player]");
-                size(mc, 2.0F);
+                size(mc, 4.0F);
                 if (arena != null) {
                     cmd(mc, String.format(java.util.Locale.ROOT, "tp @a %.2f %.2f %.2f", arena.x, arena.y, arena.z));
-                    cmd(mc, "execute as @a at @s run fill ~-5 ~-7 ~4 ~5 ~-1 ~12 minecraft:water");
+                    cmd(mc, "execute as @a at @s run fill ~-6 ~-12 ~5 ~6 ~-1 ~17 minecraft:water");
                 }
                 look(p, 35.0F);
             }
@@ -232,7 +233,7 @@ public final class ClientShowcase {
             case 665 -> {
                 stop();
                 if (arena != null) {
-                    cmd(mc, String.format(java.util.Locale.ROOT, "tp @a %.2f %.2f %.2f", arena.x, arena.y - 6.5D, arena.z + 8.0D));
+                    cmd(mc, String.format(java.util.Locale.ROOT, "tp @a %.2f %.2f %.2f", arena.x, arena.y - 11.5D, arena.z + 11.0D));
                 }
                 look(p, -10.0F);
             }
@@ -243,7 +244,19 @@ public final class ClientShowcase {
                         sp.isEyeInFluid(net.minecraft.tags.FluidTags.WATER), sp.getAirSupply()));
                 stop();
             }
-            case 720 -> {
+            case 705 -> {
+                // Up at the clouds: the wind must stay in front of them.
+                size(mc, 16.0F);
+                if (arena != null) {
+                    cmd(mc, String.format(java.util.Locale.ROOT, "tp @a %.2f %.2f %.2f", arena.x, arena.y, arena.z));
+                }
+                mc.options.setCameraType(CameraType.FIRST_PERSON);
+                look(p, -28.0F);
+            }
+            case 718 -> blow();
+            case 738, 746 -> shot(mc);
+            case 750 -> stop();
+            case 760 -> {
                 Gulliver.LOGGER.info("GULLIVER SHOWCASE DONE");
                 return true;
             }

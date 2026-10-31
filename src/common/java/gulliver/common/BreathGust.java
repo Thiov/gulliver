@@ -55,7 +55,8 @@ import java.util.concurrent.ConcurrentHashMap;
  * so nothing under the surface is blown; underwater the breath just goes
  * up as a stream of bubbles, and the air is gone all the same.
  *
- * Only giants blow: from general.breathGustMinSize (size 2 by default);
+ * Only giants blow: from general.breathGustMinSize (size 4 by default,
+ * where giant boss bars start);
  * anyone smaller is told so on the action bar instead. The key rides on
  * the CarryAction packet, so an older server just ignores it, and the
  * client repeats it while held so a lost "stop" can't leave anyone

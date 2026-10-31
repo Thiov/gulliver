@@ -32,18 +32,14 @@ public abstract class MixinLevelRendererSubmit {
         LilyRaftWorldRenderer.submit(pose, buffers, camera, partialTick);
     }
 
-    /** The wind after the translucent terrain, like particles, so water behind it doesn't cover it. */
+    /** The wind after the water, clouds and weather, so nothing see-through behind it covers it (BreathRibbonRenderer). */
     @Inject(method = "renderLevel",
-            at = {
-                @At(value = "INVOKE", target = "Lnet/minecraft/client/particle/ParticleEngine;render(Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/MultiBufferSource$BufferSource;Lnet/minecraft/client/renderer/LightTexture;Lnet/minecraft/client/Camera;F)V"),
-                // loader patch: Forge and NeoForge pass the frustum along
-                @At(value = "INVOKE", target = "Lnet/minecraft/client/particle/ParticleEngine;render(Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/MultiBufferSource$BufferSource;Lnet/minecraft/client/renderer/LightTexture;Lnet/minecraft/client/Camera;FLnet/minecraft/client/renderer/culling/Frustum;)V")
-            },
+            at = @At(value = "INVOKE", target = "Lnet/minecraft/client/renderer/LevelRenderer;renderWorldBorder(Lnet/minecraft/client/Camera;)V"),
             require = 0)
     private void gulliver$drawWind(PoseStack pose, float partialTick, long nanos, boolean outline, Camera camera,
                                    GameRenderer gameRenderer, LightTexture lightTexture, Matrix4f projection,
                                    CallbackInfo ci) {
-        gulliver.client.BreathRibbonRenderer.submit(pose, Minecraft.getInstance().renderBuffers().bufferSource(),
+        gulliver.client.BreathRibbonRenderer.drawLate(pose, Minecraft.getInstance().renderBuffers().bufferSource(),
                 camera, partialTick);
     }
 }

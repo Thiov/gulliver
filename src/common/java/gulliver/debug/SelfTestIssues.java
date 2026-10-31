@@ -135,7 +135,7 @@ final class SelfTestIssues {
         check(failures, Math.abs(BreathGust.range(1.0F) - 4.0D) < 1.0E-9D && BreathGust.range(32.0F) <= 48.0D,
                 "breath range is four body lengths, capped");
         pig.setPos(eye.x + 30.0D, eye.y, eye.z);
-        check(failures, BreathGust.bigEnough(giant) && !BreathGust.bigEnough(pig), "only giants blow a gust (from size 2)");
+        check(failures, BreathGust.bigEnough(giant) && !BreathGust.bigEnough(pig), "only giants blow a gust (from size 4)");
         arrow.discard();
         giant.discard();
         pig.discard();
