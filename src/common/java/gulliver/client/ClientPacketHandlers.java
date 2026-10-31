@@ -31,6 +31,7 @@ public final class ClientPacketHandlers {
                 BreathFx.set(p.entityId(), p.active());
             } else if (p.action() == Payloads.ActionState.CHEW && e != null) {
                 ((IGulliverShoulderInternal) e).gulliver$setChewTicks(p.active() ? 0 : -1);
+                if (!p.active()) ((IGulliverShoulderInternal) e).gulliver$setGrabOffset(null);
             }
         } else if (payload instanceof Payloads.HookAnchor p) {
             Entity hook = entityById(p.hookId());
@@ -106,7 +107,13 @@ public final class ClientPacketHandlers {
             }
             case ShoulderHelper.SLOT_HAND -> {
                 if (pid != null) cs.gulliver$setHandEntity(pid);
-                if (passenger != null) ps.gulliver$setHoldingEntity(carrier.getUUID());
+                if (passenger != null) {
+                    ps.gulliver$setHoldingEntity(carrier.getUUID());
+                    // A monster's snatch (Appetite): the lift starts where the prey was.
+                    if (!(carrier instanceof net.minecraft.world.entity.player.Player)) {
+                        cs.gulliver$setGrabOffset(passenger.position().subtract(carrier.position()));
+                    }
+                }
             }
             case ShoulderHelper.SLOT_RIGHT -> {
                 if (pid != null) cs.gulliver$setRightShoulder(pid);

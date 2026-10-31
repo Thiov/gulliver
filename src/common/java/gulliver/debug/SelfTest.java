@@ -97,7 +97,9 @@ public final class SelfTest {
             check(failures, Math.abs(zombie.getBbHeight() - h * 0.25F) < 1.0E-3F, "zombie height x0.25");
             check(failures, ((IResizeableEntity) zombie).isTiny(), "0.25 counts as tiny");
             ((IResizeableLiving) zombie).setBaseSize(100.0F);
-            check(failures, ((IResizeableEntity) zombie).getSizeMultiplier() <= 8.0F, "size clamped to max");
+            // Against the configured limit: a play-tested run folder may have raised it.
+            check(failures, ((IResizeableEntity) zombie).getSizeMultiplier()
+                    <= gulliver.common.GulliverConfig.INSTANCE.general.maxEntitySize + 1.0E-3D, "size clamped to max");
             zombie.discard();
         }
 

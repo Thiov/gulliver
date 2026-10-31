@@ -78,6 +78,8 @@ public abstract class MixinTargetingConditionsTinyHide implements IGulliverTarge
         // Retaliation: the goal that's calling test() is validating an
         // already-set HurtByTarget; allow it.
         if (attacker.getLastHurtByMob() == target) return;
+        // Hostile giants hunt what they can eat (Appetite).
+        if (gulliver.common.Appetite.hunts(attacker, target)) return;
         cir.setReturnValue(false);
     }
 
