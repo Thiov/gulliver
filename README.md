@@ -22,9 +22,9 @@ Get the jars from the [releases page](https://github.com/Thiov/gulliver/releases
 **Everything scales with your size**
 - **Movement**: walk speed, jump height, step height, and fall damage.
 - **Falling**: the smaller you are, the lower your terminal velocity, so long falls become a leaf-light drift while jumps stay snappy. Giants fall normally, but landing from a real height sets off a ground-shock that booms, kicks up dust, and knocks smaller creatures off their feet.
-- **Reach**: interaction range scales with size. Tinies get a bump when holding a tool.
+- **Reach**: interaction range scales with size. Tinies get a bump when holding a tool. With Better Combat on 1.20.1, weapon swings reach as far as you do.
 - **Combat**: damage and knockback scale with the size gap. A much bigger mob often swings right over a tiny. Drawing a bow, cranking a crossbow, or winding up a trident takes longer the smaller you are.
-- **Trampling**: anything walking over a creature well under half its size tramples it, so a normal zombie is a real danger to a quarter-size player. Giants also trample crops, trip pressure plates, and crack brittle floors.
+- **Trampling**: anything walking over a creature well under half its size tramples it, so a normal zombie is a real danger to a quarter-size player. Giants also trample crops, trip pressure plates, and crack brittle floors. Sneak or crawl (vanilla, ParCool or Crawl) to step carefully and trample nothing; how hard a step hits is a setting.
 - **Mob AI**: mobs ignore prey far smaller than themselves, though spiders, silverfish, endermites, and bees will always hunt tinies.
 
 **Presence: big things are seen, heard, and felt**
@@ -35,6 +35,7 @@ Get the jars from the [releases page](https://github.com/Thiov/gulliver/releases
 **Giant powers**
 - **Fists that span blocks**: breaking a block shatters a fist-shaped crater around it, up to a 7×7 disc at size 8. Collateral blocks only drop what your tool can harvest, and wear the tool.
 - **Sweeping blows**: melee hits splash damage onto creatures around your target.
+- **Breath gust**: hold **G** to blow a cone of wind. It pushes creatures smaller than you away (a giant knocks normal mobs back, a normal player only stirs a tiny), turns arrows and fireballs around, and blows out candles, campfires and fire. Bigger lungs blow harder and further; it costs air, so you can't blow forever.
 - **Precision mode**: hold sneak for a single block and a single target.
 - **Growing pains**: grow indoors and your body bursts through weak blocks above you.
 
@@ -73,7 +74,7 @@ In game: **Mods → Gulliver → Config** on NeoForge and Forge, or the settings
 
 Everything is stored in `config/gulliver.json` (reload with `/gulliver reload`):
 
-- `general`: size limits (`minEntitySize`/`maxEntitySize`, default 0.125 and 8, allowed 1/32 to 32; outside 1/8–8 is experimental), `enableDyeResizing`, `enableKarmaMode` (reset size on death), `fishingRodGrapple` and `grappleMaxSize` (default 0.3, i.e. tiny), `trampleSizeRatio` (default 0.4, 0 disables trampling).
+- `general`: size limits (`minEntitySize`/`maxEntitySize`, default 0.125 and 8, allowed 1/32 to 32; outside 1/8–8 is experimental), `enableDyeResizing`, `enableKarmaMode` (reset size on death), `fishingRodGrapple` and `grappleMaxSize` (default 0.3, i.e. tiny), `trampleSizeRatio` (default 0.4, 0 disables trampling), `trampleDamage` (0 to 10, default 1), `breathGust`.
 - `spawnSize`: starting sizes for players, animals, monsters, villagers, and per-entity overrides. Accepts plain sizes (`"0.5"`), ranges (`"0.5-2"`), sets (`"0.5,1,2"`) and heights (`"5'9\""`, `"120cm"`).
 - `sizeLimit`: minimum and maximum sizes per class and per entity.
 - `client.screenShake` (0 to 1, also follows vanilla's Damage Tilt and Distortion Effects), `client.smoothResize`, `client.sizeReadout`.

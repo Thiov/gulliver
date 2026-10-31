@@ -180,6 +180,12 @@ public final class Payloads {
         public static final byte DROP = 2;
         /** Right-click on nothing with an empty hand: set the hand-held down. */
         public static final byte SET_DOWN = 3;
+        /**
+         * Breath key held (repeated while it stays down) and released. They
+         * ride on this packet so a server without them simply ignores them.
+         */
+        public static final byte BREATH = 4;
+        public static final byte BREATH_STOP = 5;
 
         public static CarryAction read(FriendlyByteBuf b) {
             return new CarryAction(b.readByte());

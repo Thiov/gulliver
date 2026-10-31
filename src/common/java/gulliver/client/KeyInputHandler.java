@@ -28,7 +28,9 @@ import net.minecraft.world.phys.EntityHitResult;
  * Entity-target trigger item is STICK (4(357), changed from FEATHER):
  * stick + entity target → /entitydoublesize | /entityhalfsize.
  *
- * Default keys U (embiggen), I (ensmallen) and V (shoulder) come from
+ * G (held) blows a breath gust, see BreathGust.
+ *
+ * Default keys U (embiggen), I (ensmallen), V (shoulder) and G come from
  * InputConstants, never as raw numbers: the codes behind them changed when
  * 26.3 moved from GLFW to SDL (U was 85, is 24).
  */
@@ -49,17 +51,48 @@ public final class KeyInputHandler {
     public static final KeyMapping SHOULDER = new KeyMapping(
             "key.gulliver.shoulder", InputConstants.Type.KEYSYM, InputConstants.KEY_V, CATEGORY);
 
+    /** Hold to blow a breath gust (BreathGust); G is free in vanilla. */
+    public static final KeyMapping BREATH = new KeyMapping(
+            "key.gulliver.breath", InputConstants.Type.KEYSYM, InputConstants.KEY_G, CATEGORY);
+
     /** Every key mapping the loader must register. */
-    public static final KeyMapping[] ALL = { UPSIZE, DOWNSIZE, SHOULDER };
+    public static final KeyMapping[] ALL = { UPSIZE, DOWNSIZE, SHOULDER, BREATH };
+
+    /** Whether the server was last told the breath key is down. */
+    private static boolean blowing;
+    private static int breathRepeat;
 
     /** End of every client tick. */
     public static void tick(Minecraft client) {
-        if (client.player == null || client.level == null) return;
+        if (client.player == null || client.level == null) {
+            blowing = false;
+            return;
+        }
+        breath(client);
         if (client.gui.screen() != null) return; // don't fire while a GUI is open
         while (UPSIZE.consumeClick()) dispatchSize(client, true);
         while (DOWNSIZE.consumeClick()) dispatchSize(client, false);
         while (SHOULDER.consumeClick()) {
             Services.platform().sendToServer(new Payloads.CarryAction(Payloads.CarryAction.CYCLE));
+        }
+    }
+
+    /**
+     * The breath key is held, not clicked: tell the server when it goes
+     * down, every ten ticks while it stays down (the server lets a gust
+     * lapse without them) and when it comes up or a screen opens.
+     */
+    private static void breath(Minecraft client) {
+        boolean held = BREATH.isDown() && client.gui.screen() == null && !client.player.isSpectator();
+        if (held) {
+            if (!blowing || ++breathRepeat >= 10) {
+                Services.platform().sendToServer(new Payloads.CarryAction(Payloads.CarryAction.BREATH));
+                breathRepeat = 0;
+            }
+            blowing = true;
+        } else if (blowing) {
+            Services.platform().sendToServer(new Payloads.CarryAction(Payloads.CarryAction.BREATH_STOP));
+            blowing = false;
         }
     }
 

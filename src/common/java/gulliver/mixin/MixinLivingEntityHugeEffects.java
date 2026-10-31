@@ -2,6 +2,7 @@ package gulliver.mixin;
 
 import gulliver.access.IGulliverBossBar;
 import gulliver.api.IResizeableEntity;
+import gulliver.common.BreathGust;
 import gulliver.common.GiantBossBars;
 import gulliver.common.GulliverEnvoy;
 import net.minecraft.server.level.ServerBossEvent;
@@ -23,7 +24,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
  * a server-side player's delta movement stays near zero, which used to
  * stop giant PLAYERS from ever trampling anything.
  *
- * Also drives the boss bar of a giant mob (GiantBossBars): created and
+ * Also blows a player's breath gust (BreathGust) and drives the boss bar of a giant mob (GiantBossBars): created and
  * updated here every tick, taken down when the entity dies (and, through
  * MixinEntityBossBar, whenever it leaves the world).
  */
@@ -46,6 +47,7 @@ public abstract class MixinLivingEntityHugeEffects {
 
         GulliverEnvoy.noteBodySize(self);
         GulliverEnvoy.stepOnSmallerEntities(self, moved);
+        if (self instanceof net.minecraft.server.level.ServerPlayer player) BreathGust.tick(player);
         if (((IResizeableEntity) self).isHuge()) {
             GulliverEnvoy.leaveHugeFootprints(self, moved);
             GulliverEnvoy.checkSupportingBlocksForHuge(self, GulliverEnvoy.getRand());

@@ -64,6 +64,26 @@ public final class ForgePlatform implements Platform {
         return !BlockEvent.BreakEvent.BUS.post(event) && !event.getResult().isDenied();
     }
 
+    //#if MC < 1.20.5
+    //$$ /** Forge's own reach attributes: before 1.20.5 vanilla has none, and every Forge reach check reads these. */
+    //$$ @Override
+    //$$ public net.minecraft.world.entity.ai.attributes.Attribute[] reachAttributes() {
+    //$$     return new net.minecraft.world.entity.ai.attributes.Attribute[] {
+    //$$             net.minecraftforge.common.ForgeMod.BLOCK_REACH.get(),
+    //$$             net.minecraftforge.common.ForgeMod.ENTITY_REACH.get() };
+    //$$ }
+    //$$
+    //$$ @Override
+    //$$ public double blockReach(net.minecraft.world.entity.player.Player player) {
+    //$$     return player.getBlockReach();
+    //$$ }
+    //$$
+    //$$ @Override
+    //$$ public double entityReach(net.minecraft.world.entity.player.Player player) {
+    //$$     return player.getEntityReach();
+    //$$ }
+    //#endif
+
     @Override
     public boolean mayInteractWithEntity(ServerPlayer player, Entity target, InteractionHand hand) {
         // Interaction point relative to the entity's feet: the middle of its body.

@@ -1287,7 +1287,9 @@ public final class GulliverEnvoy {
      *     is genuinely under the stepper's foot. Only that slab is
      *     searched (a size-32 body is 57 blocks tall).
      * Added: the stepper's own pets, teammates and armor stands are
-     * spared, and at most {@link #MAX_TRAMPLED} creatures are hurt per tick.
+     * spared, at most {@link #MAX_TRAMPLED} creatures are hurt per tick,
+     * a sneaking or crawling stepper treads carefully, and the
+     * trampleDamage setting scales the damage.
      *
      * @param horizSqr squared horizontal distance the stepper moved this
      *                 tick (measured from its positions, since a server-side
@@ -1298,7 +1300,12 @@ public final class GulliverEnvoy {
         if (level.isClientSide()) return;
         double ratio = GulliverConfig.INSTANCE.general.trampleSizeRatio;
         if (ratio <= 0.0D) return;
+        double dmgScale = GulliverConfig.INSTANCE.general.trampleDamage;
+        if (dmgScale <= 0.0D) return;
         if (stepper.isSpectator() || stepper.isPassenger()) return;
+        // Careful steps (#9): sneaking, or crawling (vanilla's crawl, ParCool
+        // and Crawl all use the swimming pose on land), never tramples.
+        if (stepper.isSteppingCarefully() || stepper.isVisuallyCrawling()) return;
         // Up to about 2.5x only sub-normal bodies can be trampled: skip the
         // entity query unless one has ticked lately (see noteBodySize).
         if (((IResizeableEntity) stepper).getSizeMultiplier() * ratio <= 1.0D
@@ -1361,8 +1368,9 @@ public final class GulliverEnvoy {
             // to 0.5 (0.25× the original): same scaling shape, but a giant
             // step is now ~3 dmg, which the tiny can flee from. The root
             // ratio reaches 32 at the ends of the 1/32..32 range, hence the cap.
-            float dmg = (float) Math.ceil(0.5F * stepperRoot / tsized.getSizeMultiplierRoot());
-            dmg = Math.max(1.0F, Math.min(MAX_TRAMPLE_DAMAGE, dmg));
+            // The trampleDamage setting (#8) scales the damage and the cap.
+            float dmg = (float) Math.ceil(0.5D * dmgScale * stepperRoot / tsized.getSizeMultiplierRoot());
+            dmg = Math.max(1.0F, Math.min((float) (MAX_TRAMPLE_DAMAGE * dmgScale), dmg));
             living.hurt(gulliver.init.GulliverDamageTypes.passive(level, stepper), dmg);
             if (stepper instanceof net.minecraft.server.level.ServerPlayer player) {
                 GulliverAdvancements.award(player, GulliverAdvancements.WATCH_YOUR_STEP);
