@@ -219,7 +219,7 @@ public final class GulliverConfig {
         g.grappleMaxSize = sizeValue(g.grappleMaxSize, 0.3D, MIN_SIZE, MAX_SIZE, "general.grappleMaxSize", fixes);
         g.trampleSizeRatio = ratioValue(g.trampleSizeRatio, 0.4D, "general.trampleSizeRatio", fixes);
         g.trampleDamage = sizeValue(g.trampleDamage, 1.0D, 0.0D, MAX_TRAMPLE_DAMAGE, "general.trampleDamage", fixes);
-        g.breathGustMinSize = sizeValue(g.breathGustMinSize, 2.0D, 0.0D, MAX_SIZE, "general.breathGustMinSize", fixes);
+        g.breathGustMinSize = sizeValue(g.breathGustMinSize, GiantBossBars.MIN_SIZE, 0.0D, MAX_SIZE, "general.breathGustMinSize", fixes);
 
         SizeLimit l = sizeLimit;
         l.minPlayerSize = limitValue(l.minPlayerSize, lo, hi, "sizeLimit.minPlayerSize", fixes);
@@ -376,8 +376,8 @@ public final class GulliverConfig {
         public double trampleDamage = 1.0D;
         /** Holding the breath key blows smaller creatures and projectiles away; costs air. */
         public boolean breathGust = true;
-        /** How big a player must be to blow a breath gust (giants only by default); 0 lets anyone. */
-        public double breathGustMinSize = 2.0D;
+        /** How big a player must be to blow a breath gust: by default the size giant boss bars start at; 0 lets anyone. */
+        public double breathGustMinSize = GiantBossBars.MIN_SIZE;
         /** Giants (size 2+) eat creatures a quarter of their size: players by hand, hostile mobs in a fight. */
         public boolean giantAppetite = true;
         /** Mob loot grows with the mob's size (a giant cow drops more beef). */
