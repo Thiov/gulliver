@@ -29,20 +29,15 @@ import java.util.Map;
 
 /**
  * What a breath gust looks and sounds like (BreathGust only tells clients
- * who is blowing). Everything is measured in the blower's own size, so the
- * same gust looks right at 1/32 and at 32: the cone is four body lengths,
- * puffs are as big as the mouth that makes them and fly as far as the wind
- * reaches, and the wind sound deepens and carries further with size.
- *
- * On top of the stream, bigger lungs add more:
- *  - tiny (under 1/2): a faint whisper of a few small puffs;
- *  - normal (1/2 to 2): a steady stream of breath;
- *  - giant (2 to 8): a dense stream that corkscrews, and where it strikes
- *    the ground it kicks up the ground itself (dirt, sand, leaves) or
- *    whips up spray from water;
- *  - colossal (8 and up): all of that plus rings of wind rolling outward
- *    from the mouth like shockwaves, and swirling gusts where it lands.
- * The particle setting (All / Decreased / Minimal) thins it out.
+ * who is blowing). The wind itself is drawn by BreathRibbons: streaks of
+ * air spiralling out of the mouth along the cone, four body lengths long
+ * and as wide as the mouth, so the same gust looks right at 1/32 and at
+ * 32. This class keeps who is blowing (with a short fade in and out), the
+ * wind sound that deepens and carries further with size, and what the wind
+ * does where it strikes from size 2 up: it kicks up the ground itself
+ * (dirt, sand, leaves) and whips up spray from water, and from size 8 it
+ * also throws up swirling gusts (1.21+). The particle setting thins that
+ * out.
  */
 public final class BreathFx {
     private BreathFx() {}
@@ -50,18 +45,34 @@ public final class BreathFx {
     private static final RandomSource RAND = RandomSource.create();
     private static final Map<Integer, Gust> ACTIVE = new HashMap<>();
 
-    private static final class Gust {
-        int age;
+    /** One blower's gust as the client sees it. */
+    public static final class Gust {
+        public int age;
+        boolean on = true;
+        /** 0..1: fades in when the gust starts and out when it stops. */
+        public float strength;
+        public float strengthO;
         WindSound sound;
+
+        public float strength(float partialTick) {
+            return Mth.lerp(partialTick, strengthO, strength);
+        }
+    }
+
+    /** Everyone blowing (or still fading out) right now, by entity id. */
+    public static Map<Integer, Gust> gusts() {
+        return ACTIVE;
     }
 
     /** From the server: this entity started or stopped blowing. */
     public static void set(int entityId, boolean on) {
         if (on) {
-            ACTIVE.computeIfAbsent(entityId, id -> new Gust());
+            ACTIVE.computeIfAbsent(entityId, id -> new Gust()).on = true;
         } else {
-            Gust gust = ACTIVE.remove(entityId);
-            if (gust != null && gust.sound != null) gust.sound.fadeOut();
+            Gust gust = ACTIVE.get(entityId);
+            if (gust == null) return;
+            gust.on = false;
+            if (gust.sound != null) gust.sound.fadeOut();
         }
     }
 
@@ -78,87 +89,42 @@ public final class BreathFx {
             Map.Entry<Integer, Gust> entry = it.next();
             Entity e = level.getEntity(entry.getKey());
             Gust gust = entry.getValue();
-            if (e == null || !e.isAlive()) {
+            gust.strengthO = gust.strength;
+            gust.strength = Mth.clamp(gust.strength + (gust.on ? 0.25F : -0.2F), 0.0F, 1.0F);
+            if (e == null || !e.isAlive() || (!gust.on && gust.strength <= 0.0F)) {
                 if (gust.sound != null) gust.sound.fadeOut();
                 it.remove();
                 continue;
             }
+            gust.age++;
+            if (!gust.on) continue;
             if (gust.sound == null || gust.sound.isStopped()) {
                 gust.sound = new WindSound(e);
                 mc.getSoundManager().play(gust.sound);
             }
-            draw(mc, level, e, gust.age++);
+            strikes(mc, level, e, gust.age);
         }
     }
 
-    private static void draw(Minecraft mc, ClientLevel level, Entity e, int age) {
+    /** Where the wind of a blower of size 2 and up strikes the ground or water. */
+    private static void strikes(Minecraft mc, ClientLevel level, Entity e, int age) {
         float size = Math.max(1.0F / 64.0F, ((IResizeableEntity) e).getSizeMultiplier());
+        if (size < 2.0F || age % 2 != 0) return;
+        int tier = size < 8.0F ? 2 : 3;
+        int setting = mc.options.particles().get().ordinal(); // all, decreased, minimal
+        float density = setting == 0 ? 1.0F : setting == 1 ? 0.6F : 0.25F;
         double range = BreathGust.range(size);
         Vec3 dir = e.getViewVector(1.0F);
-        Vec3 eye = e.getEyePosition(1.0F);
-        // The mouth: a little below the eyes; in first person further out,
-        // so the stream doesn't start inside the camera.
-        boolean ownView = e == mc.player && mc.options.getCameraType().isFirstPerson();
-        double out = (ownView ? 0.55D : 0.2D) * e.getBbWidth() / 0.6D;
-        Vec3 mouth = eye.add(dir.scale(out)).subtract(0.0D, e.getBbHeight() * 0.05D, 0.0D);
-        // Perpendicular axes of the cone.
+        Vec3 mouth = BreathRibbons.mouth(e, 1.0F, false);
         Vec3 side = dir.cross(new Vec3(0.0D, 1.0D, 0.0D));
         if (side.lengthSqr() < 1.0E-6D) side = new Vec3(1.0D, 0.0D, 0.0D);
         side = side.normalize();
         Vec3 up = side.cross(dir).normalize();
-
-        int tier = size < 0.5F ? 0 : size < 2.0F ? 1 : size < 8.0F ? 2 : 3;
-        int setting = mc.options.particles().get().ordinal(); // all, decreased, minimal
-        float density = setting == 0 ? 1.0F : setting == 1 ? 0.6F : 0.25F;
-        // Puffs fly about as far as the wind reaches (they slow by 10% a tick).
-        double speed = range / 8.0D;
-        float puff = 1.6F * size;
-
-        // The stream.
-        int stream = count(new int[] { 2, 4, 7, 10 }[tier], density);
-        for (int i = 0; i < stream; i++) {
-            double spread = 0.22D * RAND.nextDouble();
+        for (int r = 0; r < 3; r++) {
+            double spread = 0.18D * RAND.nextDouble();
             double angle = RAND.nextDouble() * Math.PI * 2.0D;
-            Vec3 v = dir.add(side.scale(Math.cos(angle) * spread)).add(up.scale(Math.sin(angle) * spread)).normalize()
-                    .scale(speed * (0.75D + 0.5D * RAND.nextDouble()));
-            Vec3 at = mouth.add(v.normalize().scale(range * 0.05D * RAND.nextDouble()));
-            spawn(mc, ParticleTypes.POOF, at, v, puff * (0.7F + 0.6F * RAND.nextFloat()), 14 + RAND.nextInt(7));
-        }
-
-        // Corkscrew wisps around the stream.
-        if (tier >= 2 && density > 0.3F) {
-            for (int k = 0; k < 2; k++) {
-                double angle = age * 0.55D + k * Math.PI;
-                double along = range * (0.08D + 0.04D * (age % 6));
-                double radius = range * 0.05D;
-                Vec3 ring = side.scale(Math.cos(angle) * radius).add(up.scale(Math.sin(angle) * radius));
-                Vec3 at = mouth.add(dir.scale(along)).add(ring);
-                Vec3 v = dir.scale(speed * 0.9D).add(ring.normalize().scale(speed * 0.08D));
-                spawn(mc, ParticleTypes.POOF, at, v, puff * 0.8F, 16);
-            }
-        }
-
-        // Rings of wind rolling out from a colossal mouth.
-        if (tier >= 3 && age % 5 == 0) {
-            int n = count(14, density);
-            double radius = range * 0.04D;
-            Vec3 center = mouth.add(dir.scale(range * 0.06D));
-            for (int i = 0; i < n; i++) {
-                double angle = Math.PI * 2.0D * i / n;
-                Vec3 radial = side.scale(Math.cos(angle)).add(up.scale(Math.sin(angle)));
-                spawn(mc, ParticleTypes.POOF, center.add(radial.scale(radius)),
-                        dir.scale(speed * 1.1D).add(radial.scale(speed * 0.12D)), puff * 0.9F, 18);
-            }
-        }
-
-        // Where the wind strikes the ground or water.
-        if (tier >= 2 && age % 2 == 0) {
-            for (int r = 0; r < 3; r++) {
-                double spread = 0.18D * RAND.nextDouble();
-                double angle = RAND.nextDouble() * Math.PI * 2.0D;
-                Vec3 ray = dir.add(side.scale(Math.cos(angle) * spread)).add(up.scale(Math.sin(angle) * spread)).normalize();
-                strike(mc, level, e, mouth, ray, range, size, tier, density);
-            }
+            Vec3 ray = dir.add(side.scale(Math.cos(angle) * spread)).add(up.scale(Math.sin(angle) * spread)).normalize();
+            strike(mc, level, e, mouth, ray, range, size, tier, density);
         }
     }
 

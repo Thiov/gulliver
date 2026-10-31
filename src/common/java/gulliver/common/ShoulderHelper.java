@@ -598,14 +598,15 @@ public final class ShoulderHelper {
             float lift = Appetite.lift(carrier, 0.0F);
             if (lift > 0.0F) {
                 // To the mouth: just in front of the face, the creature's
-                // middle at mouth height, bobbing with every bite.
+                // middle a little under the eyes (in plain view in first
+                // person), dipping into the mouth with every bite.
                 Entity held = lookup(carrier, hand);
                 double half = held == null ? 0.0D : held.getBbHeight() * 0.5D;
                 Vec3 eye = carrier.getEyePosition();
                 double reach = carrier.getBbWidth() * 0.55D;
                 double mx = eye.x + fwdX * reach;
                 double mz = eye.z + fwdZ * reach;
-                double my = eye.y - carrier.getBbHeight() * 0.07D - half + Appetite.chomp(carrier, 0.0F);
+                double my = eye.y - carrier.getBbHeight() * 0.05D - half + Appetite.chomp(carrier, 0.0F);
                 hx += (mx - hx) * lift;
                 hy += (my - hy) * lift;
                 hz += (mz - hz) * lift;

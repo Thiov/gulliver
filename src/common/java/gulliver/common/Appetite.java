@@ -42,16 +42,19 @@ import java.util.concurrent.ConcurrentHashMap;
  *
  *  - A player holding a creature in its hand eats it by holding sneak +
  *    right-click on nothing, like eating food: the hand brings it up to
- *    the mouth (the carry slot moves, the arm follows in first and third
- *    person) and the player takes six bites. A creature that can't be
- *    eaten is set down instead, as a sneak-click always did.
+ *    the mouth in half a second (the carry slot moves, the arm follows in
+ *    first and third person) and the player takes four bites, one every
+ *    four ticks, as long as the button stays down. A creature that can't
+ *    be eaten is set down instead, as a sneak-click always did.
  *  - A hostile mob that strikes prey this small which is down to a third
- *    of its health snatches it instead: the prey is lifted to the mouth and
- *    bitten four times. Sneaking doesn't get you out of a monster's fist;
+ *    of its health snatches it instead: it lifts the prey to its mouth
+ *    over a second and bites four times, half a second apart - three
+ *    seconds in all. Sneaking doesn't get you out of a monster's fist;
  *    hurting the monster (or a friend hurting it) makes it drop you.
  *
- * Every bite is real damage of the gulliver:eaten type: the eater's
- * attack (at least 2), scaled by the size gap like any blow, and reduced
+ * Every bite is real damage of the gulliver:eaten type - a player's
+ * attack (at least 2), half a monster's (at least 1.5) - scaled by the
+ * size gap like any blow, and reduced
  * by armor, Protection and Resistance (only shields can't stop it). The
  * bite that finishes the meal swallows it ("was eaten by"); a meal tough
  * enough to come through every bite is spat out, hurt but alive - so
@@ -74,20 +77,33 @@ public final class Appetite {
     public static final float MAX_MEAL_RATIO = 0.25F;
     /** A hostile mob snatches prey at or below this share of its health. */
     public static final float SWALLOW_HEALTH = 1.0F / 3.0F;
-    /** Sneak + right-click requests (one every four ticks): two to lift, the rest are bites. */
-    static final int BITES = 8;
-    /** Requests spent lifting the meal before the first bite. */
-    private static final int LIFT_REQUESTS = 2;
-    /** Ticks a mob holds its prey up; it bites every four ticks once the prey is at its mouth. */
-    public static final int GULP_TICKS = 24;
-    /** Ticks the hand takes to reach the mouth. */
-    public static final float LIFT_TICKS = 10.0F;
-    /** Ticks without a bite after which a player's meal starts over. */
-    private static final int BITE_GAP = 8;
+    /** Bites a meal gets; one that survives them all is spat out. */
+    public static final int BITES = 4;
+    /** Ticks without a sneak + right-click request after which a player stops eating. */
+    private static final int REQUEST_GAP = 8;
+
+    /** Ticks the hand takes to reach the mouth: half a second for a player, a second for a monster. */
+    public static int liftTicks(Entity eater) {
+        return eater instanceof Player ? 10 : 20;
+    }
+
+    /** Ticks between bites: four for a player, ten for a monster. */
+    public static int biteEvery(Entity eater) {
+        return eater instanceof Player ? 4 : 10;
+    }
+
+    /** Chew tick of the first bite: just after the meal reaches the mouth. */
+    public static int firstBite(Entity eater) {
+        return liftTicks(eater) + (eater instanceof Player ? 2 : 6);
+    }
+
+    /** Chew tick of the last bite. */
+    public static int lastBite(Entity eater) {
+        return firstBite(eater) + (BITES - 1) * biteEvery(eater);
+    }
 
     private static final class Meal {
         UUID food;
-        int bites;
         long last;
     }
 
@@ -127,7 +143,7 @@ public final class Appetite {
                 && ((LivingEntity) target).getHealth() <= ((LivingEntity) target).getMaxHealth() * SWALLOW_HEALTH;
     }
 
-    /** A hostile mob snatches its prey: into the hand, up to the mouth, swallowed GULP_TICKS later. */
+    /** A hostile mob snatches its prey: into the hand, up to the mouth, then the bites (see tick). */
     public static void snatch(Mob eater, LivingEntity prey) {
         if (prey.isPassenger()) prey.stopRiding();
         ShoulderHelper.grab(eater, prey);
@@ -149,16 +165,17 @@ public final class Appetite {
     public static float lift(Entity e, float partialTick) {
         int ticks = carry(e).gulliver$getChewTicks();
         if (ticks < 0) return 0.0F;
-        float t = Mth.clamp((ticks + partialTick) / LIFT_TICKS, 0.0F, 1.0F);
+        float t = Mth.clamp((ticks + partialTick) / liftTicks(e), 0.0F, 1.0F);
         return t * t * (3.0F - 2.0F * t);
     }
 
-    /** Vertical bob of a meal being chewed, in blocks (one dip per bite, every four ticks). */
+    /** Vertical bob of a meal being chewed, in blocks: one dip per bite. */
     public static double chomp(Entity e, float partialTick) {
         int ticks = carry(e).gulliver$getChewTicks();
-        if (ticks < LIFT_TICKS) return 0.0D;
-        double phase = Math.abs(Math.sin(Math.PI * (ticks + partialTick - LIFT_TICKS) / 4.0D));
-        return -phase * e.getBbHeight() * 0.035D;
+        int lift = liftTicks(e);
+        if (ticks < lift) return 0.0D;
+        double phase = Math.abs(Math.sin(Math.PI * (ticks + partialTick - lift) / biteEvery(e)));
+        return -phase * e.getBbHeight() * 0.02D;
     }
 
     static void startChewing(LivingEntity eater) {
@@ -195,18 +212,22 @@ public final class Appetite {
             return;
         }
         if (eater instanceof Player) {
+            // A player eats only while the button stays down.
             Meal meal = MEALS.get(eater.getUUID());
-            if (meal == null || eater.level().getGameTime() - meal.last > BITE_GAP) stopChewing(eater);
-        } else {
-            int now = ticks + 1;
-            if (now <= LIFT_TICKS || (now - (int) LIFT_TICKS) % 4 != 2) return;
-            Entity prey = ShoulderHelper.resolve((ServerLevel) eater.level(), c.gulliver$getHandEntity());
-            if (!(prey instanceof LivingEntity food) || !canEat(eater, food)) {
-                ShoulderHelper.detachHand(eater);
+            if (meal == null || eater.level().getGameTime() - meal.last > REQUEST_GAP) {
                 stopChewing(eater);
-            } else if (!chew(eater, food) && now + 4 > GULP_TICKS) {
-                spitOut(eater, food);
+                return;
             }
+        }
+        int now = ticks + 1;
+        int first = firstBite(eater);
+        if (now < first || (now - first) % biteEvery(eater) != 0) return;
+        Entity food = ShoulderHelper.resolve((ServerLevel) eater.level(), c.gulliver$getHandEntity());
+        if (!(food instanceof LivingEntity meal) || !canEat(eater, meal)) {
+            ShoulderHelper.detachHand(eater);
+            stopChewing(eater);
+        } else if (!chew(eater, meal) && now >= lastBite(eater)) {
+            spitOut(eater, meal);
         }
     }
 
@@ -219,8 +240,10 @@ public final class Appetite {
 
     /**
      * One sneak + right-click on nothing from a player with a creature in
-     * its hand. Returns false when that creature can't be eaten (the click
-     * then sets it down, as before).
+     * its hand (repeated every four ticks while the button is held): starts
+     * the meal or keeps it going; the bites themselves follow the tick.
+     * Returns false when that creature can't be eaten (the click then sets
+     * it down, as before).
      */
     public static boolean bite(ServerPlayer player) {
         UUID handId = carry(player).gulliver$getHandEntity();
@@ -229,17 +252,15 @@ public final class Appetite {
         long now = player.level().getGameTime();
         if (held == null || !canEat(player, held)) {
             // A meal already under way stays put while the button is held.
-            return meal != null && now - meal.last <= BITE_GAP;
+            return meal != null && now - meal.last <= REQUEST_GAP;
         }
-        if (meal == null || !held.getUUID().equals(meal.food) || now - meal.last > BITE_GAP) {
+        if (meal == null || !held.getUUID().equals(meal.food) || !isChewing(player)) {
             meal = new Meal();
             meal.food = held.getUUID();
             MEALS.put(player.getUUID(), meal);
             startChewing(player);
         }
         meal.last = now;
-        if (++meal.bites <= LIFT_REQUESTS) return true;
-        if (!chew(player, (LivingEntity) held) && meal.bites >= BITES) spitOut(player, (LivingEntity) held);
         return true;
     }
 
@@ -252,10 +273,15 @@ public final class Appetite {
                 2, 0.08D * eater.getBbWidth(), 0.05D * eater.getBbHeight(), 0.08D * eater.getBbWidth(), 0.01D);
     }
 
-    /** The damage of one bite before armor: the eater's attack, at least 2 (the size gap scales it like any blow). */
+    /**
+     * The damage of one bite before armor (the size gap scales it like any
+     * blow): a player's attack, at least 2; half a monster's, at least 1.5,
+     * so a snatched player lasts a bite or two longer than one punch.
+     */
     static float biteDamage(LivingEntity eater) {
         var attack = eater.getAttribute(Attributes.ATTACK_DAMAGE);
-        return (float) Math.max(2.0D, attack == null ? 0.0D : attack.getValue());
+        double value = attack == null ? 0.0D : attack.getValue();
+        return eater instanceof Player ? (float) Math.max(2.0D, value) : (float) Math.max(1.5D, value * 0.5D);
     }
 
     /**
