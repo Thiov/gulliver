@@ -57,6 +57,13 @@ final class SelfTestIssues {
         GulliverConfig.General g = GulliverConfig.INSTANCE.general;
         boolean saved = g.sizePushing;
         try {
+            if (!cow.isPushable() || !pig.isPushable()) {
+                // 26.3+: nothing outside an entity-ticking chunk can be pushed at all,
+                // and a server without players has no such chunk. The shares are
+                // checked above; this part runs where the game lets bodies push.
+                gulliver.Gulliver.LOGGER.info("selftest skip in-world pushing: the test spot is not entity-ticking");
+                return;
+            }
             for (boolean on : new boolean[] {true, false}) {
                 g.sizePushing = on;
                 pig.setPos(cow.getX() + 0.3D, cow.getY(), cow.getZ());
