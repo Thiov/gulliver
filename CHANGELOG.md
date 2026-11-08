@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.4.1
+
+### New
+
+- **Minecraft 1.21.1** (Fabric, NeoForge and Forge), with everything 1.4.0 has.
+
 ## 1.4.0
 
 ### New
