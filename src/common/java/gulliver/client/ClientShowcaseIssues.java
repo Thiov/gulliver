@@ -128,7 +128,7 @@ public final class ClientShowcaseIssues {
                 float[] sizes = {0.125F, 0.5F, 1.0F, 2.0F, 4.0F};
                 for (Entity e : all(sp)) {
                     for (int i = 0; i < sizes.length; i++) {
-                        if (e instanceof LivingEntity le && e.getTags().contains("gv_tag" + i)) {
+                        if (e instanceof LivingEntity le && tags(e).contains("gv_tag" + i)) {
                             ((IResizeableLiving) le).setBaseSize(sizes[i]);
                             le.setCustomName(Component.literal("Size " + SizeFormat.of(sizes[i])));
                             le.setCustomNameVisible(true);
@@ -171,8 +171,8 @@ public final class ClientShowcaseIssues {
                 onServer(mc, sp -> {
                     for (Entity e : all(sp)) {
                         if (!(e instanceof LivingEntity le)) continue;
-                        if (e.getTags().contains("gv_p0")) ((IResizeableLiving) le).setBaseSize(0.25F);
-                        if (e.getTags().contains("gv_p2")) ((IResizeableLiving) le).setBaseSize(3.0F);
+                        if (tags(e).contains("gv_p0")) ((IResizeableLiving) le).setBaseSize(0.25F);
+                        if (tags(e).contains("gv_p2")) ((IResizeableLiving) le).setBaseSize(3.0F);
                     }
                 });
                 cmd(mc, "effect give @e[type=pig] minecraft:speed 120 1");
@@ -223,7 +223,7 @@ public final class ClientShowcaseIssues {
                 float[] sizes = {0.5F, 1.0F, 2.0F};
                 for (Entity e : all(sp)) {
                     for (int i = 0; i < 3; i++) {
-                        if (e instanceof LivingEntity le && (e.getTags().contains("gv_cv" + i) || e.getTags().contains("gv_cs" + i))) {
+                        if (e instanceof LivingEntity le && (tags(e).contains("gv_cv" + i) || tags(e).contains("gv_cs" + i))) {
                             ((IResizeableLiving) le).setBaseSize(sizes[i]);
                         }
                     }
@@ -358,7 +358,7 @@ public final class ClientShowcaseIssues {
         if (t > 276 && t < 331 && t % 6 == 0) {
             onServer(mc, sp -> {
                 for (Entity e : all(sp)) {
-                    if (e instanceof Mob m && e.getTags().stream().anyMatch(s -> s.startsWith("gv_p"))) {
+                    if (e instanceof Mob m && tags(e).stream().anyMatch(s -> s.startsWith("gv_p"))) {
                         ((ServerLevel) sp.level()).broadcastEntityEvent(m, (byte) 18);
                     }
                 }
@@ -403,7 +403,7 @@ public final class ClientShowcaseIssues {
 
     private static Mob cow(ServerPlayer sp) {
         for (Entity e : all(sp)) {
-            if (e instanceof Mob m && m.isAlive() && e.getTags().contains("gv_cow")) return m;
+            if (e instanceof Mob m && m.isAlive() && tags(e).contains("gv_cow")) return m;
         }
         return null;
     }
@@ -424,7 +424,7 @@ public final class ClientShowcaseIssues {
         onServer(mc, sp -> {
             for (Entity e : all(sp)) {
                 if (e instanceof net.minecraft.world.entity.monster.Creeper c
-                        && e.getTags().stream().anyMatch(s -> s.startsWith(tagPrefix))) {
+                        && tags(e).stream().anyMatch(s -> s.startsWith(tagPrefix))) {
                     c.ignite();
                 }
             }
@@ -442,6 +442,14 @@ public final class ClientShowcaseIssues {
         } catch (ReflectiveOperationException e) {
             log("showcase config {}.{}: not in this build", section, field);
         }
+    }
+
+    private static java.util.Set<String> tags(Entity e) {
+        //#if MC >= 26.1
+        return e.entityTags();
+        //#else
+        //$$ return e.getTags();
+        //#endif
     }
 
     private static Iterable<Entity> all(ServerPlayer sp) {
