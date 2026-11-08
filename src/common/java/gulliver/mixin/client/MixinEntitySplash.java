@@ -24,8 +24,10 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
  *    scaled: the count is held to about 60, and below size 1 it shrinks
  *    with the size.
  *  - a giant's splash is not taller than anyone's: the droplets leave at
- *    the same speed. Giants add a crown of droplets thrown outward and up,
- *    harder the bigger the body (capped).
+ *    the same speed. With client.particleScaling on, every droplet is drawn
+ *    and thrown at the body's size (ParticleScale); with it off, giants add
+ *    a crown of droplets thrown outward and up, harder the bigger the body
+ *    (capped).
  *
  * The splash SOUND is not touched: Entity.playSound already scales its
  * volume by size (MixinEntitySound).
@@ -47,6 +49,8 @@ public abstract class MixinEntitySplash {
     private void gulliver$crown(CallbackInfo ci) {
         Entity self = (Entity) (Object) this;
         if (!self.level().isClientSide()) return;
+        // Scaled particles already throw a giant's droplets as high as its body (ParticleScale).
+        if (gulliver.client.ParticleScale.enabled()) return;
         float size = ((IResizeableEntity) self).getSizeMultiplier();
         if (size < 2.0F) return;
         var random = self.level().getRandom();

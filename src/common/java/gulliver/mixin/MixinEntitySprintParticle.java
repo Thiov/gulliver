@@ -54,7 +54,10 @@ public abstract class MixinEntitySprintParticle {
         int cnt = root <= 1.0F ? 1 : (int) root;
 
         double scaledY = y - 0.1 + 0.1 * size;
-        double scaledDy = dy * size;
+        // With particle scaling on, the whole particle (speed included) follows
+        // the size already (ParticleScale); scaling the speed here too would
+        // count it twice.
+        double scaledDy = gulliver.common.GulliverConfig.INSTANCE.client.particleScaling ? dy : dy * size;
         float width = self.getBbWidth();
 
         level.addParticle(opts, x, scaledY, z, dx, scaledDy, dz);

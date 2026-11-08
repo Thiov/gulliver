@@ -15,7 +15,7 @@ import net.minecraft.world.phys.AABB;
  * Listener-relative pitch: entity sounds are re-pitched by the size
  * RATIO between the sound's source and the local player.
  *
- *   factor = sqrt(listenerSize / sourceSize)
+ *   factor = sqrt(listenerSize / sourceSize)     (strength 1, see below)
  *
  * A size-1 player hears a size-8 giant's voice, footsteps, and impacts
  * pitched down to 0.35× (a rumble); the giant hears the size-1 player
@@ -73,9 +73,19 @@ public final class RelativePitch {
         float sourceSize = ((IResizeableEntity) source).getSizeMultiplier();
         float listenerSize = ((IResizeableEntity) listener).getSizeMultiplier();
         if (sourceSize == listenerSize || !(sourceSize > 0.0F) || !(listenerSize > 0.0F)) return basePitch;
+        // client.soundPitchScaling (k) is the strength: the exponent is k/2,
+        // so 0 turns re-pitching off and 10 makes a size-2 gap a full
+        // rumble or squeak.
+        float k = (float) gulliver.common.GulliverConfig.INSTANCE.client.soundPitchScaling;
+        if (!(k > 0.0F)) return basePitch;
         // The ratio can reach 1024 across the 1/32..32 range; the factor is
-        // held to what the pitch clamp below could use anyway.
-        float factor = Mth.clamp((float) Math.sqrt(listenerSize / sourceSize), 0.25F, 4.0F);
-        return Mth.clamp(basePitch * factor, 0.25F, 2.5F);
+        // held to what the pitch clamp below could use anyway. Past the
+        // normal strength the clamps open up a little, so the extra
+        // strength is heard.
+        float wide = k > 1.0F ? 2.0F : 1.0F;
+        float factor = k == 1.0F ? (float) Math.sqrt(listenerSize / sourceSize)
+                : (float) Math.pow(listenerSize / (double) sourceSize, 0.5D * k);
+        factor = Mth.clamp(factor, 0.25F / wide, 4.0F * wide);
+        return Mth.clamp(basePitch * factor, 0.25F / wide, 2.5F * wide);
     }
 }

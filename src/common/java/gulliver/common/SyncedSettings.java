@@ -18,6 +18,8 @@ public final class SyncedSettings {
     private static volatile boolean dyeResizing = true;
     private static volatile float minSize = GulliverConfig.MIN_SIZE;
     private static volatile float maxSize = GulliverConfig.MAX_SIZE;
+    /** Negative until a server has spoken: then the local config's value applies. */
+    private static volatile float soundVolumeScaling = -1.0F;
 
     public static boolean dyeResizing() {
         return dyeResizing;
@@ -31,8 +33,21 @@ public final class SyncedSettings {
         return maxSize;
     }
 
+    /**
+     * How strongly size changes loudness (general.soundVolumeScaling). The
+     * server scales what it sends out; the client uses the server's value
+     * for the sounds it plays by itself (its own steps, the resize chime),
+     * so a player sounds the same to themselves as to everyone else.
+     */
+    public static float soundVolumeScaling() {
+        float synced = soundVolumeScaling;
+        return synced >= 0.0F ? synced : (float) GulliverConfig.INSTANCE.general.soundVolumeScaling;
+    }
+
     /** Client thread: the server's settings arrived. */
-    public static void apply(boolean dye, float min, float max) {
+    public static void apply(boolean dye, float min, float max, float volumeScaling) {
+        if (!(volumeScaling >= 0.0F)) volumeScaling = 1.0F;
+        soundVolumeScaling = Math.min(volumeScaling, (float) GulliverConfig.MAX_SOUND_SCALING);
         if (!(min >= GulliverConfig.MIN_SIZE)) min = GulliverConfig.MIN_SIZE;
         if (!(max <= GulliverConfig.MAX_SIZE)) max = GulliverConfig.MAX_SIZE;
         if (max < min) max = min;

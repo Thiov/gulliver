@@ -18,6 +18,32 @@ public final class SizeScaling {
     /** Longest, as a multiple of the vanilla time. */
     public static final int MAX_USE_SLOWDOWN = 8;
 
+    /** A body this many times bigger than what pushes it doesn't move at all (Entity.push, #14). */
+    public static final float WALL_RATIO = 4.0F;
+    /** Most a much bigger pusher multiplies vanilla's push by. */
+    private static final double MAX_PUSH_BOOST = 3.0D;
+
+    /**
+     * How much of vanilla's push a body of size {@code pushed} takes from one
+     * of size {@code pusher}:
+     *
+     *   pusher as big or bigger:      sqrt(pusher / pushed), at most 3
+     *   pusher smaller:               ((g - 1/4) / (3/4))^2, g = pusher / pushed
+     *   pusher under a quarter size:  0 (a wall)
+     *
+     * Equal sizes give exactly 1, a half-size pusher 1/9, and the share
+     * falls smoothly to 0 at the wall.
+     */
+    public static double pushShare(float pusher, float pushed) {
+        if (!(pusher > 0.0F) || !(pushed > 0.0F)) return 1.0D;
+        double g = pusher / (double) pushed;
+        if (g >= 1.0D) return Math.min(Math.sqrt(g), MAX_PUSH_BOOST);
+        double wall = 1.0D / WALL_RATIO;
+        if (g <= wall) return 0.0D;
+        double t = (g - wall) / (1.0D - wall);
+        return t * t;
+    }
+
     public static float clampRatio(float ratio) {
         if (!(ratio > 0.0F)) return 1.0F; // NaN / 0 / negative: no scaling rather than a blow-up
         return Math.max(1.0F / MAX_HIT_RATIO, Math.min(MAX_HIT_RATIO, ratio));

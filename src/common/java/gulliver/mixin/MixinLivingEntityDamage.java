@@ -106,7 +106,7 @@ public abstract class MixinLivingEntityDamage {
         float attackerSize = ((IResizeableEntity) attacker).getSizeMultiplier();
         float ratio = 1.0F;
         if (targetSize != 1.0F) ratio /= (float) Math.sqrt(targetSize);
-        if (attackerSize != 1.0F) {
+        if (attackerSize != 1.0F && !gulliver$sizedBlast(source, attacker)) {
             if (attackerSize < 1.0F && GulliverEnvoy.holdingPointyItem(attackerLiv)
                     && gulliver$isMelee(source, attacker, self)) {
                 ratio *= (float) Math.cbrt(attackerSize);
@@ -129,6 +129,13 @@ public abstract class MixinLivingEntityDamage {
     //$$     if (!((LivingEntity) (Object) this).level().isClientSide()) AttackContext.pop((LivingEntity) (Object) this);
     //$$ }
     //#endif
+
+    /** A creeper's own blast: its radius already follows its size (MixinCreeperExplosion). */
+    private static boolean gulliver$sizedBlast(DamageSource source, Entity attacker) {
+        return attacker instanceof net.minecraft.world.entity.monster.Creeper
+                && source.is(DamageTypeTags.IS_EXPLOSION)
+                && gulliver.common.GulliverConfig.INSTANCE.general.creeperExplosionScaling;
+    }
 
     private static boolean gulliver$isMelee(DamageSource source, Entity attacker, LivingEntity self) {
         return attacker instanceof LivingEntity

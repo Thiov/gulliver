@@ -1,5 +1,20 @@
 # Changelog
 
+## Unreleased
+
+### New
+
+- **Particles at your size**: particles a creature gives off are drawn at its size, whole: the sprite, its hitbox, its speed and its gravity, so they fly the same path at the creature's scale. A giant kicks up dust clouds and throws splashes as tall as its body, a tiny's footsteps and potion swirls are specks, hearts over a giant cow are huge and over a tiny one tiny. That covers what a creature makes while it moves (walking and sprinting dust, potion swirls, eating crumbs, bubbles, splashes), what the server shows for it (death puffs, hearts, villager moods, landing dust, damage hearts, critical hits) and creeper explosions. Rain, torches, block breaking and other world particles stay as they are. Can be turned off (`client.particleScaling`).
+- **Size gaps decide who gets pushed** (#14): a creature far smaller than you can't shove you around. Under a quarter of your size you are a wall to it: it bumps off you and you don't move. Between that and your own size it pushes less the smaller it is, and something much bigger than you shoves you aside harder. Can be turned off (`general.sizePushing`).
+- **Creeper blasts follow the creeper** (#16): the explosion's radius is multiplied by the creeper's size, so a size-2 creeper blows a crater twice as wide and hits harder, and a size-1/8 one makes a small pop that barely hurts. Its explosion particles are drawn at its size too. Capped at a size-16 creeper's blast. Can be turned off (`general.creeperExplosionScaling`).
+- **Sound scaling settings** (#13): how strongly size changes loudness (`general.soundVolumeScaling`, also how far a giant is heard) and pitch (`client.soundPitchScaling`, the rumble of a giant and the squeak of a tiny) are sliders from 0 (off) through 1 (as before) up to 10× (exaggerated). The resize chime follows the pitch setting.
+- **Full sprint jump toggle** (#21): a sprinting tiny jumps a full block, as before; press **J** (rebindable) to switch to jumping as high as a walking tiny instead, which makes getting around at small sizes easier. The action bar says which is on, and the choice is kept (`client.sprintFullJump`).
+
+### Fixed
+
+- **Camera in the floor at 1/32** (#20): crouching at the smallest sizes darkened the whole screen with the texture of the floor. Vanilla decides the camera is inside a block by probing a fixed 0.05 blocks above and below the eye, and a crouching 1/32 player's eye is only 0.04 off the ground. The probes now follow your size.
+- **Name tags scale with any size** (#22): name tags grew and shrank only with the square root of the size (and stopped at 0.35× and 3×), so a tiny's tag towered over it. They now scale exactly with the body at every size, the gap above the head included, and on 1.20.1 so does the score line under a player's name.
+
 ## 1.3.0
 
 ### New

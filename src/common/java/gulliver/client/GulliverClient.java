@@ -17,6 +17,7 @@ public final class GulliverClient {
         PickBoost.end(); // the crosshair pick completes within a frame; this only heals a stuck window
         KeyInputHandler.tick(mc);
         VisualSize.tick(mc);
+        ParticleScale.reset();
         BreathFx.tick(mc);
         TremorHandler.tick(mc);
         ClientSelfTest.tick(mc);

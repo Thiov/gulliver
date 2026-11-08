@@ -72,6 +72,10 @@ public final class Movement {
      *   else bigger than 1:                    y *= size^0.25
      *   else a tiny player not sprinting:      y *= size^(1/6)
      *
+     * A sprinting tiny keeps the full-block jump unless its player turned
+     * that off (client.sprintFullJump, toggled with a key): then it jumps
+     * like a walking tiny.
+     *
      * Jump Boost is scaled separately by size^0.25 (1.6.4 of.java 2487-2489),
      * and a sneaking body on the ground jumps higher still (see sneakBoost).
      *
@@ -89,7 +93,7 @@ public final class Movement {
             y *= root;
         } else if (size > 1.0F) {
             y *= (float) Math.sqrt(root);
-        } else if (tiny && !self.isSprinting() && self instanceof Player) {
+        } else if (tiny && self instanceof Player && (!self.isSprinting() || !sprintFullJump(self))) {
             y *= (float) Math.cbrt(root);
         }
 
@@ -103,6 +107,16 @@ public final class Movement {
             y *= sneakBoost(size);
         }
         return y;
+    }
+
+    /**
+     * Whether this sprinting tiny player jumps the classic full block. A
+     * player's jump is worked out by its own client, so the setting is that
+     * client's; anywhere else (the server's copy) the classic jump stands.
+     */
+    private static boolean sprintFullJump(LivingEntity self) {
+        if (!self.level().isClientSide()) return true;
+        return GulliverConfig.INSTANCE.client.sprintFullJump;
     }
 
     /**

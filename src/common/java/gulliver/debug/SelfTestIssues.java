@@ -25,7 +25,7 @@ import net.minecraft.world.phys.Vec3;
 
 import java.util.List;
 
-/** Checks for the fixes to issues #8 to #12 and giant appetite; run by SelfTest. */
+/** Checks for the fixes to issues #8 to #14 and giant appetite; run by SelfTest. */
 final class SelfTestIssues {
     private SelfTestIssues() {}
 
@@ -39,6 +39,69 @@ final class SelfTestIssues {
         breath(level, failures);
         boats(level, failures);
         appetite(level, failures);
+        pushing(level, failures);
+        soundVolume(level, failures);
+    }
+
+    /** #14: a body much smaller than another can't push it; the small one still gets pushed. */
+    private static void pushing(ServerLevel level, List<String> failures) {
+        check(failures, gulliver.common.SizeScaling.pushShare(1.0F, 1.0F) == 1.0D, "equal sizes push as in vanilla");
+        check(failures, gulliver.common.SizeScaling.pushShare(0.25F, 1.0F) == 0.0D, "a quarter-size pusher moves nothing");
+        check(failures, gulliver.common.SizeScaling.pushShare(0.5F, 1.0F) > 0.0D
+                && gulliver.common.SizeScaling.pushShare(0.5F, 1.0F) < 0.5D, "a half-size pusher moves a little");
+        BlockPos at = new BlockPos(20, 0, 20);
+        Mob cow = SelfTest.spawnMob(level, EntityTypes.COW, at);
+        Mob pig = SelfTest.spawnMob(level, EntityTypes.PIG, at);
+        if (cow == null || pig == null) return;
+        ((IResizeableLiving) pig).setBaseSize(0.25F);
+        GulliverConfig.General g = GulliverConfig.INSTANCE.general;
+        boolean saved = g.sizePushing;
+        try {
+            for (boolean on : new boolean[] {true, false}) {
+                g.sizePushing = on;
+                pig.setPos(cow.getX() + 0.3D, cow.getY(), cow.getZ());
+                cow.setDeltaMovement(Vec3.ZERO);
+                pig.setDeltaMovement(Vec3.ZERO);
+                cow.push(pig);
+                pig.push(cow);
+                double cowMoved = cow.getDeltaMovement().horizontalDistance();
+                double pigMoved = pig.getDeltaMovement().horizontalDistance();
+                if (on) {
+                    check(failures, cowMoved == 0.0D && pigMoved > 0.0D,
+                            "a quarter-size pig can't push a cow, but is pushed off it (" + cowMoved + ", " + pigMoved + ")");
+                } else {
+                    check(failures, cowMoved > 0.0D && Math.abs(cowMoved - pigMoved) < 1.0E-9D,
+                            "sizePushing off: vanilla's equal push (" + cowMoved + ", " + pigMoved + ")");
+                }
+            }
+        } finally {
+            g.sizePushing = saved;
+            cow.discard();
+            pig.discard();
+        }
+    }
+
+    /** #13: the volume strength 0 turns size volume off, 1 is the old curve, more exaggerates it. */
+    private static void soundVolume(ServerLevel level, List<String> failures) {
+        Mob cow = SelfTest.spawnMob(level, EntityTypes.COW, new BlockPos(24, 0, 20));
+        if (cow == null) return;
+        GulliverConfig.General g = GulliverConfig.INSTANCE.general;
+        double saved = g.soundVolumeScaling;
+        try {
+            ((IResizeableLiving) cow).setBaseSize(4.0F);
+            gulliver.api.IResizeableEntity sized = (gulliver.api.IResizeableEntity) cow;
+            g.soundVolumeScaling = 0.0D;
+            float off = gulliver.common.SizeSound.scaleVolume(sized, 0.4F);
+            g.soundVolumeScaling = 1.0D;
+            float normal = gulliver.common.SizeSound.scaleVolume(sized, 0.4F);
+            g.soundVolumeScaling = 2.0D;
+            float doubled = gulliver.common.SizeSound.scaleVolume(sized, 0.4F);
+            check(failures, off == 0.4F && Math.abs(normal - 0.4F * 8.0F) < 1.0E-4F && doubled > normal,
+                    "sound volume strength 0 / 1 / 2 (" + off + ", " + normal + ", " + doubled + ")");
+        } finally {
+            g.soundVolumeScaling = saved;
+            cow.discard();
+        }
     }
 
     /** #9: sneaking and crawling tread carefully; #8: the damage setting scales trampling. */

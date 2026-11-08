@@ -26,11 +26,14 @@ Download **Gulliver Unbound** from [CurseForge](https://www.curseforge.com/proje
 - **Combat**: damage and knockback scale with the size gap. A much bigger mob often swings right over a tiny. Drawing a bow, cranking a crossbow, or winding up a trident takes longer the smaller you are.
 - **Trampling**: anything walking over a creature well under half its size tramples it, so a normal zombie is a real danger to a quarter-size player. Giants also trample crops, trip pressure plates, and crack brittle floors. Sneak or crawl (vanilla, ParCool or Crawl) to step carefully and trample nothing; how hard a step hits is a setting.
 - **Mob AI**: mobs ignore prey far smaller than themselves, though spiders, silverfish, endermites, and bees will always hunt tinies.
+- **Creepers**: a creeper's blast grows and shrinks with it, from a size-1/8 pop to a size-16 crater.
 
 **Presence: big things are seen, heard, and felt**
 - Every footfall of a creature much larger than you **thumps your screen**, stronger the closer and bigger it is.
 - Big bodies are **loud**: a giant's footsteps carry far beyond the usual 16 blocks.
-- Entity sounds are **pitched relative to your own size**: giants rumble when you're small, and you squeak to a giant.
+- Entity sounds are **pitched relative to your own size**: giants rumble when you're small, and you squeak to a giant. How strong both effects are is a setting (off, normal, up to 10×).
+- **Particles follow the body that makes them**: a giant's dust, splashes, potion swirls and hearts are drawn at its size, a tiny's at its own.
+- **Size gaps decide who gets pushed**: anything under a quarter of your size bumps off you like off a wall.
 
 **Giant powers**
 - **Fists that span blocks**: breaking a block shatters a fist-shaped crater around it, up to a 7×7 disc at size 8. Collateral blocks only drop what your tool can harvest, and wear the tool.
@@ -43,6 +46,7 @@ Download **Gulliver Unbound** from [CurseForge](https://www.curseforge.com/proje
 **Tiny survival tricks**
 - **Grappling hook**: cast a fishing rod while tiny and the bobber bites into whatever it hits: wall, ceiling, or floor. Reel in to be pulled up to it. Hook a creature at least twice your size and you're pulled onto it instead.
 - Glide slowly and ride heat updrafts with paper in hand (not in the rain).
+- A sprinting tiny jumps a full block; press **J** to jump only as high as a walking tiny instead.
 - Float on water with a lily pad.
 - Climb soft blocks while sneaking, or any wall with a slimeball or string in hand.
 - Carry a pointy item (sword, tool, or stick) to use functional blocks. You're too light to trip pressure plates and tripwires.
@@ -58,7 +62,7 @@ Download **Gulliver Unbound** from [CurseForge](https://www.curseforge.com/proje
 - Right-click to set one down, left-click to throw it. The bigger you are, the further it flies. Hold sneak + right-click to eat it instead (if it's a quarter of your size or smaller).
 - Other players can only be carried where PvP is allowed, and can always break free by sneaking. Bosses can't be carried.
 
-**Polish**: resizing animates smoothly with a puff and a rising or falling sound, and the action bar shows your new size. Held items, name tags, shadows, view-bobbing, the third-person camera distance, water splashes and eating speed all scale with size. Giant mobs drop more loot, tiny ones less, and can optionally show a boss bar. A Gulliver advancement tab tracks the milestones.
+**Polish**: resizing animates smoothly with a puff and a rising or falling sound, and the action bar shows your new size. Held items, name tags (exactly with the body), particles, shadows, view-bobbing, the third-person camera distance, water splashes and eating speed all scale with size. Giant mobs drop more loot, tiny ones less, and can optionally show a boss bar. A Gulliver advancement tab tracks the milestones.
 
 **Giants and mounts**: a giant can't squeeze into a boat or onto a mount much smaller than itself.
 
@@ -67,7 +71,7 @@ Download **Gulliver Unbound** from [CurseForge](https://www.curseforge.com/proje
 - **Potions**: brew Ensmallening from an awkward potion + red mushroom, Embiggening with a brown mushroom. Redstone extends, glowstone strengthens.
 - **Drink Me / Eat Me**: right-click cyan dye or a red mushroom to shrink, purple dye or a brown mushroom to grow.
 - **Commands** (operators): `/gulliver size <targets> <size>`, `/gulliver scale <targets> <factor>`, `/gulliver get <target>` and `/gulliver reload` take normal selectors (`@e[type=cow,distance=..10]`, player names). The classic `/basesize`, `/halfsize`, `/doublesize`, `/showsize`, `/instantkarma` and their `entity…` variants (by entity id) still work. `/showmysize` and `/shoulderentity` work for everyone.
-- **Keybinds** (creative): **U** grow, **I** shrink. Hold a **stick** and they resize the creature under your crosshair instead. For everyone: **V** moves carried creatures between hand and shoulders, **G** (hold) blows a breath gust. All of them can be rebound in Controls.
+- **Keybinds** (creative): **U** grow, **I** shrink. Hold a **stick** and they resize the creature under your crosshair instead. For everyone: **V** moves carried creatures between hand and shoulders, **G** (hold) blows a breath gust, **J** switches a sprinting tiny's full-block jump on and off. All of them can be rebound in Controls.
 
 ## Configuration
 
@@ -80,6 +84,7 @@ Everything is stored in `config/gulliver.json` (reload with `/gulliver reload`):
 - `sizeLimit`: minimum and maximum sizes per class and per entity.
 - `client.screenShake` (0 to 1, also follows vanilla's Damage Tilt and Distortion Effects), `client.smoothResize`, `client.sizeReadout`.
 - `general.lootScaling`, `general.giantBossBars` (off by default), `general.tinyMounts`.
+- `general.sizePushing` (creatures under a quarter of your size can't push you), `general.creeperExplosionScaling`, `general.soundVolumeScaling` and `client.soundPitchScaling` (0 to 10, default 1), `client.particleScaling`, `client.sprintFullJump` (also on the J key).
 - `client.heldItemScaling`: `"classic"` (items look bigger when you're tiny, as in the original) or `"proportional"` (items stay in proportion to your body).
 
 Game rule `gulliver:size_griefing` (`gulliverSizeGriefing` before 1.21.11) turns off every size-based block breaking.
@@ -97,7 +102,7 @@ Gradle must run on **JDK 25** (older targets are compiled for Java 17 or 21 thro
 
 - `src/common` holds the mod itself, `src/fabric`, `src/neoforge` and `src/forge` the thin loader glue.
 - Version differences are handled at build time by `gradle/gulliver.gradle`: `//#if MC >= 1.21.2 && !FORGE … //#else … //#endif` blocks, whole-file conditions, and `versions/<mc>/remap.txt` for plain renames. Sources are written against the newest Minecraft names.
-- `scripts/selftest.sh <mc> <loader>` boots a dedicated server and then a client that joins it, with `-Dgulliver.selftest=true`: every mixin is force-applied and resizing, combat, trampling, carrying, spawn sizes, effects, brewing and the grappling hook are exercised before the game quits. `scripts/prodtest.sh <mc>` does the same with the release jar on a real Fabric server. `scripts/check_mixins.py` checks every mixin target and handler signature against a Minecraft jar without launching. With a file named `gulliver-showcase` in a target's `run` folder, the self-test client plays a scripted tour of the breath gust (on land, over water and under it), carrying and eating instead and saves screenshots (`run/screenshots`).
+- `scripts/selftest.sh <mc> <loader>` boots a dedicated server and then a client that joins it, with `-Dgulliver.selftest=true`: every mixin is force-applied and resizing, combat, trampling, carrying, spawn sizes, effects, brewing and the grappling hook are exercised before the game quits. `scripts/prodtest.sh <mc>` does the same with the release jar on a real Fabric server. `scripts/check_mixins.py` checks every mixin target and handler signature against a Minecraft jar without launching. With a file named `gulliver-showcase` in a target's `run` folder, the self-test client plays a scripted tour of the breath gust (on land, over water and under it), carrying and eating instead and saves screenshots (`run/screenshots`). A file named `gulliver-showcase-issues` plays a tour of the newer fixes instead (the 1/32 crouch camera, name tags, particles off and on, creeper blasts, pushing, the sprint-jump toggle), logging what it measures; settings a build doesn't have are skipped, so the same tour also shows an older build's behaviour.
 
 ## Credits and license
 

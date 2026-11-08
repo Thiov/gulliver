@@ -7,10 +7,12 @@ import net.minecraft.client.renderer.entity.state.LivingEntityRenderState;
 import net.minecraft.world.phys.Vec3;
 
 /**
- * Name tags grow and shrink with their entity (square root of the size,
- * so a tiny's tag stays readable and a titan's doesn't fill the sky). The
- * tag's anchor already moves with the resized hitbox, so the scale pivots
- * on that anchor rather than on the entity's feet.
+ * Name tags grow and shrink with their entity, exactly as much as its body
+ * (#22): a tiny's tag is as small next to it as a normal player's is next
+ * to a normal player, and a giant's is as big. The tag's anchor (the top
+ * of the head) already moves with the resized hitbox, so the scale pivots
+ * on that anchor rather than on the entity's feet; vanilla's half-block
+ * gap above the head and the score line below the name scale with it.
  */
 public final class NameTagScale {
     private NameTagScale() {}
@@ -19,7 +21,7 @@ public final class NameTagScale {
         if (!(state instanceof LivingEntityRenderState ls) || ls.scale == 1.0F || state.nameTagAttachment == null) {
             return 1.0F;
         }
-        return Math.max(0.35F, Math.min(3.0F, (float) Math.sqrt(ls.scale)));
+        return VisualSize.nameTagScale(ls.scale);
     }
 
     public static void push(EntityRenderState state, PoseStack pose) {

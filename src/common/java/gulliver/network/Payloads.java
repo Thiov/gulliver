@@ -46,11 +46,12 @@ public final class Payloads {
      * size range (the most any creature can be); dyeResizing says whether
      * the dye and mushroom use packet is worth sending at all.
      */
-    public record ServerSettings(boolean dyeResizing, float minSize, float maxSize) implements GulliverPayload {
+    public record ServerSettings(boolean dyeResizing, float minSize, float maxSize, float soundVolumeScaling)
+            implements GulliverPayload {
         public static final Identifier ID = Gulliver.id("server_settings");
 
         public static ServerSettings read(FriendlyByteBuf b) {
-            return new ServerSettings(b.readBoolean(), b.readFloat(), b.readFloat());
+            return new ServerSettings(b.readBoolean(), b.readFloat(), b.readFloat(), b.readFloat());
         }
 
         @Override
@@ -58,6 +59,7 @@ public final class Payloads {
             b.writeBoolean(dyeResizing);
             b.writeFloat(minSize);
             b.writeFloat(maxSize);
+            b.writeFloat(soundVolumeScaling);
         }
 
         //#if MC >= 1.20.5

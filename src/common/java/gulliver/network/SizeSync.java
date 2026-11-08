@@ -50,7 +50,8 @@ public final class SizeSync {
     /** The server's size range and dye switch, as clients have to know them. */
     private static Payloads.ServerSettings settings() {
         GulliverConfig.General g = GulliverConfig.INSTANCE.general;
-        return new Payloads.ServerSettings(g.enableDyeResizing, (float) g.minEntitySize, (float) g.maxEntitySize);
+        return new Payloads.ServerSettings(g.enableDyeResizing, (float) g.minEntitySize, (float) g.maxEntitySize,
+                (float) g.soundVolumeScaling);
     }
 
     /** On join: before any entity size, so the client knows its bounds first. */

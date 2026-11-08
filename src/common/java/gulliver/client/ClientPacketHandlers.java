@@ -20,7 +20,7 @@ public final class ClientPacketHandlers {
         if (payload instanceof Payloads.EntitySize p) {
             onEntitySize(p);
         } else if (payload instanceof Payloads.ServerSettings p) {
-            SyncedSettings.apply(p.dyeResizing(), p.minSize(), p.maxSize());
+            SyncedSettings.apply(p.dyeResizing(), p.minSize(), p.maxSize(), p.soundVolumeScaling());
         } else if (payload instanceof Payloads.GroundShock p) {
             TremorHandler.groundShock(p.x(), p.y(), p.z(), p.sourceSize(), p.strength());
         } else if (payload instanceof Payloads.AttachEntitySpecial p) {

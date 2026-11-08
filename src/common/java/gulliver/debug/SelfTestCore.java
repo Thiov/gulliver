@@ -216,9 +216,10 @@ final class SelfTestCore {
     /** The settings packet survives its own wire format. */
     private static void payload(List<String> failures) {
         FriendlyByteBuf buf = new FriendlyByteBuf(io.netty.buffer.Unpooled.buffer());
-        new Payloads.ServerSettings(false, 1.0F / 32, 32.0F).write(buf);
+        new Payloads.ServerSettings(false, 1.0F / 32, 32.0F, 2.5F).write(buf);
         Payloads.ServerSettings back = Payloads.ServerSettings.read(buf);
-        check(failures, !back.dyeResizing() && back.minSize() == 1.0F / 32 && back.maxSize() == 32.0F,
+        check(failures, !back.dyeResizing() && back.minSize() == 1.0F / 32 && back.maxSize() == 32.0F
+                        && back.soundVolumeScaling() == 2.5F,
                 "server settings packet round-trips");
         buf.release();
     }

@@ -49,6 +49,8 @@ public final class GulliverConfig {
     private static final double DEFAULT_MAX = 8.0D;
     /** Largest trample damage multiplier. */
     public static final double MAX_TRAMPLE_DAMAGE = 10.0D;
+    /** Largest sound scaling strength (volume and pitch). */
+    public static final double MAX_SOUND_SCALING = 10.0D;
 
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     private static final String FILENAME = "gulliver.json";
@@ -220,6 +222,7 @@ public final class GulliverConfig {
         g.trampleSizeRatio = ratioValue(g.trampleSizeRatio, 0.4D, "general.trampleSizeRatio", fixes);
         g.trampleDamage = sizeValue(g.trampleDamage, 1.0D, 0.0D, MAX_TRAMPLE_DAMAGE, "general.trampleDamage", fixes);
         g.breathGustMinSize = sizeValue(g.breathGustMinSize, GiantBossBars.MIN_SIZE, 0.0D, MAX_SIZE, "general.breathGustMinSize", fixes);
+        g.soundVolumeScaling = sizeValue(g.soundVolumeScaling, 1.0D, 0.0D, MAX_SOUND_SCALING, "general.soundVolumeScaling", fixes);
 
         SizeLimit l = sizeLimit;
         l.minPlayerSize = limitValue(l.minPlayerSize, lo, hi, "sizeLimit.minPlayerSize", fixes);
@@ -264,6 +267,7 @@ public final class GulliverConfig {
             c.heldItemScaling = "classic";
         }
         c.screenShake = ratioValue(c.screenShake, 1.0D, "client.screenShake", fixes);
+        c.soundPitchScaling = sizeValue(c.soundPitchScaling, 1.0D, 0.0D, MAX_SOUND_SCALING, "client.soundPitchScaling", fixes);
 
         for (String fix : fixes) Gulliver.LOGGER.warn("gulliver.json: {}", fix);
         return fixes.size();
@@ -386,6 +390,19 @@ public final class GulliverConfig {
         public boolean giantBossBars = false;
         /** Tinies can ride small animals (chickens, cats, wolves, foxes, rabbits). */
         public boolean tinyMounts = true;
+        /**
+         * How strongly a creature's size changes how loud it is (and so how
+         * far it is heard): 0 turns it off, 1 is the normal curve, up to 10
+         * exaggerates it. Decided by the server, which sends sounds out.
+         */
+        public double soundVolumeScaling = 1.0D;
+        /**
+         * Creatures much smaller than you can't push you around: below a
+         * quarter of your size you are a wall to them (Entity.push).
+         */
+        public boolean sizePushing = true;
+        /** A creeper's explosion grows and shrinks with the creeper. */
+        public boolean creeperExplosionScaling = true;
     }
 
     /** Client-only look and feel; ignored by dedicated servers. */
@@ -404,6 +421,19 @@ public final class GulliverConfig {
         public boolean smoothResize = true;
         /** Show your new size on the action bar when it changes. */
         public boolean sizeReadout = true;
+        /**
+         * How strongly sounds are re-pitched by the size gap between their
+         * source and you: 0 turns it off, 1 is the normal curve, up to 10
+         * exaggerates it.
+         */
+        public double soundPitchScaling = 1.0D;
+        /** Particles a creature gives off are drawn at its size (dust, bubbles, hearts, explosions...). */
+        public boolean particleScaling = true;
+        /**
+         * Whether a tiny sprinting jumps a full block (the classic jump) or
+         * as high as a walking tiny. Toggled with its key (default J).
+         */
+        public boolean sprintFullJump = true;
 
         public boolean proportionalHeldItems() {
             return "proportional".equalsIgnoreCase(heldItemScaling);

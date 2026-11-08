@@ -120,34 +120,45 @@ public class GulliverConfigScreen extends Screen {
 
     private void initGameplay(int left, int right, int y) {
         GulliverConfig.General g = draft.general;
+        // Eight rows: closer together on a short screen, so the last stays clear of Done.
+        int row = Math.max(21, Math.min(ROW, (height - 34 - 20 - y) / 8));
         addRenderableWidget(toggle(left, y, "dyeResizing", g.enableDyeResizing, v -> g.enableDyeResizing = v));
         addRenderableWidget(toggle(right, y, "karmaMode", g.enableKarmaMode, v -> g.enableKarmaMode = v));
-        y += ROW;
+        y += row;
         addRenderableWidget(toggle(left, y, "grapple", g.fishingRodGrapple, v -> g.fishingRodGrapple = v));
         addRenderableWidget(slider(right, y, range(0.125, 1.0, 0.025), g.grappleMaxSize,
                 v -> Component.translatable("gulliver.config.grappleMaxSize", fmt(v)),
                 v -> g.grappleMaxSize = v, "grappleMaxSize"));
-        y += ROW;
+        y += row;
         addRenderableWidget(slider(left, y, range(0.0, 0.9, 0.05), g.trampleSizeRatio,
                 v -> v <= 0.0 ? Component.translatable("gulliver.config.trample.off")
                         : Component.translatable("gulliver.config.trample", fmt(v)),
                 v -> g.trampleSizeRatio = v, "trample"));
         addRenderableWidget(toggle(right, y, "lootScaling", g.lootScaling, v -> g.lootScaling = v));
-        y += ROW;
+        y += row;
         addRenderableWidget(toggle(left, y, "giantBossBars", g.giantBossBars, v -> g.giantBossBars = v));
         addRenderableWidget(toggle(right, y, "tinyMounts", g.tinyMounts, v -> g.tinyMounts = v));
-        y += ROW;
+        y += row;
         addRenderableWidget(slider(left, y, range(0.0, GulliverConfig.MAX_TRAMPLE_DAMAGE, 0.25), g.trampleDamage,
                 v -> v <= 0.0 ? Component.translatable("gulliver.config.trampleDamage.off")
                         : Component.translatable("gulliver.config.trampleDamage", fmt(v)),
                 v -> g.trampleDamage = v, "trampleDamage"));
         addRenderableWidget(toggle(right, y, "breathGust", g.breathGust, v -> g.breathGust = v));
-        y += ROW;
+        y += row;
         addRenderableWidget(toggle(left, y, "giantAppetite", g.giantAppetite, v -> g.giantAppetite = v));
         addRenderableWidget(slider(right, y, range(0.0, 8.0, 0.25), g.breathGustMinSize,
                 v -> v <= 0.0 ? Component.translatable("gulliver.config.breathGustMinSize.any")
                         : Component.translatable("gulliver.config.breathGustMinSize", fmt(v)),
                 v -> g.breathGustMinSize = v, "breathGustMinSize"));
+        y += row;
+        addRenderableWidget(slider(left, y, range(0.0, GulliverConfig.MAX_SOUND_SCALING, 0.25), g.soundVolumeScaling,
+                v -> v <= 0.0 ? Component.translatable("gulliver.config.soundVolumeScaling.off")
+                        : Component.translatable("gulliver.config.soundVolumeScaling", fmt(v)),
+                v -> g.soundVolumeScaling = v, "soundVolumeScaling"));
+        addRenderableWidget(toggle(right, y, "sizePushing", g.sizePushing, v -> g.sizePushing = v));
+        y += row;
+        addRenderableWidget(toggle(left, y, "creeperExplosionScaling", g.creeperExplosionScaling,
+                v -> g.creeperExplosionScaling = v));
     }
 
     private void initSpawn(int left, int right, int y) {
@@ -195,6 +206,13 @@ public class GulliverConfigScreen extends Screen {
         addRenderableWidget(toggle(right, y, "smoothResize", c.smoothResize, v -> c.smoothResize = v));
         y += ROW;
         addRenderableWidget(toggle(left, y, "sizeReadout", c.sizeReadout, v -> c.sizeReadout = v));
+        addRenderableWidget(slider(right, y, range(0.0, GulliverConfig.MAX_SOUND_SCALING, 0.25), c.soundPitchScaling,
+                v -> v <= 0.0 ? Component.translatable("gulliver.config.soundPitchScaling.off")
+                        : Component.translatable("gulliver.config.soundPitchScaling", fmt(v)),
+                v -> c.soundPitchScaling = v, "soundPitchScaling"));
+        y += ROW;
+        addRenderableWidget(toggle(left, y, "particleScaling", c.particleScaling, v -> c.particleScaling = v));
+        addRenderableWidget(toggle(right, y, "sprintFullJump", c.sprintFullJump, v -> c.sprintFullJump = v));
     }
 
     // ---- widgets ----

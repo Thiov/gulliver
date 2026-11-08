@@ -175,6 +175,16 @@ public final class VisualSize {
     }
 
     /**
+     * What a name tag is scaled by for a body drawn at this size: the size
+     * itself (#22), so the tag keeps its proportion to the body at every
+     * size, held to the size range.
+     */
+    public static float nameTagScale(float size) {
+        if (!(size > 0.0F) || size == 1.0F) return 1.0F;
+        return Mth.clamp(size, GulliverConfig.MIN_SIZE, GulliverConfig.MAX_SIZE);
+    }
+
+    /**
      * How much farther than usual a nameplate or shadow of this entity
      * stays visible (vanilla: 64 and 16 blocks): giants are seen from
      * proportionally farther, up to 8 times.

@@ -28,7 +28,8 @@ import net.minecraft.world.phys.EntityHitResult;
  * Entity-target trigger item is STICK (4(357), changed from FEATHER):
  * stick + entity target → /entitydoublesize | /entityhalfsize.
  *
- * G (held) blows a breath gust, see BreathGust.
+ * G (held) blows a breath gust, see BreathGust. J turns a sprinting
+ * tiny's full-block jump on and off (Movement.scaledJump).
  *
  * Default keys U (embiggen), I (ensmallen), V (shoulder) and G come from
  * InputConstants, never as raw numbers: the codes behind them changed when
@@ -55,8 +56,12 @@ public final class KeyInputHandler {
     public static final KeyMapping BREATH = new KeyMapping(
             "key.gulliver.breath", InputConstants.Type.KEYSYM, InputConstants.KEY_G, CATEGORY);
 
+    /** Turns a sprinting tiny's full-block jump on and off (#21); J is free in vanilla. */
+    public static final KeyMapping SPRINT_JUMP = new KeyMapping(
+            "key.gulliver.sprintJump", InputConstants.Type.KEYSYM, InputConstants.KEY_J, CATEGORY);
+
     /** Every key mapping the loader must register. */
-    public static final KeyMapping[] ALL = { UPSIZE, DOWNSIZE, SHOULDER, BREATH };
+    public static final KeyMapping[] ALL = { UPSIZE, DOWNSIZE, SHOULDER, BREATH, SPRINT_JUMP };
 
     /** Whether the server was last told the breath key is down. */
     private static boolean blowing;
@@ -75,6 +80,25 @@ public final class KeyInputHandler {
         while (SHOULDER.consumeClick()) {
             Services.platform().sendToServer(new Payloads.CarryAction(Payloads.CarryAction.CYCLE));
         }
+        while (SPRINT_JUMP.consumeClick()) toggleSprintJump(client);
+    }
+
+    /**
+     * Flips client.sprintFullJump, keeps it in the config file and says
+     * which jump is on. It is this client's own setting (the jump is worked
+     * out here), so it needs no server.
+     */
+    private static void toggleSprintJump(Minecraft client) {
+        gulliver.common.GulliverConfig.Client c = gulliver.common.GulliverConfig.INSTANCE.client;
+        c.sprintFullJump = !c.sprintFullJump;
+        gulliver.common.GulliverConfig.save();
+        //#if MC >= 26.1
+        client.player.sendOverlayMessage(net.minecraft.network.chat.Component.translatable(
+                c.sprintFullJump ? "gulliver.sprintJump.full" : "gulliver.sprintJump.small"));
+        //#else
+        //$$ client.player.displayClientMessage(net.minecraft.network.chat.Component.translatable(
+        //$$         c.sprintFullJump ? "gulliver.sprintJump.full" : "gulliver.sprintJump.small"), true);
+        //#endif
     }
 
     /**

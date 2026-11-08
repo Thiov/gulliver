@@ -34,7 +34,9 @@ public final class ClientSelfTest {
         if (!SelfTest.ENABLED) return;
         Thread t = new Thread(() -> {
             try {
-                Thread.sleep(180_000L);
+                // A showcase tour runs much longer than the checks (and slowly on a software renderer).
+                boolean tour = java.nio.file.Files.exists(java.nio.file.Path.of("gulliver-showcase-issues"));
+                Thread.sleep(tour ? 900_000L : 180_000L);
             } catch (InterruptedException e) {
                 return;
             }
@@ -97,6 +99,15 @@ public final class ClientSelfTest {
         }
         LocalPlayer p = mc.player;
         if (p == null || mc.level == null) return;
+        // With a "gulliver-showcase-issues" file: the tour of the issue fixes instead.
+        if (ClientShowcaseIssues.active(mc)) {
+            ticksTotal = 0;
+            if (ClientShowcaseIssues.tick(mc)) {
+                finished = true;
+                mc.stop();
+            }
+            return;
+        }
         // With a "gulliver-showcase" file in the run folder: the scripted tour instead of the checks.
         if (ClientShowcase.active(mc)) {
             ticksTotal = 0;

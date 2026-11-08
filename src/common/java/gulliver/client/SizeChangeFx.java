@@ -71,8 +71,10 @@ public final class SizeChangeFx {
     }
 
     private static void chime(Level level, Entity entity, float oldSize, float newSize) {
-        // Rises as the body shrinks, falls as it grows; a 2x change is about half an octave.
-        float pitch = Mth.clamp((float) Math.pow(oldSize / (double) newSize, 0.5D), 0.5F, 2.0F);
+        // Rises as the body shrinks, falls as it grows; a 2x change is about half an octave
+        // (at the normal sound pitch strength; 0 keeps it level).
+        double k = gulliver.common.GulliverConfig.INSTANCE.client.soundPitchScaling;
+        float pitch = Mth.clamp((float) Math.pow(oldSize / (double) newSize, 0.5D * k), 0.5F, 2.0F);
         float volume = SizeSound.scaleVolume((gulliver.api.IResizeableEntity) entity, 0.7F);
         level.playLocalSound(entity.getX(), entity.getY(), entity.getZ(), SoundEvents.CHORUS_FRUIT_TELEPORT,
                 entity.getSoundSource(), volume, pitch, false);
