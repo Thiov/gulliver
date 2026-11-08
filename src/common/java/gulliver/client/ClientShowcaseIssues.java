@@ -154,7 +154,15 @@ public final class ClientShowcaseIssues {
                 look(p, 0.0F, 10.0F);
             }
             case 265 -> shot(mc, "nametags-giant-view");
-            case 266 -> hideHud(mc, true);
+            case 266 -> {
+                hideHud(mc, true);
+                // Gone at once: no falling corpses or death puffs in the next scene.
+                onServer(mc, sp -> {
+                    java.util.List<Entity> husks = new java.util.ArrayList<>();
+                    for (Entity e : all(sp)) if (e instanceof Mob) husks.add(e);
+                    husks.forEach(Entity::discard);
+                });
+            }
 
             // ---- particles -----------------------------------------------------
             case 270 -> {
@@ -178,12 +186,11 @@ public final class ClientShowcaseIssues {
                 cmd(mc, "effect give @e[type=pig] minecraft:speed 120 1");
                 setConfig("client", "particleScaling", false);
             }
-            case 300 -> shot(mc, "particles-off");
-            case 301 -> {
-                cmd(mc, "particle minecraft:poof ~ ~ ~ 0 0 0 0 0");
-                setConfig("client", "particleScaling", true);
-            }
-            case 330 -> shot(mc, "particles-on");
+            case 292 -> shot(mc, "particles-off");
+            // Scaling goes on with no hearts in the air: the last unscaled ones
+            // (tick 288, hearts live 16 ticks) are gone before the next burst.
+            case 295 -> setConfig("client", "particleScaling", true);
+            case 328 -> shot(mc, "particles-on");
             case 331 -> {
                 // A giant's own trail: big player, sprinting dust and potion swirls.
                 cmd(mc, "kill @e[type=!player]");
@@ -357,7 +364,7 @@ public final class ClientShowcaseIssues {
             jumpPeak = Math.max(jumpPeak, p.getY() - jumpGround);
         }
         // Hearts over the pigs: one entity event every few ticks, as breeding does.
-        if (t > 276 && t < 331 && t % 6 == 0) {
+        if (t > 276 && t < 331 && t % 6 == 0 && (t < 295 || t >= 306)) {
             onServer(mc, sp -> {
                 for (Entity e : all(sp)) {
                     if (e instanceof Mob m && tags(e).stream().anyMatch(s -> s.startsWith("gv_p"))) {
