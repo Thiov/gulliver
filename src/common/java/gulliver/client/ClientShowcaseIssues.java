@@ -171,9 +171,10 @@ public final class ClientShowcaseIssues {
                 size(mc, 1.0F);
                 if (arena != null) tp(mc, arena.x, arena.y, arena.z);
                 look(p, 0.0F, 8.0F);
-                cmd(mc, "execute as @a at @s run summon pig ~-4 ~ ~7 {NoAI:1b,Silent:1b,Tags:[\"gv_p0\"]}");
-                cmd(mc, "execute as @a at @s run summon pig ~-1 ~ ~7 {NoAI:1b,Silent:1b,Tags:[\"gv_p1\"]}");
-                cmd(mc, "execute as @a at @s run summon pig ~4 ~ ~9 {NoAI:1b,Silent:1b,Tags:[\"gv_p2\"]}");
+                // Far enough apart that no pig's hearts drift in front of another.
+                cmd(mc, "execute as @a at @s run summon pig ~-7 ~ ~8 {NoAI:1b,Silent:1b,Tags:[\"gv_p0\"]}");
+                cmd(mc, "execute as @a at @s run summon pig ~-3 ~ ~8 {NoAI:1b,Silent:1b,Tags:[\"gv_p1\"]}");
+                cmd(mc, "execute as @a at @s run summon pig ~5 ~ ~10 {NoAI:1b,Silent:1b,Tags:[\"gv_p2\"]}");
             }
             case 275 -> {
                 onServer(mc, sp -> {
@@ -334,8 +335,39 @@ public final class ClientShowcaseIssues {
             case 860 -> stopJumping(mc, "full-block sprint jump off");
             case 880 -> {
                 mc.options.setCameraType(CameraType.FIRST_PERSON);
-                hideHud(mc, false);
                 setConfig("client", "sprintFullJump", true);
+            }
+
+            // ---- particles again, long and unhurried, for a single take ----------
+            case 885 -> {
+                mark("particles-long");
+                hideHud(mc, true);
+                cmd(mc, "gamemode creative @a");
+                cmd(mc, "kill @e[type=!player]");
+                size(mc, 1.0F);
+                if (arena != null) tp(mc, arena.x, arena.y, arena.z);
+                look(p, 0.0F, 8.0F);
+                cmd(mc, "execute as @a at @s run summon pig ~-7 ~ ~8 {NoAI:1b,Silent:1b,Tags:[\"gv_p0\"]}");
+                cmd(mc, "execute as @a at @s run summon pig ~-3 ~ ~8 {NoAI:1b,Silent:1b,Tags:[\"gv_p1\"]}");
+                cmd(mc, "execute as @a at @s run summon pig ~5 ~ ~10 {NoAI:1b,Silent:1b,Tags:[\"gv_p2\"]}");
+                setConfig("client", "particleScaling", false);
+            }
+            case 890 -> {
+                onServer(mc, sp -> {
+                    for (Entity e : all(sp)) {
+                        if (!(e instanceof LivingEntity le)) continue;
+                        if (tags(e).contains("gv_p0")) ((IResizeableLiving) le).setBaseSize(0.25F);
+                        if (tags(e).contains("gv_p2")) ((IResizeableLiving) le).setBaseSize(3.0F);
+                    }
+                });
+                cmd(mc, "effect give @e[type=pig] minecraft:speed 120 1");
+            }
+            case 965 -> {
+                mark("particles-long-on");
+                setConfig("client", "particleScaling", true);
+            }
+            case 1080 -> {
+                hideHud(mc, false);
                 log("GULLIVER SHOWCASE DONE");
                 return true;
             }
@@ -364,7 +396,8 @@ public final class ClientShowcaseIssues {
             jumpPeak = Math.max(jumpPeak, p.getY() - jumpGround);
         }
         // Hearts over the pigs: one entity event every few ticks, as breeding does.
-        if (t > 276 && t < 331 && t % 6 == 0 && (t < 295 || t >= 306)) {
+        boolean longHearts = (t >= 905 && t <= 959) || (t >= 984 && t <= 1044);
+        if ((t > 276 && t < 331 && t % 6 == 0 && (t < 295 || t >= 306)) || (longHearts && t % 6 == 0)) {
             onServer(mc, sp -> {
                 for (Entity e : all(sp)) {
                     if (e instanceof Mob m && tags(e).stream().anyMatch(s -> s.startsWith("gv_p"))) {
