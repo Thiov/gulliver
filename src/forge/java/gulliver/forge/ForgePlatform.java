@@ -11,7 +11,11 @@ import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
+//#if MC >= 1.21.2
 import net.minecraftforge.common.util.Result;
+//#else
+//$$ import net.minecraftforge.common.MinecraftForge;
+//#endif
 import net.minecraftforge.event.entity.player.PlayerInteractEvent;
 import net.minecraftforge.event.level.BlockEvent;
 import net.minecraftforge.fml.ModList;
@@ -60,8 +64,13 @@ public final class ForgePlatform implements Platform {
     @Override
     public boolean mayBreakBlock(ServerLevel level, BlockPos pos, BlockState state, ServerPlayer player) {
         if (!BreakGuard.allowed(level, pos, player)) return false;
+        //#if MC >= 1.21.2
         BlockEvent.BreakEvent event = new BlockEvent.BreakEvent(level, pos, state, player, Result.DEFAULT);
         return !BlockEvent.BreakEvent.BUS.post(event) && !event.getResult().isDenied();
+        //#else
+        //$$ // Forge 52 (1.21.1) still posts on the EventBus 6 game bus.
+        //$$ return !MinecraftForge.EVENT_BUS.post(new BlockEvent.BreakEvent(level, pos, state, player));
+        //#endif
     }
 
     //#if MC < 1.20.5
@@ -89,7 +98,11 @@ public final class ForgePlatform implements Platform {
         // Interaction point relative to the entity's feet: the middle of its body.
         Vec3 local = new Vec3(0.0D, target.getBbHeight() * 0.5D, 0.0D);
         return CommonEvents.probe(() ->
+                //#if MC >= 1.21.2
                 !PlayerInteractEvent.EntityInteractSpecific.BUS.post(
                         new PlayerInteractEvent.EntityInteractSpecific(player, hand, target, local)));
+                //#else
+                //$$ !MinecraftForge.EVENT_BUS.post(new PlayerInteractEvent.EntityInteractSpecific(player, hand, target, local)));
+                //#endif
     }
 }

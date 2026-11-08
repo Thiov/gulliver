@@ -35,13 +35,13 @@ public abstract class MixinLivingEntityMovement {
     @Unique private double gulliver$jumpStartX;
     @Unique private double gulliver$jumpStartZ;
 
-    //#if MC >= 1.21.2
+    //#if MC >= 1.20.5
     @Inject(method = "getJumpPower(F)F", at = @At("RETURN"), cancellable = true)
     //#else
     //$$ @Inject(method = "getJumpPower()F", at = @At("RETURN"), cancellable = true)
     //#endif
     private void gulliver$scaleJump(
-                                     //#if MC >= 1.21.2
+                                     //#if MC >= 1.20.5
                                      float multiplier,
                                      //#endif
                                      CallbackInfoReturnable<Float> cir) {

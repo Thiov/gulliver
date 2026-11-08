@@ -43,6 +43,7 @@ def set_environment(headers, version_id, environment=MR_ENVIRONMENT):
 # Minecraft versions each target's jar runs on (see versions/*/*/gradle.properties).
 GAME_VERSIONS = {
     "1.20.1": ["1.20.1"],
+    "1.21.1": ["1.21.1"],
     "1.21.10": ["1.21.10"],
     "1.21.11": ["1.21.11"],
     "26.1.2": ["26.1", "26.1.1", "26.1.2"],

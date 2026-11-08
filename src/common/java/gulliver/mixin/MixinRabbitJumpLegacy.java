@@ -1,4 +1,4 @@
-//#if MC < 1.21.2
+//#if MC < 1.20.5
 //$$ package gulliver.mixin;
 //$$
 //$$ import gulliver.common.Movement;
@@ -9,10 +9,10 @@
 //$$ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 //$$
 //$$ /**
-//$$  * A rabbit's hop before 1.21.2: Rabbit overrides the no-argument
+//$$  * A rabbit's hop before 1.20.5: Rabbit overrides the no-argument
 //$$  * getJumpPower with its own fixed values instead of going through
 //$$  * LivingEntity's (which is where MixinLivingEntityMovement scales jumps),
-//$$  * so a resized rabbit would hop at vanilla height. From 1.21.2 the rabbit
+//$$  * so a resized rabbit would hop at vanilla height. From 1.20.5 the rabbit
 //$$  * asks LivingEntity.getJumpPower(float) and is covered there.
 //$$  */
 //$$ @Mixin(Rabbit.class)

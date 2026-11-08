@@ -13,9 +13,10 @@ Inspired by UncleMion's classic Gulliver mod for 1.6.4; on CurseForge and Modrin
 | 26.1.x    | ✓ | ✓ | ✓ |
 | 1.21.11   | ✓ | ✓ | ✓ |
 | 1.21.10   | ✓ | ✓ | ✓ |
+| 1.21.1    | ✓ | ✓ | ✓ |
 | 1.20.1    | ✓ | ✓ | ✓ |
 
-Download **Gulliver Unbound** from [CurseForge](https://www.curseforge.com/projects/1539752) or [Modrinth](https://modrinth.com/mod/gulliver-unbound), or get the jars from the [releases page](https://github.com/Thiov/gulliver/releases) and pick the one whose name matches your loader and Minecraft version, e.g. `gulliver-1.4.0+neoforge-26.3.jar`. Fabric needs the Fabric API; Mod Menu is optional (settings button). Install it on the server and on every client.
+Download **Gulliver Unbound** from [CurseForge](https://www.curseforge.com/projects/1539752) or [Modrinth](https://modrinth.com/mod/gulliver-unbound), or get the jars from the [releases page](https://github.com/Thiov/gulliver/releases) and pick the one whose name matches your loader and Minecraft version, e.g. `gulliver-1.4.1+neoforge-26.3.jar`. Fabric needs the Fabric API; Mod Menu is optional (settings button). Install it on the server and on every client.
 
 ## Features
 
@@ -101,7 +102,7 @@ scripts/build-all.sh                            # every target, jars collected i
 Gradle must run on **JDK 25** (older targets are compiled for Java 17 or 21 through toolchains).
 
 - `src/common` holds the mod itself, `src/fabric`, `src/neoforge` and `src/forge` the thin loader glue.
-- Version differences are handled at build time by `gradle/gulliver.gradle`: `//#if MC >= 1.21.2 && !FORGE … //#else … //#endif` blocks, whole-file conditions, and `versions/<mc>/remap.txt` for plain renames. Sources are written against the newest Minecraft names.
+- Version differences are handled at build time by `gradle/gulliver.gradle`: `//#if MC >= 1.21.2 && !FORGE … //#else … //#endif` blocks, whole-file conditions, and `versions/<mc>/remap.txt` for plain renames. Sources are written against the newest Minecraft names. A target can share another version's Java overlay through `gulliver_java_overlays` in its `gradle.properties`: 1.21.1 still renders the pre-1.21.2 way and uses 1.20.1's renderer files, with `//#if MC >= 1.21` where the two differ.
 - `scripts/selftest.sh <mc> <loader>` boots a dedicated server and then a client that joins it, with `-Dgulliver.selftest=true`: every mixin is force-applied and resizing, combat, trampling, carrying, spawn sizes, effects, brewing and the grappling hook are exercised before the game quits. `scripts/prodtest.sh <mc>` does the same with the release jar on a real Fabric server. `scripts/check_mixins.py` checks every mixin target and handler signature against a Minecraft jar without launching. With a file named `gulliver-showcase` in a target's `run` folder, the self-test client plays a scripted tour of the breath gust (on land, over water and under it), carrying and eating instead and saves screenshots (`run/screenshots`). A file named `gulliver-showcase-issues` plays a tour of the newer fixes instead (the 1/32 crouch camera, name tags, particles off and on, creeper blasts, pushing, the sprint-jump toggle), logging what it measures; settings a build doesn't have are skipped, so the same tour also shows an older build's behaviour.
 
 ## Credits and license

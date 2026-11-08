@@ -46,8 +46,10 @@ public final class VisualSize {
     /** The partial tick of the frame being drawn. */
     public static float framePartial() {
         Minecraft mc = Minecraft.getInstance();
-        //#if MC >= 1.21
+        //#if MC >= 1.21.2
         return mc.getDeltaTracker().getGameTimeDeltaPartialTick(false);
+        //#elif MC >= 1.21
+        //$$ return mc.getTimer().getGameTimeDeltaPartialTick(false);
         //#else
         //$$ return mc.getFrameTime();
         //#endif

@@ -1,4 +1,4 @@
-//#if MC < 1.21.2
+//#if MC < 1.20.5
 //$$ package gulliver.mixin;
 //$$
 //$$ import gulliver.common.Movement;
@@ -9,10 +9,10 @@
 //$$ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 //$$
 //$$ /**
-//$$  * A horse's rider-charged jump before 1.21.2: the jump height comes
+//$$  * A horse's rider-charged jump before 1.20.5: the jump height comes
 //$$  * straight from the jump_strength attribute (getCustomJump), not from
 //$$  * LivingEntity.getJumpPower where MixinLivingEntityMovement scales jumps,
-//$$  * so a resized horse would jump at vanilla height. From 1.21.2 the horse
+//$$  * so a resized horse would jump at vanilla height. From 1.20.5 the horse
 //$$  * asks LivingEntity.getJumpPower(float) and is covered there.
 //$$  */
 //$$ @Mixin(AbstractHorse.class)

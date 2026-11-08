@@ -28,7 +28,11 @@ public abstract class MixinLivingEntityRenderer {
 
     @Inject(method = "render(Lnet/minecraft/world/entity/LivingEntity;FFLcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/MultiBufferSource;I)V",
             at = @At(value = "INVOKE",
-                     target = "Lnet/minecraft/client/renderer/entity/LivingEntityRenderer;setupRotations(Lnet/minecraft/world/entity/LivingEntity;Lcom/mojang/blaze3d/vertex/PoseStack;FFF)V"),
+                     //#if MC >= 1.20.5
+                     target = "Lnet/minecraft/client/renderer/entity/LivingEntityRenderer;setupRotations(Lnet/minecraft/world/entity/LivingEntity;Lcom/mojang/blaze3d/vertex/PoseStack;FFFF)V"),
+                     //#else
+                     //$$ target = "Lnet/minecraft/client/renderer/entity/LivingEntityRenderer;setupRotations(Lnet/minecraft/world/entity/LivingEntity;Lcom/mojang/blaze3d/vertex/PoseStack;FFF)V"),
+                     //#endif
             require = 0)
     private void gulliver$applyScale(LivingEntity entity, float yaw, float partialTick, PoseStack pose,
                                       MultiBufferSource buffers, int light, CallbackInfo ci) {
@@ -61,15 +65,26 @@ public abstract class MixinLivingEntityRenderer {
         }
     }
 
-    @Inject(method = "setupRotations(Lnet/minecraft/world/entity/LivingEntity;Lcom/mojang/blaze3d/vertex/PoseStack;FFF)V",
+    //#if MC >= 1.20.5
+    @Inject(method = "setupRotations(Lnet/minecraft/world/entity/LivingEntity;Lcom/mojang/blaze3d/vertex/PoseStack;FFFF)V",
             at = @At("HEAD"), require = 0)
     private void gulliver$rememberScale(LivingEntity entity, PoseStack pose, float bob, float bodyRot,
-                                         float partialTick, CallbackInfo ci) {
+                                         float partialTick, float scale, CallbackInfo ci) {
+    //#else
+    //$$ @Inject(method = "setupRotations(Lnet/minecraft/world/entity/LivingEntity;Lcom/mojang/blaze3d/vertex/PoseStack;FFF)V",
+    //$$         at = @At("HEAD"), require = 0)
+    //$$ private void gulliver$rememberScale(LivingEntity entity, PoseStack pose, float bob, float bodyRot,
+    //$$                                      float partialTick, CallbackInfo ci) {
+    //#endif
         gulliver$rotationScale = VisualSize.renderScale(entity, partialTick);
     }
 
     /** Upside-down entities lift by their (already scaled) height: undo the model scale. */
-    @ModifyArg(method = "setupRotations(Lnet/minecraft/world/entity/LivingEntity;Lcom/mojang/blaze3d/vertex/PoseStack;FFF)V",
+    //#if MC >= 1.20.5
+    @ModifyArg(method = "setupRotations(Lnet/minecraft/world/entity/LivingEntity;Lcom/mojang/blaze3d/vertex/PoseStack;FFFF)V",
+    //#else
+    //$$ @ModifyArg(method = "setupRotations(Lnet/minecraft/world/entity/LivingEntity;Lcom/mojang/blaze3d/vertex/PoseStack;FFF)V",
+    //#endif
                at = @At(value = "INVOKE", target = "Lcom/mojang/blaze3d/vertex/PoseStack;translate(FFF)V"),
                index = 1, require = 0)
     private float gulliver$upsideDownLift(float y) {

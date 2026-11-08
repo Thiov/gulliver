@@ -32,7 +32,11 @@ public final class GulliverNeoForge {
 
         modBus.addListener(GulliverNeoForge::onRegister);
         modBus.addListener(NeoForgeNetworking::register);
+        //#if MC >= 1.21.2
         if (FMLEnvironment.getDist().isClient()) {
+        //#else
+        //$$ if (FMLEnvironment.dist.isClient()) {
+        //#endif
             GulliverNeoForgeClient.init(modBus, container);
         }
 

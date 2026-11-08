@@ -57,6 +57,22 @@ public abstract class MixinInventoryScreenPreview {
     //$$                                         float mouseX, float mouseY, LivingEntity entity, CallbackInfo ci) {
     //$$     VisualSize.endPreview();
     //$$ }
+    //#elif MC >= 1.20.5
+    //$$ @Inject(method = "renderEntityInInventory", at = @At("HEAD"), require = 0)
+    //$$ private static void gulliver$previewBegin(net.minecraft.client.gui.GuiGraphics graphics, float x, float y,
+    //$$                                           float size, org.joml.Vector3f translate,
+    //$$                                           org.joml.Quaternionf rotation, org.joml.Quaternionf cameraRotation,
+    //$$                                           LivingEntity entity, CallbackInfo ci) {
+    //$$     VisualSize.beginPreview();
+    //$$ }
+    //$$
+    //$$ @Inject(method = "renderEntityInInventory", at = @At("RETURN"), require = 0)
+    //$$ private static void gulliver$previewEnd(net.minecraft.client.gui.GuiGraphics graphics, float x, float y,
+    //$$                                         float size, org.joml.Vector3f translate,
+    //$$                                         org.joml.Quaternionf rotation, org.joml.Quaternionf cameraRotation,
+    //$$                                         LivingEntity entity, CallbackInfo ci) {
+    //$$     VisualSize.endPreview();
+    //$$ }
     //#else
     //$$ @Inject(method = "renderEntityInInventory", at = @At("HEAD"), require = 0)
     //$$ private static void gulliver$previewBegin(net.minecraft.client.gui.GuiGraphics graphics, int x, int y, int size,

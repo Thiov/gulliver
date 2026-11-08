@@ -36,6 +36,9 @@ public abstract class MixinEntityRendererNameTag {
 
     @Inject(method = "renderNameTag", at = @At("HEAD"), require = 0)
     private void gulliver$push(Entity entity, Component name, PoseStack pose, MultiBufferSource buffers, int light,
+                                //#if MC >= 1.20.5
+                                float partialTick,
+                                //#endif
                                 CallbackInfo ci) {
         float s = gulliver$scale(entity);
         float follow = entity instanceof LivingEntity ? VisualSize.of(entity) / VisualSize.logical(entity) : 1.0F;
@@ -51,6 +54,9 @@ public abstract class MixinEntityRendererNameTag {
 
     @Inject(method = "renderNameTag", at = @At("RETURN"), require = 0)
     private void gulliver$pop(Entity entity, Component name, PoseStack pose, MultiBufferSource buffers, int light,
+                               //#if MC >= 1.20.5
+                               float partialTick,
+                               //#endif
                                CallbackInfo ci) {
         if (!gulliver$pushed) return;
         gulliver$pushed = false;

@@ -22,7 +22,7 @@ Shrink down to an ant's-eye view or grow into a world-crushing giant. Your size 
 
 ## Compatibility
 
-- Minecraft **1.20.1, 1.21.10, 1.21.11, 26.1.x, 26.2 and 26.3**
+- Minecraft **1.20.1, 1.21.1, 1.21.10, 1.21.11, 26.1.x, 26.2 and 26.3**
 - **Fabric** (needs Fabric API; Mod Menu optional), **NeoForge** and **Forge**
 - No scaling library needed. Works in singleplayer and on servers (install on both).
 - Plays well with Better Combat (weapon reach scales with your size), ParCool and Crawl (crawling counts as stepping carefully).

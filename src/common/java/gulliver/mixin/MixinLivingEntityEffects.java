@@ -8,7 +8,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-//#if MC >= 1.20.5
+//#if MC >= 1.21.2
 import java.util.Collection;
 //#else
 //$$ import org.spongepowered.asm.mixin.Unique;
@@ -22,7 +22,7 @@ import java.util.Collection;
 @Mixin(LivingEntity.class)
 public abstract class MixinLivingEntityEffects {
 
-    //#if MC >= 1.20.5
+    //#if MC >= 1.21.2
     @Inject(method = "onEffectsRemoved", at = @At("RETURN"))
     private void gulliver$recomputeOnRemove(Collection<MobEffectInstance> effects, CallbackInfo ci) {
         LivingEntity self = (LivingEntity) (Object) this;

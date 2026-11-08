@@ -50,7 +50,7 @@ public abstract class MixinEntitySound {
 
     @ModifyArg(method = "playSound(Lnet/minecraft/sounds/SoundEvent;FF)V",
                at = @At(value = "INVOKE",
-                        //#if MC >= 1.21
+                        //#if MC >= 1.21.2
                         target = "Lnet/minecraft/world/level/Level;playSound(Lnet/minecraft/world/entity/Entity;DDDLnet/minecraft/sounds/SoundEvent;Lnet/minecraft/sounds/SoundSource;FF)V"),
                         //#else
                         //$$ target = "Lnet/minecraft/world/level/Level;playSound(Lnet/minecraft/world/entity/player/Player;DDDLnet/minecraft/sounds/SoundEvent;Lnet/minecraft/sounds/SoundSource;FF)V"),

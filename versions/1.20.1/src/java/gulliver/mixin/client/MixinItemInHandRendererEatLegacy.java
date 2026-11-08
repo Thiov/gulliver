@@ -1,3 +1,4 @@
+//#if MC < 1.20.5
 package gulliver.mixin.client;
 
 import gulliver.api.IResizeableEntity;
@@ -39,3 +40,4 @@ public abstract class MixinItemInHandRendererEatLegacy {
         return size == 1.0F ? duration : SizeScaling.scaledTicks(duration, size);
     }
 }
+//#endif

@@ -34,16 +34,28 @@ public abstract class MixinPlayerRendererOffset {
     /** The player whose name tag is being drawn (render thread only). */
     @Unique private float gulliver$tagScale = 1.0F;
 
-    @Inject(method = "renderNameTag(Lnet/minecraft/client/player/AbstractClientPlayer;Lnet/minecraft/network/chat/Component;Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/MultiBufferSource;I)V",
+    //#if MC >= 1.20.5
+    @Inject(method = "renderNameTag(Lnet/minecraft/client/player/AbstractClientPlayer;Lnet/minecraft/network/chat/Component;Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/MultiBufferSource;IF)V",
             at = @At("HEAD"), require = 0)
+    //#else
+    //$$ @Inject(method = "renderNameTag(Lnet/minecraft/client/player/AbstractClientPlayer;Lnet/minecraft/network/chat/Component;Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/MultiBufferSource;I)V",
+    //$$         at = @At("HEAD"), require = 0)
+    //#endif
     private void gulliver$noteTagScale(AbstractClientPlayer player, net.minecraft.network.chat.Component name,
                                        com.mojang.blaze3d.vertex.PoseStack pose,
                                        net.minecraft.client.renderer.MultiBufferSource buffers, int light,
+                                       //#if MC >= 1.20.5
+                                       float partialTick,
+                                       //#endif
                                        CallbackInfo ci) {
         gulliver$tagScale = VisualSize.nameTagScale(VisualSize.of(player));
     }
 
-    @ModifyArg(method = "renderNameTag(Lnet/minecraft/client/player/AbstractClientPlayer;Lnet/minecraft/network/chat/Component;Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/MultiBufferSource;I)V",
+    //#if MC >= 1.20.5
+    @ModifyArg(method = "renderNameTag(Lnet/minecraft/client/player/AbstractClientPlayer;Lnet/minecraft/network/chat/Component;Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/MultiBufferSource;IF)V",
+    //#else
+    //$$ @ModifyArg(method = "renderNameTag(Lnet/minecraft/client/player/AbstractClientPlayer;Lnet/minecraft/network/chat/Component;Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/MultiBufferSource;I)V",
+    //#endif
                at = @At(value = "INVOKE", target = "Lcom/mojang/blaze3d/vertex/PoseStack;translate(FFF)V"),
                index = 1, require = 0)
     private float gulliver$scaleScoreLine(float y) {

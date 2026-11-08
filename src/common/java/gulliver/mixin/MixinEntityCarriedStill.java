@@ -40,6 +40,12 @@ public abstract class MixinEntityCarriedStill {
     //$$                                   java.util.Optional<Float> yRot, java.util.Optional<Float> xRot, CallbackInfo ci) {
     //$$     if (gulliver$heldOnClient()) ci.cancel();
     //$$ }
+    //#elif MC >= 1.20.5
+    //$$ @Inject(method = "lerpTo(DDDFFI)V", at = @At("HEAD"), cancellable = true)
+    //$$ private void gulliver$noServerTug(double x, double y, double z, float yRot, float xRot, int steps,
+    //$$                                   CallbackInfo ci) {
+    //$$     if (gulliver$heldOnClient()) ci.cancel();
+    //$$ }
     //#else
     //$$ @Inject(method = "lerpTo(DDDFFIZ)V", at = @At("HEAD"), cancellable = true)
     //$$ private void gulliver$noServerTug(double x, double y, double z, float yRot, float xRot, int steps,

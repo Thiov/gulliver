@@ -24,9 +24,18 @@ public abstract class MixinLevelRendererSubmit {
                      target = "Lnet/minecraft/client/renderer/LevelRenderer;checkPoseStack(Lcom/mojang/blaze3d/vertex/PoseStack;)V",
                      ordinal = 0),
             require = 0)
+    //#if MC >= 1.21
+    //$$ private void gulliver$submitProps(net.minecraft.client.DeltaTracker delta, boolean outline, Camera camera,
+    //$$                                   GameRenderer gameRenderer, LightTexture lightTexture, Matrix4f frustum,
+    //$$                                   Matrix4f projection, CallbackInfo ci) {
+    //$$     // From 1.21 the camera's turn is on the model-view stack and the entity pose stack starts empty.
+    //$$     PoseStack pose = new PoseStack();
+    //$$     float partialTick = delta.getGameTimeDeltaPartialTick(false);
+    //#else
     private void gulliver$submitProps(PoseStack pose, float partialTick, long nanos, boolean outline, Camera camera,
                                       GameRenderer gameRenderer, LightTexture lightTexture, Matrix4f projection,
                                       CallbackInfo ci) {
+    //#endif
         MultiBufferSource.BufferSource buffers = Minecraft.getInstance().renderBuffers().bufferSource();
         GliderPaperWorldRenderer.submit(pose, buffers, camera, partialTick);
         LilyRaftWorldRenderer.submit(pose, buffers, camera, partialTick);
@@ -36,9 +45,18 @@ public abstract class MixinLevelRendererSubmit {
     @Inject(method = "renderLevel",
             at = @At(value = "INVOKE", target = "Lnet/minecraft/client/renderer/LevelRenderer;renderWorldBorder(Lnet/minecraft/client/Camera;)V"),
             require = 0)
+    //#if MC >= 1.21
+    //$$ private void gulliver$drawWind(net.minecraft.client.DeltaTracker delta, boolean outline, Camera camera,
+    //$$                                GameRenderer gameRenderer, LightTexture lightTexture, Matrix4f frustum,
+    //$$                                Matrix4f projection, CallbackInfo ci) {
+    //$$     PoseStack pose = new PoseStack();
+    //$$     pose.mulPose(frustum);
+    //$$     float partialTick = delta.getGameTimeDeltaPartialTick(false);
+    //#else
     private void gulliver$drawWind(PoseStack pose, float partialTick, long nanos, boolean outline, Camera camera,
                                    GameRenderer gameRenderer, LightTexture lightTexture, Matrix4f projection,
                                    CallbackInfo ci) {
+    //#endif
         gulliver.client.BreathRibbonRenderer.drawLate(pose, Minecraft.getInstance().renderBuffers().bufferSource(),
                 camera, partialTick);
     }

@@ -59,6 +59,12 @@ public abstract class MixinTntBlock {
                                              BlockPos pos, Player player, InteractionHand hand,
                                              BlockHitResult hit,
                                              CallbackInfoReturnable<InteractionResult> cir) {
+    //#elif MC >= 1.20.5
+    //$$ @Inject(method = "useItemOn", at = @At("HEAD"), cancellable = true)
+    //$$ private void gulliver$hugeBareHandPrime(ItemStack stack, BlockState state, Level level,
+    //$$                                          BlockPos pos, Player player, InteractionHand hand,
+    //$$                                          BlockHitResult hit,
+    //$$                                          CallbackInfoReturnable<net.minecraft.world.ItemInteractionResult> cir) {
     //#else
     //$$ @Inject(method = "use", at = @At("HEAD"), cancellable = true)
     //$$ private void gulliver$hugeBareHandPrime(BlockState state, Level level, BlockPos pos, Player player,
@@ -91,7 +97,11 @@ public abstract class MixinTntBlock {
             //$$ level.removeBlock(pos, false);
             //#endif
         }
+        //#if MC >= 1.21.2 || MC < 1.20.5
         cir.setReturnValue(InteractionResult.SUCCESS);
+        //#else
+        //$$ cir.setReturnValue(net.minecraft.world.ItemInteractionResult.SUCCESS);
+        //#endif
     }
 
     /**

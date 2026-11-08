@@ -17,13 +17,25 @@
 //$$ @Mixin(Player.class)
 //$$ public abstract class MixinPlayerEatLegacy {
 //$$
+//#if MC >= 1.20.5
+//$$     @Inject(method = "eat(Lnet/minecraft/world/level/Level;Lnet/minecraft/world/item/ItemStack;Lnet/minecraft/world/food/FoodProperties;)Lnet/minecraft/world/item/ItemStack;", at = @At("HEAD"))
+//$$     private void gulliver$captureEater(Level level, ItemStack stack, net.minecraft.world.food.FoodProperties food,
+//$$                                  CallbackInfoReturnable<ItemStack> cir) {
+//#else
 //$$     @Inject(method = "eat(Lnet/minecraft/world/level/Level;Lnet/minecraft/world/item/ItemStack;)Lnet/minecraft/world/item/ItemStack;", at = @At("HEAD"))
 //$$     private void gulliver$captureEater(Level level, ItemStack stack, CallbackInfoReturnable<ItemStack> cir) {
+//#endif
 //$$         EatContext.set((Player) (Object) this);
 //$$     }
 //$$
+//#if MC >= 1.20.5
+//$$     @Inject(method = "eat(Lnet/minecraft/world/level/Level;Lnet/minecraft/world/item/ItemStack;Lnet/minecraft/world/food/FoodProperties;)Lnet/minecraft/world/item/ItemStack;", at = @At("RETURN"))
+//$$     private void gulliver$clearEater(Level level, ItemStack stack, net.minecraft.world.food.FoodProperties food,
+//$$                                  CallbackInfoReturnable<ItemStack> cir) {
+//#else
 //$$     @Inject(method = "eat(Lnet/minecraft/world/level/Level;Lnet/minecraft/world/item/ItemStack;)Lnet/minecraft/world/item/ItemStack;", at = @At("RETURN"))
 //$$     private void gulliver$clearEater(Level level, ItemStack stack, CallbackInfoReturnable<ItemStack> cir) {
+//#endif
 //$$         EatContext.clear();
 //$$     }
 //$$ }

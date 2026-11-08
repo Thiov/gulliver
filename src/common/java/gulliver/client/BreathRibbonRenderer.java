@@ -158,6 +158,20 @@ public final class BreathRibbonRenderer {
     //$$  */
     //$$ public static void drawLate(PoseStack pose, MultiBufferSource.BufferSource buffers, Camera camera, float pt) {
     //$$     if (!BreathRibbons.any()) return;
+    //#if MC >= 1.21
+    //$$ org.joml.Matrix4fStack view = RenderSystem.getModelViewStack();
+    //$$ view.pushMatrix();
+    //$$ view.identity();
+    //$$ view.mul(pose.last().pose());
+    //$$ RenderSystem.applyModelViewMatrix();
+    //$$ RenderType type = RenderType.beaconBeam(TEXTURE, true);
+    //$$ VertexConsumer consumer = buffers.getBuffer(type);
+    //$$ BreathRibbons.build(camera.getPosition(), pt, (x, y, z, u, v, a) -> consumer.addVertex(x, y, z)
+    //$$         .setColor(R, G, B, a).setUv(u, v).setLight(FULL_BRIGHT).setNormal(0.0F, 1.0F, 0.0F));
+    //$$ buffers.endBatch(type);
+    //$$ view.popMatrix();
+    //$$ RenderSystem.applyModelViewMatrix();
+    //#else
     //$$     PoseStack view = RenderSystem.getModelViewStack();
     //$$     view.pushPose();
     //$$     view.setIdentity();
@@ -170,6 +184,7 @@ public final class BreathRibbonRenderer {
     //$$     buffers.endBatch(type);
     //$$     view.popPose();
     //$$     RenderSystem.applyModelViewMatrix();
+    //#endif
     //$$ }
     //#endif
 }

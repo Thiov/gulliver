@@ -256,9 +256,15 @@ def textExtensions = ['java', 'json', 'toml', 'mcmeta', 'cfg', 'accesswidener', 
 def outJava = layout.buildDirectory.dir('preprocessed/java')
 def outRes = layout.buildDirectory.dir('preprocessed/resources')
 
+// gulliver_java_overlays: other versions whose Java overlays this version
+// shares (e.g. 1.21.1 uses 1.20.1's pre-render-state renderers), applied
+// before its own; they are preprocessed for this version like everything else.
+def sharedOverlays = (project.findProperty('gulliver_java_overlays') ?: '').toString()
+        .split(',').collect { it.trim() }.findAll { it }
 def javaRoots = [
         new File(repoRoot, 'src/common/java'),
         new File(repoRoot, "src/${loader}/java"),
+] + sharedOverlays.collect { new File(repoRoot, "versions/${it}/src/java") } + [
         new File(repoRoot, "versions/${mc}/src/java"),
         new File(repoRoot, "versions/${mc}/${loader}/src/java"),
 ]
