@@ -155,6 +155,11 @@ class Modrinth:
         return self.ids[slug]
 
 
+def same_name(file_name):
+    """A jar's name as CurseForge stores it ("+" becomes "-")."""
+    return file_name.replace("+", "-")
+
+
 def mirror(mr, project):
     slug = project["slug"]
     print(f"== {project['title']} ({slug})")
@@ -171,8 +176,13 @@ def mirror(mr, project):
         # The same jar may already be there under another version number
         # (e.g. uploaded by the release workflow): match file name and
         # Minecraft versions (two different jars can share a name).
-        have_files = {(f["filename"], tuple(sorted(v["game_versions"])))
-                      for v in versions for f in v.get("files", [])}
+        # CurseForge turns "+" in file names into "-", and lists Minecraft
+        # versions its own way, so names are compared without that
+        # difference and any shared Minecraft version counts.
+        have_files = {}
+        for v in versions:
+            for vf in v.get("files", []):
+                have_files.setdefault(same_name(vf["filename"]), []).append(set(v["game_versions"]))
         print(f"  project exists ({existing['status']}), {len(have)} versions")
         body = project_body(project)
         if existing.get("body", "").strip() != body or existing.get("description") != project["summary"]:
@@ -185,7 +195,7 @@ def mirror(mr, project):
                 print("  description updated")
     else:
         have = set()
-        have_files = set()
+        have_files = {}
         jar = get_bytes(f"{CF_WEB}/{project['curseforge_id']}/files/{files[-1]['id']}/download") if files else None
         icon = None
         if project.get("icon"):
@@ -230,7 +240,7 @@ def mirror(mr, project):
         if len(number) > 32:
             # Modrinth caps version numbers at 32 characters: drop the mod id in front.
             number = re.sub(r"^[A-Za-z_]+-", "", number, count=1)[-32:]
-        if number in have or (f["fileName"], tuple(sorted(f["mcs"]))) in have_files:
+        if number in have or any(set(f["mcs"]) & mcs for mcs in have_files.get(same_name(f["fileName"]), [])):
             continue
         games = [g for g in f["mcs"] if g in mr.games]
         if not games:
