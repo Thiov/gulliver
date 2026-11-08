@@ -15,7 +15,7 @@ Inspired by UncleMion's classic Gulliver mod for 1.6.4; on CurseForge and Modrin
 | 1.21.10   | ✓ | ✓ | ✓ |
 | 1.20.1    | ✓ | ✓ | ✓ |
 
-Download **Gulliver Unbound** from [CurseForge](https://www.curseforge.com/projects/1539752) or [Modrinth](https://modrinth.com/mod/gulliver-unbound), or get the jars from the [releases page](https://github.com/Thiov/gulliver/releases) and pick the one whose name matches your loader and Minecraft version, e.g. `gulliver-1.3.0+neoforge-26.3.jar`. Fabric needs the Fabric API; Mod Menu is optional (settings button). Install it on the server and on every client.
+Download **Gulliver Unbound** from [CurseForge](https://www.curseforge.com/projects/1539752) or [Modrinth](https://modrinth.com/mod/gulliver-unbound), or get the jars from the [releases page](https://github.com/Thiov/gulliver/releases) and pick the one whose name matches your loader and Minecraft version, e.g. `gulliver-1.4.0+neoforge-26.3.jar`. Fabric needs the Fabric API; Mod Menu is optional (settings button). Install it on the server and on every client.
 
 ## Features
 

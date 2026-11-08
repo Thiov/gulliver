@@ -5,14 +5,14 @@ Shrink down to an ant's-eye view or grow into a world-crushing giant. Your size 
 ## Features
 
 - **Resize anything**: players, animals and monsters, from 1/8× to 8× by default (up to 1/32× and 32× if you allow it).
-- **Everything scales**: speed, jumps, step height, falling, reach, damage, knockback, food and health.
+- **Everything scales**: speed, jumps, step height, falling, reach, damage, knockback, pushing, food and health. Anything under a quarter of your size bumps off you like a wall.
 - **Giants** shake the ground, crack weak floors, punch craters and trample what's beneath them (sneak or crawl to step carefully).
 - **Tinies** glide, climb, float, hide in flowers and ride small animals. A few everyday items help; their tooltips tell you how.
 - **Carry creatures** in your hand or on your shoulders, and throw them.
 - **Eat what's small enough**: anything can eat a creature a quarter of its size. Lift it to your mouth and take a bite; a giant monster you pick a fight with grabs you with both hands and does the same. Every bite is real damage, so armor is what keeps a tiny alive, and a meal that survives every bite gets spat out.
 - **Breath gust**: as a giant, hold **G** to blow away anything lighter than you, turn arrows around and blow out candles. Wisps of wind fly from your mouth with their own momentum, drawn at your size, up to a colossus's rolling rings of wind; under water it's a stream of bubbles.
-- **Mobs react to size**: most don't even look at what's far too small to notice, until it hurts them, and then their blows often miss; some hunt it on purpose.
-- **Presence**: footsteps you feel, sounds pitched to your size, smooth resizing, a Gulliver advancement tab.
+- **Mobs react to size**: most don't even look at what's far too small to notice, until it hurts them, and then their blows often miss; some hunt it on purpose. A creeper's blast grows and shrinks with the creeper.
+- **Presence**: footsteps you feel, sounds pitched to your size (how strongly is a setting), particles drawn at the size of whatever makes them, name tags that scale with the body, smooth resizing, a Gulliver advancement tab.
 
 ## How to resize
 
