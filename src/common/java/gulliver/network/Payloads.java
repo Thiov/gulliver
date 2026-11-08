@@ -51,7 +51,12 @@ public final class Payloads {
         public static final Identifier ID = Gulliver.id("server_settings");
 
         public static ServerSettings read(FriendlyByteBuf b) {
-            return new ServerSettings(b.readBoolean(), b.readFloat(), b.readFloat(), b.readFloat());
+            boolean dye = b.readBoolean();
+            float min = b.readFloat();
+            float max = b.readFloat();
+            // Servers up to 1.3.0 send no sound strength: they scale at the normal 1.
+            float volume = b.readableBytes() >= 4 ? b.readFloat() : 1.0F;
+            return new ServerSettings(dye, min, max, volume);
         }
 
         @Override
