@@ -78,7 +78,7 @@ public final class ClientShowcaseIssues {
                 cmd(mc, "execute as @a at @s run fill ~-22 ~-1 ~-10 ~22 ~-1 ~40 minecraft:grass_block");
                 onServer(mc, sp -> arena = sp.position());
                 mc.options.setCameraType(CameraType.FIRST_PERSON);
-                mc.options.hideGui = true;
+                hideHud(mc, true);
                 look(p, 0.0F, 0.0F);
             }
 
@@ -116,7 +116,7 @@ public final class ClientShowcaseIssues {
             case 170 -> {
                 mark("nametags");
                 // Name tags are part of the HUD: F1 hides them.
-                mc.options.hideGui = false;
+                hideHud(mc, false);
                 float[] sizes = {0.125F, 0.5F, 1.0F, 2.0F, 4.0F};
                 for (int i = 0; i < sizes.length; i++) {
                     cmd(mc, String.format(Locale.ROOT,
@@ -154,7 +154,7 @@ public final class ClientShowcaseIssues {
                 look(p, 0.0F, 10.0F);
             }
             case 265 -> shot(mc, "nametags-giant-view");
-            case 266 -> mc.options.hideGui = true;
+            case 266 -> hideHud(mc, true);
 
             // ---- particles -----------------------------------------------------
             case 270 -> {
@@ -318,16 +318,16 @@ public final class ClientShowcaseIssues {
                 if (arena != null) tp(mc, arena.x - 10.0D, arena.y, arena.z);
                 p.setYRot(-90.0F);
                 p.yRotO = -90.0F;
-                mc.options.hideGui = false;
+                hideHud(mc, false);
                 toggleSprintJump(mc);
             }
             case 800 -> shot(mc, "sprintjump-toggled");
-            case 801 -> mc.options.hideGui = true;
+            case 801 -> hideHud(mc, true);
             case 805 -> startJumping(mc, p);
             case 860 -> stopJumping(mc, "full-block sprint jump off");
             case 880 -> {
                 mc.options.setCameraType(CameraType.FIRST_PERSON);
-                mc.options.hideGui = false;
+                hideHud(mc, false);
                 setConfig("client", "sprintFullJump", true);
                 log("GULLIVER SHOWCASE DONE");
                 return true;
@@ -345,8 +345,10 @@ public final class ClientShowcaseIssues {
             });
         }
         // No advancement pop-ups over the pictures.
-        //#if MC >= 1.21.2
-        mc.getToastManager().clear();
+        //#if MC >= 26.2
+        mc.gui.toastManager().clear();
+        //#elif MC >= 1.21.2
+        //$$ mc.getToastManager().clear();
         //#else
         //$$ mc.getToasts().clear();
         //#endif
@@ -442,6 +444,15 @@ public final class ClientShowcaseIssues {
         } catch (ReflectiveOperationException e) {
             log("showcase config {}.{}: not in this build", section, field);
         }
+    }
+
+    /** F1: hides the HUD, and with it name tags. */
+    private static void hideHud(Minecraft mc, boolean hidden) {
+        //#if MC >= 26.2
+        if (mc.gui.hud.isHidden() != hidden) mc.gui.hud.toggle();
+        //#else
+        //$$ mc.options.hideGui = hidden;
+        //#endif
     }
 
     private static java.util.Set<String> tags(Entity e) {
