@@ -35,12 +35,4 @@ public interface IGlideRenderState {
     /** A monster eating: how far its hands have closed on the prey (EatPose.mobGrip), 0 otherwise. */
     float gulliver$getMobGrip();
     void gulliver$setMobGrip(float grip);
-
-    /** This frame's wings (a gulliver.client.WingRender.Frame), or null. */
-    default Object gulliver$wings() {
-        return null;
-    }
-
-    default void gulliver$setWings(Object frame) {
-    }
 }

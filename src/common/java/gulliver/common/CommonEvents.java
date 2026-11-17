@@ -69,18 +69,15 @@ public final class CommonEvents {
 
     public static void onPlayerClone(ServerPlayer oldPlayer, ServerPlayer newPlayer, boolean alive) {
         KarmaMode.onClone(oldPlayer, newPlayer, alive);
-        TinyWings.onClone(oldPlayer, newPlayer, alive);
     }
 
     public static void onPlayerRespawn(ServerPlayer player, boolean alive) {
         KarmaMode.onRespawn(player, alive);
-        TinyWings.resend(player);
     }
 
     public static void onPlayerJoin(ServerPlayer player) {
         SizeSync.sendSettings(player);
         SizeSync.broadcast(player);
-        TinyWings.onJoin(player);
     }
 
     public static void onPlayerLeave(ServerPlayer player) {
@@ -93,7 +90,6 @@ public final class CommonEvents {
     public static void onPlayerChangedDimension(ServerPlayer player) {
         ShoulderInteractHandler.onChangeDimension(player);
         KarmaMode.onChangedDimension(player);
-        TinyWings.resend(player);
     }
 
     public static void registerCommands(CommandDispatcher<CommandSourceStack> dispatcher) {

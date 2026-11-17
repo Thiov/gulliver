@@ -36,7 +36,7 @@ public final class ClientSelfTest {
             try {
                 // A showcase tour runs much longer than the checks (and slowly on a software renderer).
                 boolean tour = java.nio.file.Files.exists(java.nio.file.Path.of("gulliver-showcase-issues"))
-                        || java.nio.file.Files.exists(java.nio.file.Path.of("gulliver-showcase-wings"))
+                        || java.nio.file.Files.exists(java.nio.file.Path.of("gulliver-showcase-fixes"))
                         || java.nio.file.Files.exists(java.nio.file.Path.of("gulliver-showcase-blocks"));
                 Thread.sleep(tour ? 1_800_000L : 180_000L);
             } catch (InterruptedException e) {
@@ -101,7 +101,7 @@ public final class ClientSelfTest {
         }
         LocalPlayer p = mc.player;
         if (p == null || mc.level == null) return;
-        // With a "gulliver-showcase-wings" or "-blocks" file: a tour for filming (ClientShowcaseFilm).
+        // With a "gulliver-showcase-fixes" or "-blocks" file: a tour for filming (ClientShowcaseFilm).
         if (ClientShowcaseFilm.active(mc)) {
             ticksTotal = 0;
             if (ClientShowcaseFilm.tick(mc)) {

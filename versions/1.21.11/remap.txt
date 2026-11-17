@@ -5,7 +5,6 @@ net.minecraft.world.entity.monster.cubemob.Slime net.minecraft.world.entity.mons
 Items.DYE.cyan() Items.CYAN_DYE
 Items.DYE.purple() Items.PURPLE_DYE
 net.minecraft.tags.BlockItemTags.SAPLINGS.block() net.minecraft.tags.BlockTags.SAPLINGS
-net.minecraft.tags.BlockItemTags.SMALL_FLOWERS.item() net.minecraft.tags.ItemTags.SMALL_FLOWERS
 .gui.screen() .screen
 .gui.setScreen( .setScreen(
 .mainCamera() .getMainCamera()

@@ -50,7 +50,6 @@ public abstract class MixinLivingEntityHugeEffects {
         if (self instanceof net.minecraft.server.level.ServerPlayer player) {
             BreathGust.tick(player);
             gulliver.common.ItemRestrictions.tick(player);
-            gulliver.common.TinyWings.tick(player);
         }
         if (((IResizeableEntity) self).isHuge()) {
             GulliverEnvoy.leaveHugeFootprints(self, moved);

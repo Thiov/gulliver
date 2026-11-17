@@ -120,8 +120,8 @@ public class GulliverConfigScreen extends Screen {
 
     private void initGameplay(int left, int right, int y) {
         GulliverConfig.General g = draft.general;
-        // Nine rows: closer together on a short screen, so the last stays clear of Done.
-        int row = Math.max(21, Math.min(ROW, (height - 34 - 20 - y) / 9));
+        // Eight rows: closer together on a short screen, so the last stays clear of Done.
+        int row = Math.max(21, Math.min(ROW, (height - 34 - 20 - y) / 8));
         addRenderableWidget(toggle(left, y, "dyeResizing", g.enableDyeResizing, v -> g.enableDyeResizing = v));
         addRenderableWidget(toggle(right, y, "karmaMode", g.enableKarmaMode, v -> g.enableKarmaMode = v));
         y += row;
@@ -159,9 +159,7 @@ public class GulliverConfigScreen extends Screen {
         y += row;
         addRenderableWidget(toggle(left, y, "creeperExplosionScaling", g.creeperExplosionScaling,
                 v -> g.creeperExplosionScaling = v));
-        addRenderableWidget(toggle(right, y, "tinyWings", g.tinyWings, v -> g.tinyWings = v));
-        y += row;
-        addRenderableWidget(toggle(left, y, "smallBlockCollision", g.smallBlockCollision, v -> g.smallBlockCollision = v));
+        addRenderableWidget(toggle(right, y, "smallBlockCollision", g.smallBlockCollision, v -> g.smallBlockCollision = v));
     }
 
     private void initSpawn(int left, int right, int y) {

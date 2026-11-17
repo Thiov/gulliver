@@ -226,8 +226,6 @@ public final class GulliverConfig {
         g.trampleDamage = sizeValue(g.trampleDamage, 1.0D, 0.0D, MAX_TRAMPLE_DAMAGE, "general.trampleDamage", fixes);
         g.breathGustMinSize = sizeValue(g.breathGustMinSize, GiantBossBars.MIN_SIZE, 0.0D, MAX_SIZE, "general.breathGustMinSize", fixes);
         g.soundVolumeScaling = sizeValue(g.soundVolumeScaling, 1.0D, 0.0D, MAX_SOUND_SCALING, "general.soundVolumeScaling", fixes);
-        g.wingsMaxSize = sizeValue(g.wingsMaxSize, 0.3D, MIN_SIZE, MAX_SIZE, "general.wingsMaxSize", fixes);
-        g.wingStamina = sizeValue(g.wingStamina, 1.0D, 0.25D, 10.0D, "general.wingStamina", fixes);
 
         SizeLimit l = sizeLimit;
         l.minPlayerSize = limitValue(l.minPlayerSize, lo, hi, "sizeLimit.minPlayerSize", fixes);
@@ -475,18 +473,6 @@ public final class GulliverConfig {
         public boolean sizePushing = true;
         /** A creeper's explosion grows and shrinks with the creeper. */
         public boolean creeperExplosionScaling = true;
-        /**
-         * Tinies can grow wings (TinyWings): eating a phantom membrane,
-         * honeycomb, flower or amethyst shard while tiny grows fly, bee,
-         * butterfly or fairy wings that let them hover and fly.
-         */
-        public boolean tinyWings = true;
-        /** Largest size wings can carry (and show on) a body. */
-        public double wingsMaxSize = 0.3D;
-        /** How long the wings last before they tire: 1 is normal, up to 10x. */
-        public double wingStamina = 1.0D;
-        /** Whether wings stay with a player who dies. */
-        public boolean keepWingsOnDeath = true;
         /**
          * Buttons, levers, pressure plates and signs are solid for tinies,
          * and a pressure plate springing back up throws them into the air.

@@ -33,13 +33,6 @@ public abstract class MixinHumanoidModelPose {
                                      float netHeadYaw, float headPitch, CallbackInfo ci) {
         IResizeableLiving g = (IResizeableLiving) entity;
         float speed = Math.min(speedRaw, 1.0F);
-        if (entity instanceof net.minecraft.world.entity.player.Player player && gulliver.client.WingAnim.visible(player)) {
-            gulliver.client.WingAnim.State w = gulliver.client.WingAnim.of(player);
-            if (w != null && w.spread() > 0.01F) {
-                gulliver.client.WingRender.flightPose(rightArm, leftArm, rightLeg, leftLeg, w.spread(), age);
-                return;
-            }
-        }
         if (g.isGliding()) {
             float upRot = -(float) Math.PI;
             rightArm.xRot = upRot;

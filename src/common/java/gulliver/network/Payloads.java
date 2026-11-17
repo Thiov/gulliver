@@ -47,7 +47,7 @@ public final class Payloads {
      * the dye and mushroom use packet is worth sending at all.
      */
     public record ServerSettings(boolean dyeResizing, float minSize, float maxSize, float soundVolumeScaling,
-                                 boolean tinyWings, float wingsMaxSize, float wingStamina, boolean smallBlocks)
+                                 boolean smallBlocks)
             implements GulliverPayload {
         public static final Identifier ID = Gulliver.id("server_settings");
 
@@ -57,14 +57,9 @@ public final class Payloads {
             float max = b.readFloat();
             // Servers up to 1.3.0 send no sound strength: they scale at the normal 1.
             float volume = b.readableBytes() >= 4 ? b.readFloat() : 1.0F;
-            // Servers up to 1.4.1 know no wings.
-            boolean hasWings = b.readableBytes() >= 9;
-            boolean wings = hasWings && b.readBoolean();
-            float wingsMax = hasWings ? b.readFloat() : 0.0F;
-            float stamina = hasWings ? b.readFloat() : 1.0F;
-            // Servers without the small-block rule: tinies walk through them as before.
+            // Servers up to 1.4.1 know no small-block rule: tinies walk through them as before.
             boolean smallBlocks = b.readableBytes() >= 1 && b.readBoolean();
-            return new ServerSettings(dye, min, max, volume, wings, wingsMax, stamina, smallBlocks);
+            return new ServerSettings(dye, min, max, volume, smallBlocks);
         }
 
         @Override
@@ -73,9 +68,6 @@ public final class Payloads {
             b.writeFloat(minSize);
             b.writeFloat(maxSize);
             b.writeFloat(soundVolumeScaling);
-            b.writeBoolean(tinyWings);
-            b.writeFloat(wingsMaxSize);
-            b.writeFloat(wingStamina);
             b.writeBoolean(smallBlocks);
         }
 
@@ -247,73 +239,6 @@ public final class Payloads {
         //#if MC >= 1.20.5
         public static final Type<ActionState> TYPE = new Type<>(ID);
         @Override public Type<ActionState> type() { return TYPE; }
-        //#endif
-    }
-
-    /**
-     * S2C: a player's wings (TinyWings): their kind and colour, what they
-     * are doing, and whether they just grew (the metamorphosis plays).
-     */
-    public record Wings(int entityId, byte wingType, int color, byte flight, boolean sprout) implements GulliverPayload {
-        public static final Identifier ID = Gulliver.id("wings");
-
-        public static Wings read(FriendlyByteBuf b) {
-            return new Wings(b.readVarInt(), b.readByte(), b.readInt(), b.readByte(), b.readBoolean());
-        }
-
-        @Override
-        public void write(FriendlyByteBuf b) {
-            b.writeVarInt(entityId);
-            b.writeByte(wingType);
-            b.writeInt(color);
-            b.writeByte(flight);
-            b.writeBoolean(sprout);
-        }
-
-        //#if MC >= 1.20.5
-        public static final Type<Wings> TYPE = new Type<>(ID);
-        @Override public Type<Wings> type() { return TYPE; }
-        //#endif
-    }
-
-    /** C2S: what the player's wings are doing now (an IGulliverWings flight state). */
-    public record WingFlight(byte state) implements GulliverPayload {
-        public static final Identifier ID = Gulliver.id("wing_flight");
-
-        public static WingFlight read(FriendlyByteBuf b) {
-            return new WingFlight(b.readByte());
-        }
-
-        @Override
-        public void write(FriendlyByteBuf b) {
-            b.writeByte(state);
-        }
-
-        //#if MC >= 1.20.5
-        public static final Type<WingFlight> TYPE = new Type<>(ID);
-        @Override public Type<WingFlight> type() { return TYPE; }
-        //#endif
-    }
-
-    /**
-     * C2S: a tiny sneak-right-clicked the air with something that grows
-     * wings (phantom membrane, honeycomb, a flower, an amethyst shard).
-     */
-    public record Metamorphosis(boolean mainHand) implements GulliverPayload {
-        public static final Identifier ID = Gulliver.id("metamorphosis");
-
-        public static Metamorphosis read(FriendlyByteBuf b) {
-            return new Metamorphosis(b.readBoolean());
-        }
-
-        @Override
-        public void write(FriendlyByteBuf b) {
-            b.writeBoolean(mainHand);
-        }
-
-        //#if MC >= 1.20.5
-        public static final Type<Metamorphosis> TYPE = new Type<>(ID);
-        @Override public Type<Metamorphosis> type() { return TYPE; }
         //#endif
     }
 }

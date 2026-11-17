@@ -24,9 +24,8 @@ import java.util.function.IntConsumer;
  * Scripted tours for filming. Run the self-test client with one of these
  * files in the run folder; it plays the scenes (logging "SCENE" lines with
  * their times, for cutting the film) and quits:
- *  - "gulliver-showcase-wings": tiny creatures staying in view (#26), items
- *    restricted by size (#30) and tiny wings, from the metamorphosis to
- *    flying with each kind;
+ *  - "gulliver-showcase-fixes": tiny creatures staying in view (#26) and
+ *    items restricted by size (#30);
  *  - "gulliver-showcase-blocks": small blocks solid for tinies (#19):
  *    walking over buttons and plates, standing on a lever and a sign on a
  *    wall, and pressure plates springing tinies into the air. Keys are
@@ -53,7 +52,7 @@ public final class ClientShowcaseFilm {
     public static boolean active(Minecraft mc) {
         if (enabled == null) {
             blocksTour = java.nio.file.Files.exists(mc.gameDirectory.toPath().resolve("gulliver-showcase-blocks"));
-            enabled = blocksTour || java.nio.file.Files.exists(mc.gameDirectory.toPath().resolve("gulliver-showcase-wings"));
+            enabled = blocksTour || java.nio.file.Files.exists(mc.gameDirectory.toPath().resolve("gulliver-showcase-fixes"));
         }
         return enabled;
     }
@@ -79,10 +78,9 @@ public final class ClientShowcaseFilm {
         film(mc);
         if (t % 100 == 0) {
             LocalPlayer p = mc.player;
-            log("showcase t={} fps={} y={} yaw={} head={} body={} flight={}", t, mc.getFps(),
+            log("showcase t={} fps={} y={} yaw={} head={} body={}", t, mc.getFps(),
                     p == null ? 0 : Math.round(p.getY() * 100) / 100.0, p == null ? 0 : p.getYRot(),
-                    p == null ? 0 : p.yHeadRot, p == null ? 0 : p.yBodyRot,
-                    p == null ? 0 : ((gulliver.access.IGulliverWings) p).gulliver$wingFlight());
+                    p == null ? 0 : p.yHeadRot, p == null ? 0 : p.yBodyRot);
         }
         boolean over = t > end + 40;
         if (over) camOff(mc);
@@ -109,7 +107,6 @@ public final class ClientShowcaseFilm {
             cmd(mc, "gamemode survival @a");
             cmd(mc, "recipe give @a *");
             cmd(mc, "advancement grant @a everything");
-            cmd(mc, "advancement revoke @a only gulliver:metamorphosis");
             cmd(mc, "effect give @a minecraft:resistance 99999 4 true");
             cmd(mc, "effect give @a minecraft:saturation 99999 0 true");
             cmd(mc, "clear @a");
@@ -135,7 +132,7 @@ public final class ClientShowcaseFilm {
         });
 
         if (blocksTour) {
-            // Later than the wings tour: the server is still busy with its own self-test early on.
+            // Later than the other tour: the server is still busy with its own self-test early on.
             blocks(mc, 200);
             return;
         }
@@ -207,153 +204,7 @@ public final class ClientShowcaseFilm {
             cmd(mc, "clear @a");
         });
 
-        // ---- wings: metamorphosis ---------------------------------------------------------
-        int s3 = s2 + 400;
-        at(s3, () -> {
-            mark("metamorphosis");
-            title(mc, "Tiny Wings", "A tiny eats a phantom membrane...");
-            size(mc, 0.25F);
-            look(p, 0.0F, 10.0F);
-            p.yBodyRot = p.yBodyRotO = 0.0F;
-            cmd(mc, "item replace entity @a weapon.mainhand with minecraft:phantom_membrane 4");
-            camOn(mc, 35.0F, 1.3F, 0.45F, 0.62F);
-        });
-        eatAt(mc, s3 + 60);
-        during(s3 + 60, s3 + 150, i -> camYaw = 35.0F - i * 0.9F);
-        at(s3 + 130, () -> sub(mc, "...and grows fly wings"));
-
-        // ---- wings: hover and fly --------------------------------------------------------
-        int s4 = s3 + 170;
-        at(s4, () -> {
-            mark("fly");
-            onServer(mc, sp -> sp.teleportTo(arena.x, arena.y + 0.2D, arena.z));
-            title(mc, "Fly wings", "Hold jump to take off");
-            chase(1.6F, 0.45F, 22.0F);
-            look(p, 0.0F, 0.0F);
-        });
-        // Jump and keep holding: the wings open near the top and climb.
-        during(s4 + 20, s4 + 52, i -> key(mc.options.keyJump, true));
-        at(s4 + 53, () -> {
-            key(mc.options.keyJump, false);
-            sub(mc, "Hover: wings beating, gently bobbing in place");
-        });
-        during(s4 + 60, s4 + 115, i -> camYaw = 22.0F + i * 1.0F);
-        at(s4 + 120, () -> sub(mc, "Fly the way you look - sprint to dart"));
-        during(s4 + 120, s4 + 200, i -> {
-            key(mc.options.keyUp, true);
-            look(p, i * 1.6F, -4.0F);
-        });
-        during(s4 + 200, s4 + 225, i -> {
-            key(mc.options.keySprint, true);
-            look(p, 128.0F + i * 2.2F, -2.0F);
-        });
-        at(s4 + 226, () -> {
-            key(mc.options.keySprint, false);
-            key(mc.options.keyUp, false);
-            sub(mc, "Hold jump to climb");
-        });
-        during(s4 + 230, s4 + 260, i -> key(mc.options.keyJump, true));
-        at(s4 + 261, () -> {
-            key(mc.options.keyJump, false);
-            sub(mc, "Hold sneak to drop");
-        });
-        during(s4 + 275, s4 + 290, i -> key(mc.options.keyShift, true));
-        at(s4 + 291, () -> {
-            key(mc.options.keyShift, false);
-            camOff(mc);
-            sub(mc, "The bar under the crosshair: your wings' stamina");
-        });
-        during(s4 + 300, s4 + 360, i -> {
-            key(mc.options.keyUp, true);
-            look(p, 183.0F + i * 2.0F, -3.0F);
-        });
-        at(s4 + 361, () -> key(mc.options.keyUp, false));
-        at(s4 + 420, () -> {
-            chase(1.6F, 0.6F, 30.0F);
-            sub(mc, "Land to fold them and rest");
-        });
-        during(s4 + 430, s4 + 500, i -> key(mc.options.keyShift, i < 60));
-
-        // ---- butterfly ------------------------------------------------------------------
-        int s5 = s4 + 520;
-        at(s5, () -> {
-            mark("butterfly");
-            onServer(mc, sp -> sp.teleportTo(arena.x, arena.y + 0.2D, arena.z));
-            title(mc, "Butterfly wings", "Eat a flower: the wings take its colour");
-            cmd(mc, "item replace entity @a weapon.mainhand with minecraft:cornflower 4");
-            p.yBodyRot = p.yBodyRotO = p.getYRot();
-            orbit(1.5F, 0.4F, 60.0F);
-        });
-        eatAt(mc, s5 + 40);
-        during(s5 + 40, s5 + 200, i -> camYaw = 60.0F + i * 0.7F);
-        at(s5 + 120, () -> sub(mc, "At rest they open and close their wings now and then"));
-        at(s5 + 200, () -> chase(1.8F, 0.5F, 25.0F));
-        during(s5 + 210, s5 + 240, i -> key(mc.options.keyJump, true));
-        at(s5 + 241, () -> {
-            key(mc.options.keyJump, false);
-            sub(mc, "Slow, graceful flaps, gliding in between");
-        });
-        during(s5 + 250, s5 + 380, i -> {
-            key(mc.options.keyUp, true);
-            look(p, p.getYRot() + 0.9F, -6.0F);
-        });
-        at(s5 + 381, () -> key(mc.options.keyUp, false));
-        at(s5 + 395, () -> {
-            sub(mc, "...or a monarch, from an orange tulip");
-            cmd(mc, "item replace entity @a weapon.mainhand with minecraft:orange_tulip 4");
-        });
-        eatAt(mc, s5 + 410);
-        during(s5 + 480, s5 + 560, i -> {
-            key(mc.options.keyUp, true);
-            look(p, p.getYRot() - 1.0F, -4.0F);
-        });
-        at(s5 + 561, () -> key(mc.options.keyUp, false));
-        during(s5 + 570, s5 + 650, i -> key(mc.options.keyShift, i < 70));
-
-        // ---- bee ------------------------------------------------------------------------
-        int s6 = s5 + 670;
-        at(s6, () -> {
-            mark("bee");
-            onServer(mc, sp -> sp.teleportTo(arena.x + 4.0D, arena.y + 0.2D, arena.z - 6.0D));
-            title(mc, "Bee wings", "Honeycomb: strong climbers with stamina to spare");
-            cmd(mc, "item replace entity @a weapon.mainhand with minecraft:honeycomb 4");
-            orbit(1.4F, 0.4F, 40.0F);
-        });
-        eatAt(mc, s6 + 30);
-        during(s6 + 30, s6 + 100, i -> camYaw = 40.0F + i * 0.8F);
-        at(s6 + 100, () -> chase(1.7F, 0.45F, 20.0F));
-        during(s6 + 110, s6 + 170, i -> key(mc.options.keyJump, true));
-        at(s6 + 171, () -> key(mc.options.keyJump, false));
-        during(s6 + 180, s6 + 260, i -> {
-            key(mc.options.keyUp, true);
-            look(p, p.getYRot() - 1.5F, -2.0F);
-        });
-        at(s6 + 261, () -> key(mc.options.keyUp, false));
-        during(s6 + 270, s6 + 350, i -> key(mc.options.keyShift, i < 70));
-
-        // ---- fairy ----------------------------------------------------------------------
-        int s7 = s6 + 370;
-        at(s7, () -> {
-            mark("fairy");
-            onServer(mc, sp -> sp.teleportTo(arena.x - 4.0D, arena.y + 0.2D, arena.z - 4.0D));
-            title(mc, "Fairy wings", "An amethyst shard: glowing wings and a trail of sparkles");
-            cmd(mc, "time set 12600");
-            cmd(mc, "item replace entity @a weapon.mainhand with minecraft:amethyst_shard 4");
-            orbit(1.4F, 0.4F, 30.0F);
-        });
-        eatAt(mc, s7 + 40);
-        during(s7 + 40, s7 + 110, i -> camYaw = 30.0F + i * 0.8F);
-        at(s7 + 110, () -> chase(1.7F, 0.45F, 20.0F));
-        during(s7 + 120, s7 + 150, i -> key(mc.options.keyJump, true));
-        at(s7 + 151, () -> key(mc.options.keyJump, false));
-        during(s7 + 160, s7 + 300, i -> {
-            key(mc.options.keyUp, true);
-            look(p, p.getYRot() + 1.2F, -3.0F);
-        });
-        at(s7 + 301, () -> key(mc.options.keyUp, false));
-        at(s7 + 320, () -> title(mc, "Gulliver Unbound", "Tiny wings"));
-        during(s7 + 330, s7 + 400, i -> key(mc.options.keyShift, i < 60));
-        at(s7 + 420, () -> mark("end"));
+        at(s2 + 400, () -> mark("end"));
     }
 
     // ---- #19: small blocks are solid for tinies -------------------------------------------
@@ -485,14 +336,12 @@ public final class ClientShowcaseFilm {
     // ---- film camera ------------------------------------------------------------------
 
     private static boolean filming;
-    private static boolean camFollowsYaw;
     /** Where the camera sits, as an angle round the player measured from its back (0 = straight behind). */
     private static float camYaw;
     private static float camDist;
     private static float camHeight;
     /** Height on the body the camera aims at, in body heights. */
     private static float camAim = 0.6F;
-    private static float camHeading;
     private static Vec3 camPos, camPosO;
     /** Where a standing camera stands, or null for one that follows. */
     private static Vec3 camAnchor;
@@ -521,29 +370,13 @@ public final class ClientShowcaseFilm {
         camDist = dist;
         camHeight = height;
         camAim = aim;
-        camFollowsYaw = false;
         camAnchor = null;
         start(mc);
     }
 
-    /** Circles round at a fixed heading (camYaw moved by the script). */
-    private static void orbit(float dist, float height, float yaw) {
-        camOn(Minecraft.getInstance(), yaw, dist, height, 0.6F);
-    }
-
-    /** Follows behind the flyer, turning as it turns. */
-    private static void chase(float dist, float height, float yaw) {
-        camOn(Minecraft.getInstance(), yaw, dist, height, 0.55F);
-        camFollowsYaw = true;
-    }
-
     private static void start(Minecraft mc) {
-        LocalPlayer p = mc.player;
-        if (p == null) return;
-        if (!filming) {
-            camHeading = p.getYRot();
-            camPos = camPosO = null;
-        }
+        if (mc.player == null) return;
+        if (!filming) camPos = camPosO = null;
         filming = true;
         mc.options.setCameraType(CameraType.THIRD_PERSON_BACK);
     }
@@ -566,9 +399,7 @@ public final class ClientShowcaseFilm {
     private static Vec3 target(LocalPlayer p) {
         float size = VisualSize.of(p);
         float body = 1.8F * size;
-        if (camFollowsYaw) camHeading = Mth.rotLerp(0.12F, camHeading, p.getYRot());
-        else camHeading = p.yBodyRot;
-        float a = (camHeading + camYaw) * Mth.DEG_TO_RAD;
+        float a = (p.yBodyRot + camYaw) * Mth.DEG_TO_RAD;
         // Behind the heading is -forward; camYaw turns round from there.
         double dx = Mth.sin(a) * camDist * body;
         double dz = -Mth.cos(a) * camDist * body;
@@ -604,7 +435,6 @@ public final class ClientShowcaseFilm {
     /** Default settings plus the tour's own, live but never written to the config file. */
     private static void applyConfig(Minecraft mc) {
         var c = new GulliverConfig();
-        c.general.tinyWings = true;
         c.itemRestrictions.enabled = true;
         c.itemRestrictions.rules.clear();
         var swords = new GulliverConfig.ItemRule();
@@ -662,16 +492,6 @@ public final class ClientShowcaseFilm {
     /** Glides the player along +Z (backwards away from the row when negative), facing the same way. */
     private static void back(LocalPlayer p, double dz) {
         p.setPos(p.getX(), p.getY(), p.getZ() + dz);
-    }
-
-    /** Sneak + right-click the air with what is in hand, at this tick. */
-    private static void eatAt(Minecraft mc, int tick) {
-        at(tick - 6, () -> key(mc.options.keyShift, true));
-        at(tick, () -> {
-            LocalPlayer p = mc.player;
-            if (p != null && mc.gameMode != null) mc.gameMode.useItem(p, InteractionHand.MAIN_HAND);
-        });
-        at(tick + 6, () -> key(mc.options.keyShift, false));
     }
 
     private static void key(KeyMapping key, boolean down) {

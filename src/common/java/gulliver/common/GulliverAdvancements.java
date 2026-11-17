@@ -20,7 +20,6 @@ public final class GulliverAdvancements {
     public static final String TINY_RIDER = "tiny_rider";
     public static final String WATCH_YOUR_STEP = "watch_your_step";
     public static final String FEE_FI_FO_FUM = "fee_fi_fo_fum";
-    public static final String METAMORPHOSIS = "metamorphosis";
 
     public static void award(ServerPlayer player, String name) {
         var server = ((ServerLevel) player.level()).getServer();

@@ -172,53 +172,12 @@ public final class GulliverCommands {
                                             e.getName().getString() + " size " + fmt(full)), false);
                                     return 1;
                                 })))
-                .then(Commands.literal("wings").requires(OP2)
-                        .then(Commands.argument("targets", EntityArgument.players())
-                                .then(Commands.argument("type", StringArgumentType.word())
-                                        .suggests((c, b) -> {
-                                            for (gulliver.common.WingType t : gulliver.common.WingType.values()) b.suggest(t.key);
-                                            return b.buildFuture();
-                                        })
-                                        .executes(ctx -> wings(ctx, -1))
-                                        .then(Commands.argument("color", StringArgumentType.word())
-                                                .executes(ctx -> wings(ctx, parseColor(StringArgumentType.getString(ctx, "color"))))))))
                 .then(Commands.literal("reload").requires(OP4)
                         .executes(GulliverCommands::reloadConfig)));
 
         // /reloadgullivercfg  (perm 4, the 1.6.4 mod's reload)
         dispatcher.register(Commands.literal("reloadgullivercfg").requires(OP4)
                 .executes(GulliverCommands::reloadConfig));
-    }
-
-    /** /gulliver wings <players> <fly|bee|butterfly|fairy|none> [color as RRGGBB]: give or take away wings. */
-    private static int wings(CommandContext<CommandSourceStack> ctx, int color)
-            throws com.mojang.brigadier.exceptions.CommandSyntaxException {
-        String name = StringArgumentType.getString(ctx, "type");
-        gulliver.common.WingType type = gulliver.common.WingType.byName(name);
-        if (type == null) {
-            ctx.getSource().sendFailure(Component.literal("Unknown wings \"" + name + "\" (fly, bee, butterfly, fairy or none)"));
-            return 0;
-        }
-        int c = color >= 0 ? color : type.color;
-        int n = 0;
-        for (ServerPlayer p : EntityArgument.getPlayers(ctx, "targets")) {
-            gulliver.common.TinyWings.set(p, type, c, type != gulliver.common.WingType.NONE);
-            n++;
-        }
-        int count = n;
-        ctx.getSource().sendSuccess(() -> Component.literal((type == gulliver.common.WingType.NONE
-                ? "Took the wings of " : "Gave " + type.key + " wings to ") + count + " player" + (count == 1 ? "" : "s")), true);
-        return n;
-    }
-
-    /** "f08a22", "#F08A22" or "0xf08a22"; -1 when it isn't a colour. */
-    private static int parseColor(String s) {
-        String hex = s.startsWith("#") ? s.substring(1) : s.startsWith("0x") ? s.substring(2) : s;
-        try {
-            return hex.length() == 6 ? Integer.parseInt(hex, 16) : -1;
-        } catch (NumberFormatException e) {
-            return -1;
-        }
     }
 
     private static int reloadConfig(CommandContext<CommandSourceStack> ctx) {
