@@ -26,6 +26,8 @@ import net.minecraft.world.entity.player.Player;
 public final class WingAnim {
     private WingAnim() {}
 
+    // The wings ship without sounds. A resource pack (or the mod's own assets) that defines these
+    // events in sounds.json is played as is; until then nothing is played and nothing is logged.
     static final SoundEvent BUZZ_FLY = sound("wings.buzz_fly");
     static final SoundEvent BUZZ_BEE = sound("wings.buzz_bee");
     static final SoundEvent FAIRY = sound("wings.fairy");
@@ -34,6 +36,15 @@ public final class WingAnim {
 
     private static SoundEvent sound(String name) {
         return SoundEvent.createVariableRangeEvent(Gulliver.id(name));
+    }
+
+    /** Whether a sound for this event is installed. */
+    private static boolean installed(SoundEvent event) {
+        //#if MC >= 1.21.2
+        return Minecraft.getInstance().getSoundManager().getSoundEvent(event.location()) != null;
+        //#else
+        //$$ return Minecraft.getInstance().getSoundManager().getSoundEvent(event.getLocation()) != null;
+        //#endif
     }
 
     /** Length of the metamorphosis, in ticks. */
@@ -92,7 +103,7 @@ public final class WingAnim {
             State s = of(e);
             s.sproutTicks = 0;
             s.growth = s.prevGrowth = 0.0F;
-            mc.getSoundManager().play(new SimpleSoundInstance(SPROUT, SoundSource.PLAYERS, 0.9F, pitchFor(e),
+            if (installed(SPROUT)) mc.getSoundManager().play(new SimpleSoundInstance(SPROUT, SoundSource.PLAYERS, 0.9F, pitchFor(e),
                     RandomSource.create(), e.getX(), e.getY(), e.getZ()));
         }
     }
@@ -222,7 +233,7 @@ public final class WingAnim {
         boolean flying = IGulliverWings.flying(flight) && visible(p);
         if (type == WingType.BUTTERFLY) {
             // A soft flutter on each downstroke.
-            if (flying && s.stroke > 0.5F && Mth.floor(s.phase) != Mth.floor(s.prevPhase)) {
+            if (flying && s.stroke > 0.5F && Mth.floor(s.phase) != Mth.floor(s.prevPhase) && installed(FLUTTER)) {
                 mc.getSoundManager().play(new SimpleSoundInstance(FLUTTER, SoundSource.PLAYERS,
                         0.45F, pitchFor(p) * (0.9F + p.getRandom().nextFloat() * 0.2F), RandomSource.create(),
                         p.getX(), p.getY() + p.getBbHeight() * 0.7D, p.getZ()));
@@ -231,6 +242,7 @@ public final class WingAnim {
         }
         if (flying && (s.loop == null || s.loop.isStopped())) {
             SoundEvent event = type == WingType.BEE ? BUZZ_BEE : type == WingType.FAIRY ? FAIRY : BUZZ_FLY;
+            if (!installed(event)) return;
             s.loop = new WingLoop(p, event);
             mc.getSoundManager().play(s.loop);
         }

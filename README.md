@@ -61,7 +61,7 @@ Download **Gulliver Unbound** from [CurseForge](https://www.curseforge.com/proje
 - Sneak + right-click the air while tiny to eat a **phantom membrane**, **honeycomb**, **flower** or **amethyst shard** and grow **fly**, **bee**, **butterfly** (in the flower's colour) or **fairy** wings. They unfold out of your back over three seconds.
 - Jump, then jump again in the air: you hover, bobbing gently on the beat of your wings. Fly the way you look, sprint to dart, hold jump to climb and sneak to drop. Land to fold them.
 - Not creative flight: the body has momentum and the wings tire. A slim stamina bar under the crosshair refills on the ground; spent or rain-soaked wings only let you glide down.
-- Flies are fastest and hover dead still, bees climb best and last longest, butterflies flap slowly and glide for free, fairies sparkle and glow. Each has its own sound.
+- Flies are fastest and hover dead still, bees climb best and last longest, butterflies flap slowly and glide for free, fairies sparkle and glow.
 
 **Carry**
 - Sneak + right-click (empty hand) a creature under 0.4× your size to scoop it into your hand.
