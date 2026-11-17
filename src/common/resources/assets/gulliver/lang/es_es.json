@@ -163,5 +163,7 @@
   "subtitles.gulliver.wings.flutter": "Aletean unas alas",
   "subtitles.gulliver.wings.sprout": "Se despliegan unas alas",
   "advancements.gulliver.metamorphosis.title": "Metamorfosis",
-  "advancements.gulliver.metamorphosis.description": "Desarrolla alas siendo diminuto"
+  "advancements.gulliver.metamorphosis.description": "Desarrolla alas siendo diminuto",
+  "gulliver.config.smallBlockCollision": "Bloques pequeños sólidos",
+  "gulliver.config.smallBlockCollision.tooltip": "Los botones, palancas, placas de presión y carteles son sólidos para los diminutos, que se suben y trepan por ellos. Una placa de presión que vuelve a subir lanza al diminuto por los aires."
 }

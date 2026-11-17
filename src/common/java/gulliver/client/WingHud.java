@@ -31,7 +31,7 @@ public final class WingHud {
         Minecraft mc = Minecraft.getInstance();
         LocalPlayer p = mc.player;
         // Only your own view: not while watching through something else.
-        if (p == null || mc.getCameraEntity() != p || ClientShowcaseWings.filming()) return;
+        if (p == null || mc.getCameraEntity() != p || ClientShowcaseFilm.filming()) return;
         //#if MC < 26.2
         //$$ if (mc.options.hideGui) return;
         //#endif

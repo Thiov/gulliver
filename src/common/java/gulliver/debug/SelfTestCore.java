@@ -247,13 +247,19 @@ final class SelfTestCore {
     /** The settings packet survives its own wire format. */
     private static void payload(List<String> failures) {
         FriendlyByteBuf buf = new FriendlyByteBuf(io.netty.buffer.Unpooled.buffer());
-        new Payloads.ServerSettings(false, 1.0F / 32, 32.0F, 2.5F, true, 0.25F, 2.0F).write(buf);
+        new Payloads.ServerSettings(false, 1.0F / 32, 32.0F, 2.5F, true, 0.25F, 2.0F, true).write(buf);
         Payloads.ServerSettings back = Payloads.ServerSettings.read(buf);
         check(failures, !back.dyeResizing() && back.minSize() == 1.0F / 32 && back.maxSize() == 32.0F
                         && back.soundVolumeScaling() == 2.5F && back.tinyWings() && back.wingsMaxSize() == 0.25F
-                        && back.wingStamina() == 2.0F,
+                        && back.wingStamina() == 2.0F && back.smallBlocks(),
                 "server settings packet round-trips");
         buf.release();
+        // Wings off on the server: what follows the wing settings still reads right.
+        FriendlyByteBuf off = new FriendlyByteBuf(io.netty.buffer.Unpooled.buffer());
+        new Payloads.ServerSettings(true, 0.125F, 8.0F, 1.0F, false, 0.3F, 1.0F, true).write(off);
+        Payloads.ServerSettings offBack = Payloads.ServerSettings.read(off);
+        check(failures, !offBack.tinyWings() && offBack.smallBlocks(), "settings after switched-off wings read right");
+        off.release();
         // A 1.4.1 server's packet (no wing settings) still reads, with wings off.
         FriendlyByteBuf old = new FriendlyByteBuf(io.netty.buffer.Unpooled.buffer());
         old.writeBoolean(true);

@@ -163,5 +163,7 @@
   "subtitles.gulliver.wings.flutter": "翅膀扇动",
   "subtitles.gulliver.wings.sprout": "翅膀展开",
   "advancements.gulliver.metamorphosis.title": "蜕变",
-  "advancements.gulliver.metamorphosis.description": "以小人之身长出翅膀"
+  "advancements.gulliver.metamorphosis.description": "以小人之身长出翅膀",
+  "gulliver.config.smallBlockCollision": "实心小方块",
+  "gulliver.config.smallBlockCollision.tooltip": "按钮、拉杆、压力板和告示牌对小人来说是实心的，可以站在上面或攀爬。压力板弹回时会把上面的小人抛向空中。"
 }

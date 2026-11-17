@@ -163,5 +163,7 @@
   "subtitles.gulliver.wings.flutter": "Vleugels fladderen",
   "subtitles.gulliver.wings.sprout": "Vleugels ontvouwen zich",
   "advancements.gulliver.metamorphosis.title": "Metamorfose",
-  "advancements.gulliver.metamorphosis.description": "Krijg vleugels terwijl je klein bent"
+  "advancements.gulliver.metamorphosis.description": "Krijg vleugels terwijl je klein bent",
+  "gulliver.config.smallBlockCollision": "Vaste kleine blokken",
+  "gulliver.config.smallBlockCollision.tooltip": "Knoppen, hendels, drukplaten en borden zijn vast voor kleintjes, die erop staan en erop klimmen. Een drukplaat die terugveert, slingert een kleintje de lucht in."
 }

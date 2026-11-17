@@ -29,12 +29,27 @@ import java.util.List;
  * filter ({@code !Entity.isIgnoringBlockTriggers}) needs to stay — we
  * just AND in {@code !isTiny()}.
  *
+ * Also springs tinies off a plate that comes back up (TinyBlocks, #19).
+ *
  * Companion to MixinTripWireBlock (same intent: tinies don't trigger
  * traps). Note: pressure-plate-as-button (huge stomping) goes through
  * BlockSetType / canPressPlateLikeButton elsewhere and isn't affected.
  */
 @Mixin(BasePressurePlateBlock.class)
 public abstract class MixinPressurePlateTinyIgnore {
+
+    @org.spongepowered.asm.mixin.Shadow
+    protected abstract int getSignalForState(net.minecraft.world.level.block.state.BlockState state);
+
+    /** A plate that was pressed and now is not springs tinies standing on it into the air (TinyBlocks). */
+    @Inject(method = "checkPressed", at = @At("TAIL"))
+    private void gulliver$springTinies(Entity entity, Level level, net.minecraft.core.BlockPos pos,
+                                       net.minecraft.world.level.block.state.BlockState state, int oldSignal,
+                                       org.spongepowered.asm.mixin.injection.callback.CallbackInfo ci) {
+        if (oldSignal > 0 && getSignalForState(level.getBlockState(pos)) == 0) {
+            gulliver.common.TinyBlocks.plateReleased(level, pos, (BasePressurePlateBlock) (Object) this);
+        }
+    }
 
     @Inject(method = "getEntityCount", at = @At("HEAD"), cancellable = true)
     private static void gulliver$skipTinies(Level level, AABB aabb,

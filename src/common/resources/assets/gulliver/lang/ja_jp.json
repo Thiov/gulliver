@@ -163,5 +163,7 @@
   "subtitles.gulliver.wings.flutter": "羽ばたき",
   "subtitles.gulliver.wings.sprout": "羽が広がる",
   "advancements.gulliver.metamorphosis.title": "変態",
-  "advancements.gulliver.metamorphosis.description": "小人のときに羽を生やす"
+  "advancements.gulliver.metamorphosis.description": "小人のときに羽を生やす",
+  "gulliver.config.smallBlockCollision": "小さなブロックに当たり判定",
+  "gulliver.config.smallBlockCollision.tooltip": "ボタン、レバー、感圧板、看板が小人にとって固くなり、上に立ったりよじ登ったりできます。感圧板が戻るとき、上の小人は宙に跳ね上げられます。"
 }

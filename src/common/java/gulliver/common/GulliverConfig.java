@@ -487,6 +487,11 @@ public final class GulliverConfig {
         public double wingStamina = 1.0D;
         /** Whether wings stay with a player who dies. */
         public boolean keepWingsOnDeath = true;
+        /**
+         * Buttons, levers, pressure plates and signs are solid for tinies,
+         * and a pressure plate springing back up throws them into the air.
+         */
+        public boolean smallBlockCollision = true;
     }
 
     /** Client-only look and feel; ignored by dedicated servers. */

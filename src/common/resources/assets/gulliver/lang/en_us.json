@@ -163,5 +163,7 @@
   "subtitles.gulliver.wings.flutter": "Wings flutter",
   "subtitles.gulliver.wings.sprout": "Wings unfurl",
   "advancements.gulliver.metamorphosis.title": "Metamorphosis",
-  "advancements.gulliver.metamorphosis.description": "Grow wings while tiny"
+  "advancements.gulliver.metamorphosis.description": "Grow wings while tiny",
+  "gulliver.config.smallBlockCollision": "Solid Small Blocks",
+  "gulliver.config.smallBlockCollision.tooltip": "Buttons, levers, pressure plates and signs are solid for tinies, who stand on and climb them. A pressure plate springing back up throws a tiny into the air."
 }

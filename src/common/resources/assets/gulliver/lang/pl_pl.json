@@ -163,5 +163,7 @@
   "subtitles.gulliver.wings.flutter": "Skrzydła trzepoczą",
   "subtitles.gulliver.wings.sprout": "Skrzydła się rozwijają",
   "advancements.gulliver.metamorphosis.title": "Metamorfoza",
-  "advancements.gulliver.metamorphosis.description": "Wyhoduj skrzydła jako maluch"
+  "advancements.gulliver.metamorphosis.description": "Wyhoduj skrzydła jako maluch",
+  "gulliver.config.smallBlockCollision": "Twarde małe bloki",
+  "gulliver.config.smallBlockCollision.tooltip": "Przyciski, dźwignie, płyty naciskowe i tabliczki są twarde dla maluchów, które mogą na nich stać i się na nie wspinać. Płyta naciskowa, która odskakuje, wyrzuca malucha w powietrze."
 }

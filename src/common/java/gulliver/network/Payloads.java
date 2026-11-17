@@ -47,7 +47,7 @@ public final class Payloads {
      * the dye and mushroom use packet is worth sending at all.
      */
     public record ServerSettings(boolean dyeResizing, float minSize, float maxSize, float soundVolumeScaling,
-                                 boolean tinyWings, float wingsMaxSize, float wingStamina)
+                                 boolean tinyWings, float wingsMaxSize, float wingStamina, boolean smallBlocks)
             implements GulliverPayload {
         public static final Identifier ID = Gulliver.id("server_settings");
 
@@ -58,10 +58,13 @@ public final class Payloads {
             // Servers up to 1.3.0 send no sound strength: they scale at the normal 1.
             float volume = b.readableBytes() >= 4 ? b.readFloat() : 1.0F;
             // Servers up to 1.4.1 know no wings.
-            boolean wings = b.readableBytes() >= 9 && b.readBoolean();
-            float wingsMax = wings ? b.readFloat() : 0.0F;
-            float stamina = wings ? b.readFloat() : 1.0F;
-            return new ServerSettings(dye, min, max, volume, wings, wingsMax, stamina);
+            boolean hasWings = b.readableBytes() >= 9;
+            boolean wings = hasWings && b.readBoolean();
+            float wingsMax = hasWings ? b.readFloat() : 0.0F;
+            float stamina = hasWings ? b.readFloat() : 1.0F;
+            // Servers without the small-block rule: tinies walk through them as before.
+            boolean smallBlocks = b.readableBytes() >= 1 && b.readBoolean();
+            return new ServerSettings(dye, min, max, volume, wings, wingsMax, stamina, smallBlocks);
         }
 
         @Override
@@ -73,6 +76,7 @@ public final class Payloads {
             b.writeBoolean(tinyWings);
             b.writeFloat(wingsMaxSize);
             b.writeFloat(wingStamina);
+            b.writeBoolean(smallBlocks);
         }
 
         //#if MC >= 1.20.5

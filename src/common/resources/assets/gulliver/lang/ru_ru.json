@@ -163,5 +163,7 @@
   "subtitles.gulliver.wings.flutter": "Трепещут крылья",
   "subtitles.gulliver.wings.sprout": "Раскрываются крылья",
   "advancements.gulliver.metamorphosis.title": "Метаморфоза",
-  "advancements.gulliver.metamorphosis.description": "Отрастите крылья, будучи крошкой"
+  "advancements.gulliver.metamorphosis.description": "Отрастите крылья, будучи крошкой",
+  "gulliver.config.smallBlockCollision": "Твёрдые мелкие блоки",
+  "gulliver.config.smallBlockCollision.tooltip": "Кнопки, рычаги, нажимные плиты и таблички становятся твёрдыми для крошек: на них можно стоять и забираться. Нажимная плита, возвращаясь вверх, подбрасывает крошку в воздух."
 }

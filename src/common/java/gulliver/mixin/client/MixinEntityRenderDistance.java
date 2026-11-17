@@ -24,7 +24,7 @@ public abstract class MixinEntityRenderDistance {
     @Inject(method = "shouldRenderAtSqrDistance", at = @At("HEAD"), cancellable = true, require = 0)
     private void gulliver$tinyStayVisible(double distanceSqr, CallbackInfoReturnable<Boolean> cir) {
         float size = ((IResizeableEntity) this).getSizeMultiplier();
-        if (!(size > 0.0F) || size >= 1.0F || gulliver.client.ClientShowcaseWings.vanillaCulling) return;
+        if (!(size > 0.0F) || size >= 1.0F || gulliver.client.ClientShowcaseFilm.vanillaCulling) return;
         double side = ((Entity) (Object) this).getBoundingBox().getSize() / size;
         if (Double.isNaN(side)) side = 1.0D;
         side *= 64.0D * Entity.getViewScale();

@@ -52,7 +52,8 @@ public final class SizeSync {
     private static Payloads.ServerSettings settings() {
         GulliverConfig.General g = GulliverConfig.INSTANCE.general;
         return new Payloads.ServerSettings(g.enableDyeResizing, (float) g.minEntitySize, (float) g.maxEntitySize,
-                (float) g.soundVolumeScaling, g.tinyWings, (float) g.wingsMaxSize, (float) g.wingStamina);
+                (float) g.soundVolumeScaling, g.tinyWings, (float) g.wingsMaxSize, (float) g.wingStamina,
+                g.smallBlockCollision);
     }
 
     /** On join: before any entity size, so the client knows its bounds first. */

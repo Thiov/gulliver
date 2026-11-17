@@ -25,6 +25,13 @@ public final class SyncedSettings {
     private static volatile float wingsMaxSize = 0.3F;
     private static volatile float wingStamina = 1.0F;
 
+    /** Whether small blocks are solid for tinies (off where the server doesn't say so). */
+    private static volatile boolean smallBlockCollision = false;
+
+    public static boolean smallBlockCollision() {
+        return smallBlockCollision;
+    }
+
     public static boolean tinyWings() {
         return tinyWings;
     }
@@ -62,7 +69,8 @@ public final class SyncedSettings {
 
     /** Client thread: the server's settings arrived. */
     public static void apply(boolean dye, float min, float max, float volumeScaling,
-                             boolean wings, float wingsMax, float stamina) {
+                             boolean wings, float wingsMax, float stamina, boolean smallBlocks) {
+        smallBlockCollision = smallBlocks;
         tinyWings = wings;
         wingsMaxSize = wingsMax > 0.0F ? wingsMax : 0.3F;
         wingStamina = stamina > 0.0F && !Float.isInfinite(stamina) ? stamina : 1.0F;

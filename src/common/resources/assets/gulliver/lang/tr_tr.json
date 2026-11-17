@@ -163,5 +163,7 @@
   "subtitles.gulliver.wings.flutter": "Kanatlar çırpınıyor",
   "subtitles.gulliver.wings.sprout": "Kanatlar açılıyor",
   "advancements.gulliver.metamorphosis.title": "Başkalaşım",
-  "advancements.gulliver.metamorphosis.description": "Minikken kanat çıkar"
+  "advancements.gulliver.metamorphosis.description": "Minikken kanat çıkar",
+  "gulliver.config.smallBlockCollision": "Katı Küçük Bloklar",
+  "gulliver.config.smallBlockCollision.tooltip": "Düğmeler, şalterler, baskı plakaları ve tabelalar minikler için katıdır; üzerlerinde durup tırmanabilirler. Geri yaylanan bir baskı plakası miniği havaya fırlatır."
 }

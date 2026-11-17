@@ -163,5 +163,7 @@
   "subtitles.gulliver.wings.flutter": "Ali sbattono",
   "subtitles.gulliver.wings.sprout": "Ali si dispiegano",
   "advancements.gulliver.metamorphosis.title": "Metamorfosi",
-  "advancements.gulliver.metamorphosis.description": "Fatti crescere le ali da minuscolo"
+  "advancements.gulliver.metamorphosis.description": "Fatti crescere le ali da minuscolo",
+  "gulliver.config.smallBlockCollision": "Blocchi piccoli solidi",
+  "gulliver.config.smallBlockCollision.tooltip": "Pulsanti, leve, piastre a pressione e cartelli sono solidi per i minuscoli, che ci salgono sopra e li scalano. Una piastra a pressione che torna su lancia un minuscolo in aria."
 }

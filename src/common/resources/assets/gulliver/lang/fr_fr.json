@@ -163,5 +163,7 @@
   "subtitles.gulliver.wings.flutter": "Des ailes battent",
   "subtitles.gulliver.wings.sprout": "Des ailes se déploient",
   "advancements.gulliver.metamorphosis.title": "Métamorphose",
-  "advancements.gulliver.metamorphosis.description": "Fais-toi pousser des ailes en étant minuscule"
+  "advancements.gulliver.metamorphosis.description": "Fais-toi pousser des ailes en étant minuscule",
+  "gulliver.config.smallBlockCollision": "Petits blocs solides",
+  "gulliver.config.smallBlockCollision.tooltip": "Les boutons, leviers, plaques de pression et panneaux sont solides pour les minuscules, qui montent dessus et les escaladent. Une plaque de pression qui remonte projette un minuscule dans les airs."
 }

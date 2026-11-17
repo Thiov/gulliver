@@ -163,5 +163,7 @@
   "subtitles.gulliver.wings.flutter": "날개가 파닥임",
   "subtitles.gulliver.wings.sprout": "날개가 펼쳐짐",
   "advancements.gulliver.metamorphosis.title": "탈바꿈",
-  "advancements.gulliver.metamorphosis.description": "작은 몸으로 날개 기르기"
+  "advancements.gulliver.metamorphosis.description": "작은 몸으로 날개 기르기",
+  "gulliver.config.smallBlockCollision": "단단한 작은 블록",
+  "gulliver.config.smallBlockCollision.tooltip": "버튼, 레버, 압력판, 표지판이 작은 몸에게 단단해져 그 위에 서거나 기어오를 수 있습니다. 압력판이 다시 올라오면 위에 있던 작은 몸이 공중으로 튕겨 나갑니다."
 }

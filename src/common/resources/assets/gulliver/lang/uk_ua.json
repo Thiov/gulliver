@@ -163,5 +163,7 @@
   "subtitles.gulliver.wings.flutter": "Тріпочуть крила",
   "subtitles.gulliver.wings.sprout": "Розкриваються крила",
   "advancements.gulliver.metamorphosis.title": "Метаморфоза",
-  "advancements.gulliver.metamorphosis.description": "Виростіть крила, будучи крихіткою"
+  "advancements.gulliver.metamorphosis.description": "Виростіть крила, будучи крихіткою",
+  "gulliver.config.smallBlockCollision": "Тверді дрібні блоки",
+  "gulliver.config.smallBlockCollision.tooltip": "Кнопки, важелі, натискні плити й таблички стають твердими для крихіток: на них можна стояти й вилазити. Натискна плита, повертаючись угору, підкидає крихітку в повітря."
 }

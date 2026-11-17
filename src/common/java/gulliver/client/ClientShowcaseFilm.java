@@ -21,24 +21,29 @@ import java.util.function.Consumer;
 import java.util.function.IntConsumer;
 
 /**
- * A scripted tour for filming: tiny creatures staying in view (#26),
- * items restricted by size (#30) and tiny wings, from the metamorphosis to
- * flying with each kind. Run the self-test client with a file named
- * "gulliver-showcase-wings" in the run folder; it plays the scenes (logging
- * "SCENE" lines with their times, for cutting the film) and quits. Keys are
+ * Scripted tours for filming. Run the self-test client with one of these
+ * files in the run folder; it plays the scenes (logging "SCENE" lines with
+ * their times, for cutting the film) and quits:
+ *  - "gulliver-showcase-wings": tiny creatures staying in view (#26), items
+ *    restricted by size (#30) and tiny wings, from the metamorphosis to
+ *    flying with each kind;
+ *  - "gulliver-showcase-blocks": small blocks solid for tinies (#19):
+ *    walking over buttons and plates, standing on a lever and a sign on a
+ *    wall, and pressure plates springing tinies into the air. Keys are
  * pressed by setting their key mappings, as the keyboard would, and a
  * smoothed film camera (a client-side marker the view is taken from) follows
  * or circles the player. With a "gulliver-showcase-slow" file as well the
  * game runs at a quarter speed (/tick rate 5), for a slow renderer to film
  * smoothly; speeding the film up four times gives the real pace.
  */
-public final class ClientShowcaseWings {
-    private ClientShowcaseWings() {}
+public final class ClientShowcaseFilm {
+    private ClientShowcaseFilm() {}
 
     /** Draws tiny creatures with vanilla's distance rule, for the "before" shot of #26. */
     public static boolean vanillaCulling;
 
     private static Boolean enabled;
+    private static boolean blocksTour;
     private static int t;
     private static final List<Step> STEPS = new ArrayList<>();
     private static int end;
@@ -47,7 +52,8 @@ public final class ClientShowcaseWings {
 
     public static boolean active(Minecraft mc) {
         if (enabled == null) {
-            enabled = java.nio.file.Files.exists(mc.gameDirectory.toPath().resolve("gulliver-showcase-wings"));
+            blocksTour = java.nio.file.Files.exists(mc.gameDirectory.toPath().resolve("gulliver-showcase-blocks"));
+            enabled = blocksTour || java.nio.file.Files.exists(mc.gameDirectory.toPath().resolve("gulliver-showcase-wings"));
         }
         return enabled;
     }
@@ -127,6 +133,12 @@ public final class ClientShowcaseWings {
             });
             cmd(mc, "kill @e[type=item]");
         });
+
+        if (blocksTour) {
+            // Later than the wings tour: the server is still busy with its own self-test early on.
+            blocks(mc, 200);
+            return;
+        }
 
         // ---- #26: tiny creatures stay in view -------------------------------------------
         int s1 = 90;
@@ -344,6 +356,132 @@ public final class ClientShowcaseWings {
         at(s7 + 420, () -> mark("end"));
     }
 
+    // ---- #19: small blocks are solid for tinies -------------------------------------------
+
+    private static void blocks(Minecraft mc, int s) {
+        LocalPlayer p = mc.player;
+        // A little course on the runway in front of the arena's centre (the player faces +Z).
+        at(s, () -> {
+            mark("small-blocks");
+            applyConfig(mc);
+            size(mc, 0.25F);
+            tpBlock(mc, 0.5D, 0.0D, 0.5D);
+            look(p, 0.0F, 15.0F);
+            p.yBodyRot = p.yBodyRotO = 0.0F;
+            set(mc, 0, 0, 2, "stone_button[face=floor,facing=north]");
+            set(mc, 0, 0, 3, "oak_pressure_plate");
+            set(mc, 0, 0, 4, "lever[face=floor,facing=north]");
+            set(mc, 0, 0, 5, "stone_pressure_plate");
+            set(mc, 0, 0, 6, "oak_sign[rotation=8]");
+            onServer(mc, sp -> {
+                int bx = Mth.floor(arena.x), by = Mth.floor(arena.y), bz = Mth.floor(arena.z);
+                SelfTest.runCommand((ServerLevel) sp.level(), String.format(Locale.ROOT,
+                        "fill %d %d %d %d %d %d minecraft:stone_bricks", bx - 3, by, bz + 9, bx + 3, by + 2, bz + 9));
+            });
+            set(mc, -1, 1, 8, "lever[face=wall,facing=north]");
+            set(mc, 1, 1, 8, "oak_wall_sign[facing=north]");
+            set(mc, 0, 2, 8, "stone_button[face=wall,facing=north]");
+            camOn(mc, 70.0F, 3.2F, 0.9F, 0.45F);
+            title(mc, "#19", "Buttons, levers, plates and signs are solid for tinies");
+        });
+        at(s + 50, () -> sub(mc, "Walking over a button, a plate and a lever - not through them"));
+        during(s + 60, s + 300, i -> {
+            key(mc.options.keyUp, true);
+            key(mc.options.keyJump, i % 14 < 3);
+        });
+        at(s + 301, () -> {
+            key(mc.options.keyUp, false);
+            key(mc.options.keyJump, false);
+            sub(mc, "...and the sign post is in the way");
+        });
+
+        // Ledges: a lever and a sign on a wall (their tops: 13/16 and 12.5/16 up the block).
+        int l = s + 360;
+        at(l, () -> {
+            size(mc, 0.125F);
+            sub(mc, "A lever on a wall is a ledge to stand on");
+            tpBlock(mc, -0.5D, 1.0D + 13.0D / 16.0D + 0.01D, 8.0D + 13.0D / 16.0D);
+            look(p, 180.0F, 20.0F);
+            p.yBodyRot = p.yBodyRotO = 180.0F;
+            camOn(mc, 150.0F, 4.0F, 0.6F, 0.4F);
+        });
+        at(l + 100, () -> {
+            sub(mc, "...so is a sign");
+            tpBlock(mc, 1.5D, 1.0D + 12.5D / 16.0D + 0.01D, 8.0D + 15.0D / 16.0D);
+            look(p, 180.0F, 20.0F);
+            p.yBodyRot = p.yBodyRotO = 180.0F;
+        });
+        during(l + 140, l + 180, i -> camYaw = 150.0F + i * 1.0F);
+
+        // Pressure plates are springs.
+        int f = l + 220;
+        at(f, () -> {
+            mark("plate-spring");
+            size(mc, 0.25F);
+            title(mc, "Pressure plates", "Too light to press one - but it springs you up when it comes back");
+            tpBlock(mc, 0.76D, 0.07D, 5.76D);
+            look(p, 0.0F, 10.0F);
+            p.yBodyRot = p.yBodyRotO = 0.0F;
+            summonPresser(mc, "chicken", 5);
+            camAt(mc, 2.6D, 0.55D, 5.4D);
+        });
+        at(f + 40, () -> sub(mc, "A chicken presses the stone plate, the tiny sinks with it..."));
+        at(f + 80, () -> {
+            sub(mc, "...the chicken leaves, the plate pops back up: stone throws hard");
+            cmd(mc, "tp @e[tag=gv_press] ~ -100 ~");
+        });
+        at(f + 85, () -> cmd(mc, "kill @e[tag=gv_press]"));
+        // Wood: an apple on the oak plate.
+        int w = f + 220;
+        at(w, () -> {
+            tpBlock(mc, 0.76D, 0.07D, 3.76D);
+            look(p, 0.0F, 10.0F);
+            p.yBodyRot = p.yBodyRotO = 0.0F;
+            summonPresser(mc, "item", 3);
+            camAt(mc, 2.6D, 0.55D, 3.4D);
+            sub(mc, "An apple on a wooden plate: wood springs back gentler");
+        });
+        at(w + 70, () -> cmd(mc, "kill @e[tag=gv_press]"));
+        at(w + 200, () -> {
+            title(mc, "Gulliver Unbound", "Solid small blocks");
+            mark("end");
+        });
+        at(w + 260, () -> camOff(mc));
+    }
+
+    // The course is placed from the arena's centre block, read on the server thread in turn with
+    // the setup that records it (the server may run behind the client's script).
+
+    /** A block of the course, by its offset from the arena's centre block. */
+    private static void set(Minecraft mc, int dx, int dy, int dz, String block) {
+        onServer(mc, sp -> SelfTest.runCommand((ServerLevel) sp.level(), String.format(Locale.ROOT,
+                "setblock %d %d %d minecraft:%s",
+                Mth.floor(arena.x) + dx, Mth.floor(arena.y) + dy, Mth.floor(arena.z) + dz, block)));
+    }
+
+    /** Teleports the player to a spot given from the arena's centre block corner. */
+    private static void tpBlock(Minecraft mc, double dx, double dy, double dz) {
+        onServer(mc, sp -> sp.teleportTo(Mth.floor(arena.x) + dx, Mth.floor(arena.y) + dy, Mth.floor(arena.z) + dz));
+    }
+
+    /** Something heavy enough on the far corner of the plate dz blocks ahead: a chicken, or an apple (wood only). */
+    private static void summonPresser(Minecraft mc, String what, int dz) {
+        // Dropped in, so it lands on the plate and presses it (a plate notices what moves into it).
+        String nbt = what.equals("item")
+                ? "{Item:{id:\"minecraft:apple\",count:1},PickupDelay:32767,Motion:[0.0d,-0.1d,0.0d],Tags:[\"gv_press\"]}"
+                : "{Silent:1b,Tags:[\"gv_press\"],attributes:[{id:\"minecraft:movement_speed\",base:0.0d}]}";
+        // Both drop onto the plate: a plate only notices what moves into it (so no NoAI mob, which never moves;
+        // this chicken just can't walk off).
+        double up = 0.3D;
+        onServer(mc, sp -> SelfTest.runCommand((ServerLevel) sp.level(), String.format(Locale.ROOT,
+                "summon %s %.3f %.3f %.3f %s", what, Mth.floor(arena.x) + 0.27D, Mth.floor(arena.y) + up,
+                Mth.floor(arena.z) + dz + 0.27D, nbt)));
+    }
+
+    private static void onServer(Consumer<ServerPlayer> action, Minecraft mc) {
+        onServer(mc, action);
+    }
+
     // ---- film camera ------------------------------------------------------------------
 
     private static boolean filming;
@@ -356,6 +494,8 @@ public final class ClientShowcaseWings {
     private static float camAim = 0.6F;
     private static float camHeading;
     private static Vec3 camPos, camPosO;
+    /** Where a standing camera stands, or null for one that follows. */
+    private static Vec3 camAnchor;
     private static float camYawNow, camYawO, camPitchNow, camPitchO;
 
     /** Whether the film camera is on (the stamina bar stays out of the shot). */
@@ -382,6 +522,7 @@ public final class ClientShowcaseWings {
         camHeight = height;
         camAim = aim;
         camFollowsYaw = false;
+        camAnchor = null;
         start(mc);
     }
 
@@ -407,8 +548,17 @@ public final class ClientShowcaseWings {
         mc.options.setCameraType(CameraType.THIRD_PERSON_BACK);
     }
 
+    /** A camera standing still (offset from the arena's centre block corner), only turning to follow the player. */
+    private static void camAt(Minecraft mc, double dx, double dy, double dz) {
+        camAnchor = new Vec3(dx, dy, dz);
+        camAim = 0.5F;
+        start(mc);
+        camPos = camPosO = null;
+    }
+
     private static void camOff(Minecraft mc) {
         filming = false;
+        camAnchor = null;
         camPos = camPosO = null;
         mc.options.setCameraType(CameraType.FIRST_PERSON);
     }
@@ -429,7 +579,8 @@ public final class ClientShowcaseWings {
     private static void film(Minecraft mc) {
         LocalPlayer p = mc.player;
         if (!filming || p == null) return;
-        Vec3 want = target(p);
+        Vec3 want = camAnchor != null
+                ? camAnchor.add(Mth.floor(arena.x), Mth.floor(arena.y), Mth.floor(arena.z)) : target(p);
         camPosO = camPos == null ? want : camPos;
         Vec3 next = camPos == null ? want : camPos.add(want.subtract(camPos).scale(0.22D));
         camPos = next;
@@ -448,7 +599,7 @@ public final class ClientShowcaseWings {
 
     // ---- scene helpers ----------------------------------------------------------------
 
-    private static Vec3 arena = Vec3.ZERO;
+    private static volatile Vec3 arena = Vec3.ZERO;
 
     /** Default settings plus the tour's own, live but never written to the config file. */
     private static void applyConfig(Minecraft mc) {

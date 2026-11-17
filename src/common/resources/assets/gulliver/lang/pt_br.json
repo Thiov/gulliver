@@ -163,5 +163,7 @@
   "subtitles.gulliver.wings.flutter": "Asas batem",
   "subtitles.gulliver.wings.sprout": "Asas se abrem",
   "advancements.gulliver.metamorphosis.title": "Metamorfose",
-  "advancements.gulliver.metamorphosis.description": "Crie asas enquanto minúsculo"
+  "advancements.gulliver.metamorphosis.description": "Crie asas enquanto minúsculo",
+  "gulliver.config.smallBlockCollision": "Blocos pequenos sólidos",
+  "gulliver.config.smallBlockCollision.tooltip": "Botões, alavancas, placas de pressão e placas são sólidos para os minúsculos, que podem ficar em cima e escalá-los. Uma placa de pressão que volta a subir arremessa o minúsculo no ar."
 }

@@ -21,7 +21,7 @@ public final class ClientPacketHandlers {
             onEntitySize(p);
         } else if (payload instanceof Payloads.ServerSettings p) {
             SyncedSettings.apply(p.dyeResizing(), p.minSize(), p.maxSize(), p.soundVolumeScaling(),
-                    p.tinyWings(), p.wingsMaxSize(), p.wingStamina());
+                    p.tinyWings(), p.wingsMaxSize(), p.wingStamina(), p.smallBlocks());
         } else if (payload instanceof Payloads.Wings p) {
             WingAnim.onWings(p);
         } else if (payload instanceof Payloads.GroundShock p) {

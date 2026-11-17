@@ -163,5 +163,7 @@
   "subtitles.gulliver.wings.flutter": "Flügel flattern",
   "subtitles.gulliver.wings.sprout": "Flügel entfalten sich",
   "advancements.gulliver.metamorphosis.title": "Metamorphose",
-  "advancements.gulliver.metamorphosis.description": "Lass dir als Winzling Flügel wachsen"
+  "advancements.gulliver.metamorphosis.description": "Lass dir als Winzling Flügel wachsen",
+  "gulliver.config.smallBlockCollision": "Feste kleine Blöcke",
+  "gulliver.config.smallBlockCollision.tooltip": "Knöpfe, Hebel, Druckplatten und Schilder sind für Winzlinge fest: Sie stehen darauf und klettern daran hoch. Eine zurückspringende Druckplatte schleudert einen Winzling in die Luft."
 }
