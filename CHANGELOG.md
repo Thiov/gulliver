@@ -1,11 +1,10 @@
 # Changelog
 
-## Unreleased
+## 1.5.0
 
 ### New
 
 - **Items restricted by size** (#30): modpacks and servers can stop players using items at some sizes, in `itemRestrictions.rules` in the config. Each rule names items (ids, a whole mod as `"tacz:*"`, patterns like `"*_sword"`, or item tags as `"#minecraft:swords"`) and a size range; a `"deny"` rule restricts them inside the range, an `"allow"` rule outside it (so `{"items": ["tacz:*"], "mode": "allow", "minSize": 0.75, "maxSize": 1.5}` keeps guns for normal-size players only). A restricted item is caught when held, worn or used (`checkHeld`, `checkWorn`, `checkUsed`) and then falls out of your hands (`"drop"`, classic), shatters like a worn-out tool (`"break"`, modern) or only refuses to work (`"deny"`; worn armor goes back into the inventory). `penalty` sets it for all rules and a rule can set its own. The action bar says "This item is restricted at your size" (`showMessage`). Creative and spectator players are exempt (`exemptCreative`).
-
 - **Small blocks are solid for tinies** (#19): buttons, levers, pressure plates and signs, which normal bodies walk through, are solid for a tiny (below 0.3) shaped as they are drawn. A tiny steps up onto a floor button or plate, is stopped by a sign post, and can stand on a lever or sign on a wall as a ledge; a button pressed by someone else sinks under its feet. Pressure plates are springs: a tiny is too light to press one, but standing on one when something heavier presses it and lets go throws it into the air, hardest from stone and iron, gentlest from wood, and higher the smaller it is. Can be turned off (`general.smallBlockCollision`, also in the settings screen); the server decides and clients follow it.
 
 ### Fixed
