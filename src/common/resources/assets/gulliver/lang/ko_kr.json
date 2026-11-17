@@ -148,5 +148,20 @@
   "advancements.gulliver.watch_your_step.title": "발밑 조심",
   "advancements.gulliver.watch_your_step.description": "자신보다 훨씬 작은 생물을 짓밟습니다",
   "advancements.gulliver.fee_fi_fo_fum.title": "사람 냄새가 난다!",
-  "advancements.gulliver.fee_fi_fo_fum.description": "거인이 되어 손에 든 생명체를 먹으세요"
+  "advancements.gulliver.fee_fi_fo_fum.description": "거인이 되어 손에 든 생명체를 먹으세요",
+  "gulliver.restricted": "이 아이템은 지금 크기에서 사용할 수 없습니다",
+  "gulliver.wings.tooBig": "작은 몸만 날개를 기를 수 있습니다",
+  "gulliver.wings.already": "이미 이 날개를 가지고 있습니다",
+  "gulliver.tooltip.wings.fly": "웅크리기 + 우클릭: 파리 날개 기르기",
+  "gulliver.tooltip.wings.bee": "웅크리기 + 우클릭: 벌 날개 기르기",
+  "gulliver.tooltip.wings.butterfly": "웅크리기 + 우클릭: 나비 날개 기르기",
+  "gulliver.tooltip.wings.fairy": "웅크리기 + 우클릭: 요정 날개 기르기",
+  "gulliver.config.tinyWings": "작은 날개",
+  "gulliver.config.tinyWings.tooltip": "작은 몸은 팬텀 막(파리), 벌집 조각(벌), 꽃(나비), 자수정 조각(요정)을 먹으면 날개가 자랍니다. 공중에서 점프하면 날 수 있습니다.",
+  "subtitles.gulliver.wings.buzz": "날개가 윙윙거림",
+  "subtitles.gulliver.wings.shimmer": "요정 날개가 반짝임",
+  "subtitles.gulliver.wings.flutter": "날개가 파닥임",
+  "subtitles.gulliver.wings.sprout": "날개가 펼쳐짐",
+  "advancements.gulliver.metamorphosis.title": "탈바꿈",
+  "advancements.gulliver.metamorphosis.description": "작은 몸으로 날개 기르기"
 }

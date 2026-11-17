@@ -36,6 +36,11 @@ public final class SizeTooltips {
         LocalPlayer player = Minecraft.getInstance().player;
         if (player == null) return null;
         IResizeableEntity sized = (IResizeableEntity) player;
+        if (gulliver.common.SyncedSettings.tinyWings()
+                && sized.getSizeMultiplier() <= gulliver.common.SyncedSettings.wingsMaxSize() + 1.0E-4F) {
+            gulliver.common.WingType wings = gulliver.common.WingType.fromCatalyst(stack);
+            if (wings != gulliver.common.WingType.NONE) return "gulliver.tooltip.wings." + wings.key;
+        }
         if (!sized.isTiny()) return null;
         if (stack.is(Items.PAPER)) return "gulliver.tooltip.glide";
         if (stack.is(Items.LILY_PAD)) return "gulliver.tooltip.raft";

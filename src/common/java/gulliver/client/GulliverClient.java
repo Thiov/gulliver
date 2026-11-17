@@ -19,6 +19,7 @@ public final class GulliverClient {
         VisualSize.tick(mc);
         ParticleScale.reset();
         BreathFx.tick(mc);
+        WingAnim.tick(mc);
         TremorHandler.tick(mc);
         ClientSelfTest.tick(mc);
     }

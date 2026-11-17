@@ -148,5 +148,20 @@
   "advancements.gulliver.watch_your_step.title": "Kijk uit waar je loopt",
   "advancements.gulliver.watch_your_step.description": "Vertrap een wezen dat veel kleiner is dan jij",
   "advancements.gulliver.fee_fi_fo_fum.title": "Ik ruik mensenvlees!",
-  "advancements.gulliver.fee_fi_fo_fum.description": "Eet als reus een wezen dat je in je hand hebt"
+  "advancements.gulliver.fee_fi_fo_fum.description": "Eet als reus een wezen dat je in je hand hebt",
+  "gulliver.restricted": "Dit voorwerp is verboden op jouw grootte",
+  "gulliver.wings.tooBig": "Alleen kleintjes kunnen vleugels krijgen",
+  "gulliver.wings.already": "Deze vleugels heb je al",
+  "gulliver.tooltip.wings.fly": "Sluipen + rechtsklik: vliegenvleugels laten groeien",
+  "gulliver.tooltip.wings.bee": "Sluipen + rechtsklik: bijenvleugels laten groeien",
+  "gulliver.tooltip.wings.butterfly": "Sluipen + rechtsklik: vlindervleugels laten groeien",
+  "gulliver.tooltip.wings.fairy": "Sluipen + rechtsklik: feeënvleugels laten groeien",
+  "gulliver.config.tinyWings": "Kleine vleugels",
+  "gulliver.config.tinyWings.tooltip": "Kleintjes krijgen vleugels door een fantoomvlies (vlieg), honingraat (bij), bloem (vlinder) of amethistscherf (fee) te eten. Spring in de lucht om te vliegen.",
+  "subtitles.gulliver.wings.buzz": "Vleugels zoemen",
+  "subtitles.gulliver.wings.shimmer": "Feeënvleugels glinsteren",
+  "subtitles.gulliver.wings.flutter": "Vleugels fladderen",
+  "subtitles.gulliver.wings.sprout": "Vleugels ontvouwen zich",
+  "advancements.gulliver.metamorphosis.title": "Metamorfose",
+  "advancements.gulliver.metamorphosis.description": "Krijg vleugels terwijl je klein bent"
 }

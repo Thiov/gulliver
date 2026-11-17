@@ -148,5 +148,20 @@
   "advancements.gulliver.watch_your_step.title": "足元注意",
   "advancements.gulliver.watch_your_step.description": "自分よりはるかに小さい生き物を踏みつぶす",
   "advancements.gulliver.fee_fi_fo_fum.title": "人間の匂いがするぞ！",
-  "advancements.gulliver.fee_fi_fo_fum.description": "巨人になって、手に持った生き物を食べる"
+  "advancements.gulliver.fee_fi_fo_fum.description": "巨人になって、手に持った生き物を食べる",
+  "gulliver.restricted": "このアイテムは今のサイズでは使えません",
+  "gulliver.wings.tooBig": "羽が生えるのは小人だけです",
+  "gulliver.wings.already": "この羽はもう生えています",
+  "gulliver.tooltip.wings.fly": "スニーク + 右クリック：ハエの羽が生える",
+  "gulliver.tooltip.wings.bee": "スニーク + 右クリック：ハチの羽が生える",
+  "gulliver.tooltip.wings.butterfly": "スニーク + 右クリック：チョウの羽が生える",
+  "gulliver.tooltip.wings.fairy": "スニーク + 右クリック：妖精の羽が生える",
+  "gulliver.config.tinyWings": "小さな羽",
+  "gulliver.config.tinyWings.tooltip": "小人はファントムの皮膜（ハエ）、ハニカム（ハチ）、花（チョウ）、アメジストの欠片（妖精）を食べると羽が生えます。空中でジャンプすると飛べます。",
+  "subtitles.gulliver.wings.buzz": "羽音",
+  "subtitles.gulliver.wings.shimmer": "妖精の羽がきらめく",
+  "subtitles.gulliver.wings.flutter": "羽ばたき",
+  "subtitles.gulliver.wings.sprout": "羽が広がる",
+  "advancements.gulliver.metamorphosis.title": "変態",
+  "advancements.gulliver.metamorphosis.description": "小人のときに羽を生やす"
 }

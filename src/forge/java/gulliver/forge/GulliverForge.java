@@ -47,9 +47,9 @@ public final class GulliverForge {
             return cancel(e, CommonEvents.onUseItem(e.getEntity(), e.getLevel(), e.getHand()));
         });
         // Last, and not for cancelled attacks: a claim mod that vetoes the attack also stops the giant's splash.
+        // Returning true cancels the attack (an item restricted at the player's size).
         AttackEntityEvent.BUS.addListener(Priority.LOWEST, e -> {
-            CommonEvents.onAttackEntity(e.getEntity(), e.getEntity().level(), e.getTarget());
-            return false;
+            return CommonEvents.onAttackEntity(e.getEntity(), e.getEntity().level(), e.getTarget());
         });
         PlayerEvent.Clone.BUS.addListener(e -> {
             if (e.getOriginal() instanceof ServerPlayer oldP && e.getEntity() instanceof ServerPlayer newP) {

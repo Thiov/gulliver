@@ -1,5 +1,21 @@
 # Changelog
 
+## Unreleased
+
+### New
+
+- **Tiny wings**: a tiny can grow wings. Sneak + right-click the air while at or below size 0.3 to eat a **phantom membrane** (fly wings), **honeycomb** (bee wings), any **flower** (butterfly wings in the flower's colour: a cornflower gives a blue morpho, an orange tulip a monarch) or an **amethyst shard** (glowing fairy wings). The metamorphosis takes three seconds: the wings push out of your back crumpled, unfold and give their first beats. They are yours for good (kept on death unless `general.keepWingsOnDeath` is off); eating another catalyst swaps them, and they only show and work while you are small enough.
+  - **Flying is not creative flight.** Jump, then jump again in the air: the wings open and you hover in place, bobbing gently on the beat. Fly the way you look with the movement keys, dart with sprint, hold jump to climb and sneak to drop. Your body leans into the flight and the wings beat faster when you climb or dart. Land on anything to fold them.
+  - **Each kind flies differently.** Flies are the fastest and nimblest and hover dead still, their wings a blurred buzz. Bees climb best and last longest. Butterflies are slow and graceful, flap visibly and glide between flaps for free, and at rest open and close their wings now and then. Fairies leave a trail of sparkles and their wings glow in the dark.
+  - **Stamina**: flapping tires the wings (climbing and darting most, hovering least, gliding hardly at all); a slim bar under the crosshair, in the wings' colour, shows what is left and refills on the ground. Spent wings can only hold themselves open: you glide down slowly and safely and must land before flying again. Rain soaks them the same way and water ends the flight. Flying also makes you a little hungry, and never hurts when you land.
+  - Their own sounds: a buzz for flies, bees and fairies (with a shimmer of chimes), a soft flutter on every butterfly wingbeat, and the crinkle of wings unfolding. Other players see and hear all of it.
+  - Settings: `general.tinyWings` (also in the settings screen), `general.wingsMaxSize` (default 0.3), `general.wingStamina` (1 to 10x), `general.keepWingsOnDeath`. Operators can give and take wings with `/gulliver wings <players> <fly|bee|butterfly|fairy|none> [colour]`. Advancement: Metamorphosis.
+- **Items restricted by size** (#30): modpacks and servers can stop players using items at some sizes, in `itemRestrictions.rules` in the config. Each rule names items (ids, a whole mod as `"tacz:*"`, patterns like `"*_sword"`, or item tags as `"#minecraft:swords"`) and a size range; a `"deny"` rule restricts them inside the range, an `"allow"` rule outside it (so `{"items": ["tacz:*"], "mode": "allow", "minSize": 0.75, "maxSize": 1.5}` keeps guns for normal-size players only). A restricted item is caught when held, worn or used (`checkHeld`, `checkWorn`, `checkUsed`) and then falls out of your hands (`"drop"`, classic), shatters like a worn-out tool (`"break"`, modern) or only refuses to work (`"deny"`; worn armor goes back into the inventory). `penalty` sets it for all rules and a rule can set its own. The action bar says "This item is restricted at your size" (`showMessage`). Creative and spectator players are exempt (`exemptCreative`).
+
+### Fixed
+
+- **Tiny creatures vanished a few blocks away** (#26): vanilla stops drawing an entity at 64 times its hitbox size, so a 1/4-size player disappeared at 16 blocks, a 1/8-size one at 8 and a 1/8-size chicken at 4. Anything smaller than normal is now drawn as far away as it would be at size 1.
+
 ## 1.4.1
 
 ### New

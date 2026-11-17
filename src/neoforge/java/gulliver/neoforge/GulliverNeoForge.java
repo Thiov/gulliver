@@ -55,8 +55,9 @@ public final class GulliverNeoForge {
         bus.addListener((PlayerInteractEvent.RightClickItem e) ->
                 apply(e, CommonEvents.onUseItem(e.getEntity(), e.getLevel(), e.getHand())));
         // Last, and not for cancelled attacks: a claim mod that vetoes the attack also stops the giant's splash.
-        bus.addListener(EventPriority.LOWEST, (AttackEntityEvent e) ->
-                CommonEvents.onAttackEntity(e.getEntity(), e.getEntity().level(), e.getTarget()));
+        bus.addListener(EventPriority.LOWEST, (AttackEntityEvent e) -> {
+            if (CommonEvents.onAttackEntity(e.getEntity(), e.getEntity().level(), e.getTarget())) e.setCanceled(true);
+        });
         bus.addListener((PlayerEvent.Clone e) -> {
             if (e.getOriginal() instanceof ServerPlayer oldP && e.getEntity() instanceof ServerPlayer newP) {
                 CommonEvents.onPlayerClone(oldP, newP, !e.isWasDeath());

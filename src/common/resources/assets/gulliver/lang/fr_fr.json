@@ -148,5 +148,20 @@
   "advancements.gulliver.watch_your_step.title": "Attention où vous marchez",
   "advancements.gulliver.watch_your_step.description": "Piétinez une créature bien plus petite que vous",
   "advancements.gulliver.fee_fi_fo_fum.title": "Je sens la chair fraîche !",
-  "advancements.gulliver.fee_fi_fo_fum.description": "En géant, mangez une créature que vous tenez en main"
+  "advancements.gulliver.fee_fi_fo_fum.description": "En géant, mangez une créature que vous tenez en main",
+  "gulliver.restricted": "Cet objet est interdit à ta taille",
+  "gulliver.wings.tooBig": "Seuls les minuscules peuvent se faire pousser des ailes",
+  "gulliver.wings.already": "Tu as déjà ces ailes",
+  "gulliver.tooltip.wings.fly": "S'accroupir + clic droit : faire pousser des ailes de mouche",
+  "gulliver.tooltip.wings.bee": "S'accroupir + clic droit : faire pousser des ailes d'abeille",
+  "gulliver.tooltip.wings.butterfly": "S'accroupir + clic droit : faire pousser des ailes de papillon",
+  "gulliver.tooltip.wings.fairy": "S'accroupir + clic droit : faire pousser des ailes de fée",
+  "gulliver.config.tinyWings": "Ailes minuscules",
+  "gulliver.config.tinyWings.tooltip": "Les minuscules se font pousser des ailes en mangeant une membrane de phantom (mouche), un rayon de miel (abeille), une fleur (papillon) ou un éclat d'améthyste (fée). Saute en l'air pour voler.",
+  "subtitles.gulliver.wings.buzz": "Des ailes bourdonnent",
+  "subtitles.gulliver.wings.shimmer": "Des ailes de fée scintillent",
+  "subtitles.gulliver.wings.flutter": "Des ailes battent",
+  "subtitles.gulliver.wings.sprout": "Des ailes se déploient",
+  "advancements.gulliver.metamorphosis.title": "Métamorphose",
+  "advancements.gulliver.metamorphosis.description": "Fais-toi pousser des ailes en étant minuscule"
 }

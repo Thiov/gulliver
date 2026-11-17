@@ -39,10 +39,18 @@ public abstract class MixinLivingEntitySaveSize {
         out.putFloat("gulliver.sizePotion", gulliver$currentPotion());
         out.putFloat("gulliver.sizeItem", i.gulliver$getSizeItemMultiplier());
         out.putBoolean("gulliver.sizeInit", i.gulliver$isSizeInitialized());
+        if (this instanceof gulliver.access.IGulliverWings w && w.gulliver$wingType() != gulliver.common.WingType.NONE) {
+            out.putString("gulliver.wings", w.gulliver$wingType().key);
+            out.putInt("gulliver.wingColor", w.gulliver$wingColor());
+        }
     }
 
     @Inject(method = "readAdditionalSaveData(Lnet/minecraft/world/level/storage/ValueInput;)V", at = @At("RETURN"))
     private void gulliver$loadSize(ValueInput in, CallbackInfo ci) {
+        if (this instanceof gulliver.access.IGulliverWings w) {
+            gulliver.common.WingType type = gulliver.common.WingType.byName(in.getStringOr("gulliver.wings", "none"));
+            w.gulliver$setWings(type == null ? gulliver.common.WingType.NONE : type, in.getIntOr("gulliver.wingColor", 0xFFFFFF));
+        }
         float base = in.getFloatOr("gulliver.sizeBase", Float.NaN);
         if (Float.isNaN(base)) return; // no Gulliver data: a fresh or vanilla-saved entity
         gulliver$apply(base, in.getFloatOr("gulliver.sizeBaseDest", base),
@@ -58,10 +66,19 @@ public abstract class MixinLivingEntitySaveSize {
     //$$     out.putFloat("gulliver.sizePotion", gulliver$currentPotion());
     //$$     out.putFloat("gulliver.sizeItem", i.gulliver$getSizeItemMultiplier());
     //$$     out.putBoolean("gulliver.sizeInit", i.gulliver$isSizeInitialized());
+    //$$     if (this instanceof gulliver.access.IGulliverWings w && w.gulliver$wingType() != gulliver.common.WingType.NONE) {
+    //$$         out.putString("gulliver.wings", w.gulliver$wingType().key);
+    //$$         out.putInt("gulliver.wingColor", w.gulliver$wingColor());
+    //$$     }
     //$$ }
     //$$
     //$$ @Inject(method = "readAdditionalSaveData(Lnet/minecraft/nbt/CompoundTag;)V", at = @At("RETURN"))
     //$$ private void gulliver$loadSize(CompoundTag in, CallbackInfo ci) {
+    //$$     if (this instanceof gulliver.access.IGulliverWings w && in.contains("gulliver.wings")) {
+    //$$         gulliver.common.WingType type = gulliver.common.WingType.byName(in.getString("gulliver.wings"));
+    //$$         w.gulliver$setWings(type == null ? gulliver.common.WingType.NONE : type,
+    //$$                 in.contains("gulliver.wingColor") ? in.getInt("gulliver.wingColor") : 0xFFFFFF);
+    //$$     }
     //$$     if (!in.contains("gulliver.sizeBase")) return;
     //$$     float base = in.getFloat("gulliver.sizeBase");
     //$$     gulliver$apply(base, in.contains("gulliver.sizeBaseDest") ? in.getFloat("gulliver.sizeBaseDest") : base,

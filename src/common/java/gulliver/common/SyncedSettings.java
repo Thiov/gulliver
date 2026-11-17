@@ -20,6 +20,22 @@ public final class SyncedSettings {
     private static volatile float maxSize = GulliverConfig.MAX_SIZE;
     /** Negative until a server has spoken: then the local config's value applies. */
     private static volatile float soundVolumeScaling = -1.0F;
+    /** Whether the server lets tinies grow and use wings (off on servers that don't know them). */
+    private static volatile boolean tinyWings = false;
+    private static volatile float wingsMaxSize = 0.3F;
+    private static volatile float wingStamina = 1.0F;
+
+    public static boolean tinyWings() {
+        return tinyWings;
+    }
+
+    public static float wingsMaxSize() {
+        return wingsMaxSize;
+    }
+
+    public static float wingStamina() {
+        return wingStamina;
+    }
 
     public static boolean dyeResizing() {
         return dyeResizing;
@@ -45,7 +61,11 @@ public final class SyncedSettings {
     }
 
     /** Client thread: the server's settings arrived. */
-    public static void apply(boolean dye, float min, float max, float volumeScaling) {
+    public static void apply(boolean dye, float min, float max, float volumeScaling,
+                             boolean wings, float wingsMax, float stamina) {
+        tinyWings = wings;
+        wingsMaxSize = wingsMax > 0.0F ? wingsMax : 0.3F;
+        wingStamina = stamina > 0.0F && !Float.isInfinite(stamina) ? stamina : 1.0F;
         if (!(volumeScaling >= 0.0F)) volumeScaling = 1.0F;
         soundVolumeScaling = Math.min(volumeScaling, (float) GulliverConfig.MAX_SOUND_SCALING);
         if (!(min >= GulliverConfig.MIN_SIZE)) min = GulliverConfig.MIN_SIZE;

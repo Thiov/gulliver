@@ -159,6 +159,7 @@ public class GulliverConfigScreen extends Screen {
         y += row;
         addRenderableWidget(toggle(left, y, "creeperExplosionScaling", g.creeperExplosionScaling,
                 v -> g.creeperExplosionScaling = v));
+        addRenderableWidget(toggle(right, y, "tinyWings", g.tinyWings, v -> g.tinyWings = v));
     }
 
     private void initSpawn(int left, int right, int y) {

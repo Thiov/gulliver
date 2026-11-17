@@ -53,10 +53,14 @@ public abstract class MixinServerGamePacketCarried {
         aboveGroundTickCount = 0;
     }
 
-    /** A "floating" verdict from before the pickup must not tick on while the player hangs in a hand. */
+    /**
+     * A "floating" verdict from before the pickup must not tick on while the
+     * player hangs in a hand, nor while a tiny hovers on its wings (TinyWings).
+     */
     @Inject(method = "tick", at = @At("HEAD"))
     private void gulliver$notFloatingWhileCarried(CallbackInfo ci) {
-        if (((IGulliverShoulderInternal) player).gulliver$getHoldingEntity() != null) {
+        if (((IGulliverShoulderInternal) player).gulliver$getHoldingEntity() != null
+                || gulliver.access.IGulliverWings.flying(((gulliver.access.IGulliverWings) player).gulliver$wingFlight())) {
             clientIsFloating = false;
             aboveGroundTickCount = 0;
         }

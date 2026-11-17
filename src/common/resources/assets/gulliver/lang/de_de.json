@@ -148,5 +148,20 @@
   "advancements.gulliver.watch_your_step.title": "Pass auf, wo du hintrittst",
   "advancements.gulliver.watch_your_step.description": "Zertrample eine Kreatur, die viel kleiner ist als du",
   "advancements.gulliver.fee_fi_fo_fum.title": "Ich rieche Menschenfleisch!",
-  "advancements.gulliver.fee_fi_fo_fum.description": "Friss als Riese ein Wesen, das du in der Hand hältst"
+  "advancements.gulliver.fee_fi_fo_fum.description": "Friss als Riese ein Wesen, das du in der Hand hältst",
+  "gulliver.restricted": "Dieser Gegenstand ist in deiner Größe gesperrt",
+  "gulliver.wings.tooBig": "Nur Winzlinge können Flügel wachsen lassen",
+  "gulliver.wings.already": "Diese Flügel hast du schon",
+  "gulliver.tooltip.wings.fly": "Schleichen + Rechtsklick: Fliegenflügel wachsen lassen",
+  "gulliver.tooltip.wings.bee": "Schleichen + Rechtsklick: Bienenflügel wachsen lassen",
+  "gulliver.tooltip.wings.butterfly": "Schleichen + Rechtsklick: Schmetterlingsflügel wachsen lassen",
+  "gulliver.tooltip.wings.fairy": "Schleichen + Rechtsklick: Feenflügel wachsen lassen",
+  "gulliver.config.tinyWings": "Winzige Flügel",
+  "gulliver.config.tinyWings.tooltip": "Winzlinge bekommen Flügel, wenn sie eine Phantomhaut (Fliege), eine Honigwabe (Biene), eine Blume (Schmetterling) oder einen Amethystsplitter (Fee) essen. Spring in der Luft, um zu fliegen.",
+  "subtitles.gulliver.wings.buzz": "Flügel summen",
+  "subtitles.gulliver.wings.shimmer": "Feenflügel schimmern",
+  "subtitles.gulliver.wings.flutter": "Flügel flattern",
+  "subtitles.gulliver.wings.sprout": "Flügel entfalten sich",
+  "advancements.gulliver.metamorphosis.title": "Metamorphose",
+  "advancements.gulliver.metamorphosis.description": "Lass dir als Winzling Flügel wachsen"
 }

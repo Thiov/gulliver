@@ -31,6 +31,14 @@ public abstract class MixinMultiPlayerGameModeUseItem {
     @Inject(method = "useItem", at = @At("HEAD"), cancellable = true)
     private void gulliver$consumeResizing(Player player, InteractionHand hand,
                                            CallbackInfoReturnable<InteractionResult> cir) {
+        // Sneak + right-click the air with a membrane, honeycomb, flower or shard: grow wings (TinyWings).
+        if (gulliver.common.SyncedSettings.tinyWings() && player.isShiftKeyDown()
+                && gulliver.common.WingType.fromCatalyst(player.getItemInHand(hand)) != gulliver.common.WingType.NONE
+                && gulliver.platform.Services.platform().sendToServer(
+                        new Payloads.Metamorphosis(hand == InteractionHand.MAIN_HAND))) {
+            cir.setReturnValue(InteractionResult.SUCCESS);
+            return;
+        }
         // The server switched dye resizing off: leave these items to vanilla.
         if (!gulliver.common.SyncedSettings.dyeResizing()) return;
         ItemStack stack = player.getItemInHand(hand);

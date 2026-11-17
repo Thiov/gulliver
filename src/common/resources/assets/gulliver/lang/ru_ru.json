@@ -148,5 +148,20 @@
   "advancements.gulliver.watch_your_step.title": "Смотрите под ноги",
   "advancements.gulliver.watch_your_step.description": "Растопчите существо, которое намного меньше вас",
   "advancements.gulliver.fee_fi_fo_fum.title": "Русским духом пахнет!",
-  "advancements.gulliver.fee_fi_fo_fum.description": "Будучи великаном, съешьте существо, которое держите в руке"
+  "advancements.gulliver.fee_fi_fo_fum.description": "Будучи великаном, съешьте существо, которое держите в руке",
+  "gulliver.restricted": "Этот предмет запрещён при вашем размере",
+  "gulliver.wings.tooBig": "Крылья могут вырасти только у крошек",
+  "gulliver.wings.already": "У вас уже есть эти крылья",
+  "gulliver.tooltip.wings.fly": "Красться + ПКМ: отрастить крылья мухи",
+  "gulliver.tooltip.wings.bee": "Красться + ПКМ: отрастить крылья пчелы",
+  "gulliver.tooltip.wings.butterfly": "Красться + ПКМ: отрастить крылья бабочки",
+  "gulliver.tooltip.wings.fairy": "Красться + ПКМ: отрастить крылья феи",
+  "gulliver.config.tinyWings": "Крошечные крылья",
+  "gulliver.config.tinyWings.tooltip": "Крошки отращивают крылья, съев мембрану фантома (муха), соты (пчела), цветок (бабочка) или осколок аметиста (фея). Прыгните в воздухе, чтобы лететь.",
+  "subtitles.gulliver.wings.buzz": "Жужжат крылья",
+  "subtitles.gulliver.wings.shimmer": "Мерцают крылья феи",
+  "subtitles.gulliver.wings.flutter": "Трепещут крылья",
+  "subtitles.gulliver.wings.sprout": "Раскрываются крылья",
+  "advancements.gulliver.metamorphosis.title": "Метаморфоза",
+  "advancements.gulliver.metamorphosis.description": "Отрастите крылья, будучи крошкой"
 }

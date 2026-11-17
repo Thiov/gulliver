@@ -66,10 +66,8 @@ public final class GulliverFabric implements ModInitializer {
             //#endif
         });
         AttackEntityCallback.EVENT.addPhaseOrdering(Event.DEFAULT_PHASE, AFTER_CLAIMS);
-        AttackEntityCallback.EVENT.register(AFTER_CLAIMS, (player, level, hand, entity, hit) -> {
-            CommonEvents.onAttackEntity(player, level, entity);
-            return InteractionResult.PASS;
-        });
+        AttackEntityCallback.EVENT.register(AFTER_CLAIMS, (player, level, hand, entity, hit) ->
+                CommonEvents.onAttackEntity(player, level, entity) ? InteractionResult.FAIL : InteractionResult.PASS);
         ServerPlayerEvents.COPY_FROM.register(CommonEvents::onPlayerClone);
         ServerPlayerEvents.AFTER_RESPAWN.register((oldPlayer, newPlayer, alive) ->
                 CommonEvents.onPlayerRespawn(newPlayer, alive));

@@ -44,11 +44,14 @@ public final class GulliverNetwork {
             new Spec<>(Payloads.AttachEntitySpecial.ID, Payloads.AttachEntitySpecial.class, Payloads.AttachEntitySpecial::read),
             new Spec<>(Payloads.GroundShock.ID, Payloads.GroundShock.class, Payloads.GroundShock::read),
             new Spec<>(Payloads.HookAnchor.ID, Payloads.HookAnchor.class, Payloads.HookAnchor::read),
-            new Spec<>(Payloads.ActionState.ID, Payloads.ActionState.class, Payloads.ActionState::read));
+            new Spec<>(Payloads.ActionState.ID, Payloads.ActionState.class, Payloads.ActionState::read),
+            new Spec<>(Payloads.Wings.ID, Payloads.Wings.class, Payloads.Wings::read));
 
     public static final List<Spec<?>> SERVERBOUND = List.of(
             new Spec<>(Payloads.ConsumeResizingItem.ID, Payloads.ConsumeResizingItem.class, Payloads.ConsumeResizingItem::read),
-            new Spec<>(Payloads.CarryAction.ID, Payloads.CarryAction.class, Payloads.CarryAction::read));
+            new Spec<>(Payloads.CarryAction.ID, Payloads.CarryAction.class, Payloads.CarryAction::read),
+            new Spec<>(Payloads.WingFlight.ID, Payloads.WingFlight.class, Payloads.WingFlight::read),
+            new Spec<>(Payloads.Metamorphosis.ID, Payloads.Metamorphosis.class, Payloads.Metamorphosis::read));
 
     /** The table entry for a payload (by its record class). */
     public static Spec<?> specFor(GulliverPayload payload) {
@@ -75,6 +78,10 @@ public final class GulliverNetwork {
             PacketHandlers.onConsumeResizingItem(player, p);
         } else if (payload instanceof Payloads.CarryAction p) {
             PacketHandlers.onCarryAction(player, p);
+        } else if (payload instanceof Payloads.WingFlight p) {
+            gulliver.common.TinyWings.onFlight(player, p.state());
+        } else if (payload instanceof Payloads.Metamorphosis p) {
+            gulliver.common.TinyWings.onMetamorphosis(player, p.mainHand());
         }
     }
 }

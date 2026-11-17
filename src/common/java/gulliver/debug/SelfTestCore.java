@@ -48,6 +48,7 @@ final class SelfTestCore {
             classification(level, failures, at);
             conversion(level, failures, at);
             validation(failures);
+            itemRestrictionConfig(failures);
             payload(failures);
             brokenFile(failures);
         } finally {
@@ -213,15 +214,55 @@ final class SelfTestCore {
         check(failures, GulliverEnvoy.isValidSizeString("0-2", false), "a range may start at 0");
     }
 
+    /** Item restriction rules (#30): synonyms are understood and broken values fixed, never thrown at a tick. */
+    private static void itemRestrictionConfig(List<String> failures) {
+        GulliverConfig c = new GulliverConfig();
+        c.itemRestrictions.penalty = "Modern";
+        GulliverConfig.ItemRule guns = new GulliverConfig.ItemRule();
+        guns.items.add("tacz:*");
+        guns.items.add(" ");
+        guns.mode = "whitelist";
+        guns.minSize = 2.0D;
+        guns.maxSize = 0.5D;
+        guns.penalty = "classic";
+        GulliverConfig.ItemRule swords = new GulliverConfig.ItemRule();
+        swords.items.add("#minecraft:swords");
+        swords.mode = "nonsense";
+        swords.minSize = -1.0D;
+        swords.penalty = "explode";
+        c.itemRestrictions.rules.add(guns);
+        c.itemRestrictions.rules.add(null);
+        c.itemRestrictions.rules.add(swords);
+        c.validate();
+        check(failures, GulliverConfig.ItemRestrictions.BREAK.equals(c.itemRestrictions.penalty),
+                "a \"modern\" penalty means break");
+        check(failures, c.itemRestrictions.rules.size() == 2, "a missing rule is dropped");
+        check(failures, GulliverConfig.ItemRule.ALLOW.equals(guns.mode) && guns.minSize == 0.5D && guns.maxSize == 2.0D
+                        && GulliverConfig.ItemRestrictions.DROP.equals(guns.penalty) && guns.items.size() == 1,
+                "a whitelist rule is an allow rule, its bounds are put in order and blank ids dropped");
+        check(failures, GulliverConfig.ItemRule.DENY.equals(swords.mode) && swords.minSize == 0.0D && swords.penalty == null,
+                "an unknown mode denies, a negative bound means none, an unknown penalty falls back to the general one");
+    }
+
     /** The settings packet survives its own wire format. */
     private static void payload(List<String> failures) {
         FriendlyByteBuf buf = new FriendlyByteBuf(io.netty.buffer.Unpooled.buffer());
-        new Payloads.ServerSettings(false, 1.0F / 32, 32.0F, 2.5F).write(buf);
+        new Payloads.ServerSettings(false, 1.0F / 32, 32.0F, 2.5F, true, 0.25F, 2.0F).write(buf);
         Payloads.ServerSettings back = Payloads.ServerSettings.read(buf);
         check(failures, !back.dyeResizing() && back.minSize() == 1.0F / 32 && back.maxSize() == 32.0F
-                        && back.soundVolumeScaling() == 2.5F,
+                        && back.soundVolumeScaling() == 2.5F && back.tinyWings() && back.wingsMaxSize() == 0.25F
+                        && back.wingStamina() == 2.0F,
                 "server settings packet round-trips");
         buf.release();
+        // A 1.4.1 server's packet (no wing settings) still reads, with wings off.
+        FriendlyByteBuf old = new FriendlyByteBuf(io.netty.buffer.Unpooled.buffer());
+        old.writeBoolean(true);
+        old.writeFloat(0.125F);
+        old.writeFloat(8.0F);
+        old.writeFloat(1.0F);
+        Payloads.ServerSettings oldBack = Payloads.ServerSettings.read(old);
+        check(failures, oldBack.dyeResizing() && !oldBack.tinyWings(), "an older server's settings packet reads without wings");
+        old.release();
     }
 
     /** A config that can't be read is backed up and left alone, and the previous settings stay (D3). */

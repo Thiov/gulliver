@@ -35,8 +35,9 @@ public final class ClientSelfTest {
         Thread t = new Thread(() -> {
             try {
                 // A showcase tour runs much longer than the checks (and slowly on a software renderer).
-                boolean tour = java.nio.file.Files.exists(java.nio.file.Path.of("gulliver-showcase-issues"));
-                Thread.sleep(tour ? 900_000L : 180_000L);
+                boolean tour = java.nio.file.Files.exists(java.nio.file.Path.of("gulliver-showcase-issues"))
+                        || java.nio.file.Files.exists(java.nio.file.Path.of("gulliver-showcase-wings"));
+                Thread.sleep(tour ? 1_800_000L : 180_000L);
             } catch (InterruptedException e) {
                 return;
             }
@@ -99,6 +100,15 @@ public final class ClientSelfTest {
         }
         LocalPlayer p = mc.player;
         if (p == null || mc.level == null) return;
+        // With a "gulliver-showcase-wings" file: the tour of tiny wings and fixes #26 and #30.
+        if (ClientShowcaseWings.active(mc)) {
+            ticksTotal = 0;
+            if (ClientShowcaseWings.tick(mc)) {
+                finished = true;
+                mc.stop();
+            }
+            return;
+        }
         // With a "gulliver-showcase-issues" file: the tour of the issue fixes instead.
         if (ClientShowcaseIssues.active(mc)) {
             ticksTotal = 0;

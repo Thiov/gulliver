@@ -1,0 +1,22 @@
+{
+  "wings.buzz_fly": {
+    "subtitle": "subtitles.gulliver.wings.buzz",
+    "sounds": ["gulliver:wings/buzz_fly"]
+  },
+  "wings.buzz_bee": {
+    "subtitle": "subtitles.gulliver.wings.buzz",
+    "sounds": ["gulliver:wings/buzz_bee"]
+  },
+  "wings.fairy": {
+    "subtitle": "subtitles.gulliver.wings.shimmer",
+    "sounds": ["gulliver:wings/fairy"]
+  },
+  "wings.flutter": {
+    "subtitle": "subtitles.gulliver.wings.flutter",
+    "sounds": ["gulliver:wings/flutter1", "gulliver:wings/flutter2", "gulliver:wings/flutter3"]
+  },
+  "wings.sprout": {
+    "subtitle": "subtitles.gulliver.wings.sprout",
+    "sounds": ["gulliver:wings/sprout"]
+  }
+}

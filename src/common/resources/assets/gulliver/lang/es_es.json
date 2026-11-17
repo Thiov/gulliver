@@ -148,5 +148,20 @@
   "advancements.gulliver.watch_your_step.title": "Mira por dónde pisas",
   "advancements.gulliver.watch_your_step.description": "Pisotea a una criatura mucho más pequeña que tú",
   "advancements.gulliver.fee_fi_fo_fum.title": "¡Huelo a carne humana!",
-  "advancements.gulliver.fee_fi_fo_fum.description": "Como gigante, cómete una criatura que lleves en la mano"
+  "advancements.gulliver.fee_fi_fo_fum.description": "Como gigante, cómete una criatura que lleves en la mano",
+  "gulliver.restricted": "Este objeto está restringido a tu tamaño",
+  "gulliver.wings.tooBig": "Solo los diminutos pueden desarrollar alas",
+  "gulliver.wings.already": "Ya tienes estas alas",
+  "gulliver.tooltip.wings.fly": "Agacharse + clic derecho: desarrollar alas de mosca",
+  "gulliver.tooltip.wings.bee": "Agacharse + clic derecho: desarrollar alas de abeja",
+  "gulliver.tooltip.wings.butterfly": "Agacharse + clic derecho: desarrollar alas de mariposa",
+  "gulliver.tooltip.wings.fairy": "Agacharse + clic derecho: desarrollar alas de hada",
+  "gulliver.config.tinyWings": "Alas diminutas",
+  "gulliver.config.tinyWings.tooltip": "Los diminutos desarrollan alas comiendo una membrana de phantom (mosca), un panal (abeja), una flor (mariposa) o un fragmento de amatista (hada). Salta en el aire para volar.",
+  "subtitles.gulliver.wings.buzz": "Zumban unas alas",
+  "subtitles.gulliver.wings.shimmer": "Brillan unas alas de hada",
+  "subtitles.gulliver.wings.flutter": "Aletean unas alas",
+  "subtitles.gulliver.wings.sprout": "Se despliegan unas alas",
+  "advancements.gulliver.metamorphosis.title": "Metamorfosis",
+  "advancements.gulliver.metamorphosis.description": "Desarrolla alas siendo diminuto"
 }

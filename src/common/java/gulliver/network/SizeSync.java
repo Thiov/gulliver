@@ -29,6 +29,7 @@ public final class SizeSync {
             Services.platform().sendToPlayer(tracker, new Payloads.EntitySize(entity.getId(), dest));
         }
         gulliver.common.ShoulderHelper.sendCarryState(entity, tracker);
+        gulliver.common.TinyWings.onStartTracking(entity, tracker);
         if (entity instanceof gulliver.access.IGulliverHookInternal hook && hook.gulliver$getAnchor() != null) {
             net.minecraft.world.phys.Vec3 a = hook.gulliver$getAnchor();
             Services.platform().sendToPlayer(tracker, new Payloads.HookAnchor(entity.getId(), a.x, a.y, a.z));
@@ -51,7 +52,7 @@ public final class SizeSync {
     private static Payloads.ServerSettings settings() {
         GulliverConfig.General g = GulliverConfig.INSTANCE.general;
         return new Payloads.ServerSettings(g.enableDyeResizing, (float) g.minEntitySize, (float) g.maxEntitySize,
-                (float) g.soundVolumeScaling);
+                (float) g.soundVolumeScaling, g.tinyWings, (float) g.wingsMaxSize, (float) g.wingStamina);
     }
 
     /** On join: before any entity size, so the client knows its bounds first. */

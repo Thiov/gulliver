@@ -46,6 +46,10 @@ public abstract class MixinHumanoidModelPose {
             at = @At("RETURN"), require = 0)
     private void gulliver$applyPose(HumanoidRenderState state, CallbackInfo ci) {
         IGlideRenderState g = (IGlideRenderState) state;
+        if (g.gulliver$wings() instanceof gulliver.client.WingRender.Frame f && f.spread() > 0.01F) {
+            gulliver.client.WingRender.flightPose(rightArm, leftArm, rightLeg, leftLeg, f.spread(), state.ageInTicks);
+            return;
+        }
         if (g.gulliver$isGliding()) {
             float upRot = -(float) Math.PI;
             rightArm.xRot = upRot;

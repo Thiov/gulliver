@@ -22,6 +22,7 @@ public final class CommonEvents {
     private CommonEvents() {}
 
     public static InteractionResult onUseBlock(Player player, Level level, InteractionHand hand, BlockHitResult hit) {
+        if (ItemRestrictions.refuseUse(player, hand)) return InteractionResult.FAIL;
         // Setting a carried entity down wins over the tiny interaction gate.
         InteractionResult r = ShoulderInteractHandler.onUseBlock(player, level, hand, hit);
         if (r != InteractionResult.PASS) return r;
@@ -52,36 +53,47 @@ public final class CommonEvents {
     }
 
     public static InteractionResult onUseItem(Player player, Level level, InteractionHand hand) {
+        if (ItemRestrictions.refuseUse(player, hand)) return InteractionResult.FAIL;
         return ShoulderInteractHandler.onUseItem(player, level, hand);
     }
 
-    /** Player melee attack on an entity; never cancels. */
-    public static void onAttackEntity(Player player, Level level, Entity target) {
+    /**
+     * Player melee attack on an entity. Returns true when the attack is
+     * cancelled: swung with an item restricted at the player's size.
+     */
+    public static boolean onAttackEntity(Player player, Level level, Entity target) {
+        if (ItemRestrictions.refuseUse(player, InteractionHand.MAIN_HAND)) return true;
         GiantAoe.onAttack(player, level, target);
+        return false;
     }
 
     public static void onPlayerClone(ServerPlayer oldPlayer, ServerPlayer newPlayer, boolean alive) {
         KarmaMode.onClone(oldPlayer, newPlayer, alive);
+        TinyWings.onClone(oldPlayer, newPlayer, alive);
     }
 
     public static void onPlayerRespawn(ServerPlayer player, boolean alive) {
         KarmaMode.onRespawn(player, alive);
+        TinyWings.resend(player);
     }
 
     public static void onPlayerJoin(ServerPlayer player) {
         SizeSync.sendSettings(player);
         SizeSync.broadcast(player);
+        TinyWings.onJoin(player);
     }
 
     public static void onPlayerLeave(ServerPlayer player) {
         ShoulderInteractHandler.onDisconnect(player);
         BreathGust.stop(player);
+        ItemRestrictions.forget(player);
         Appetite.forget(player);
     }
 
     public static void onPlayerChangedDimension(ServerPlayer player) {
         ShoulderInteractHandler.onChangeDimension(player);
         KarmaMode.onChangedDimension(player);
+        TinyWings.resend(player);
     }
 
     public static void registerCommands(CommandDispatcher<CommandSourceStack> dispatcher) {
@@ -94,6 +106,8 @@ public final class CommonEvents {
      * and Forge through their break-speed event.
      */
     public static float scaleBreakSpeed(Player player, float speed) {
+        // Mining with an item restricted at this size (server side, where it counts).
+        if (!player.level().isClientSide() && ItemRestrictions.refuseUse(player, InteractionHand.MAIN_HAND)) return 0.0F;
         float size = ((IResizeableEntity) player).getSizeMultiplier();
         return size == 1.0F ? speed : speed * size;
     }

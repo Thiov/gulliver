@@ -42,6 +42,9 @@ public abstract class MixinHumanoidRenderState implements IGlideRenderState {
     @Override @Unique public float gulliver$getEatLift() { return gulliver$eatLift; }
     @Override @Unique public float gulliver$getEatBite() { return gulliver$eatBite; }
     @Override @Unique public void gulliver$setEat(float lift, float bite) { gulliver$eatLift = lift; gulliver$eatBite = bite; }
+    @Unique private Object gulliver$wings;
+    @Override @Unique public Object gulliver$wings() { return gulliver$wings; }
+    @Override @Unique public void gulliver$setWings(Object frame) { gulliver$wings = frame; }
     @Unique private float gulliver$mobGrip;
     @Override @Unique public float gulliver$getMobGrip() { return gulliver$mobGrip; }
     @Override @Unique public void gulliver$setMobGrip(float grip) { gulliver$mobGrip = grip; }

@@ -60,6 +60,7 @@ public final class GulliverConfig {
     public SpawnSize spawnSize = new SpawnSize();
     public SizeLimit sizeLimit = new SizeLimit();
     public Client client = new Client();
+    public ItemRestrictions itemRestrictions = new ItemRestrictions();
 
     public static GulliverConfig INSTANCE = new GulliverConfig();
 
@@ -169,6 +170,8 @@ public final class GulliverConfig {
         if (spawnSize == null) spawnSize = new SpawnSize();
         if (sizeLimit == null) sizeLimit = new SizeLimit();
         if (client == null) client = new Client();
+        if (itemRestrictions == null) itemRestrictions = new ItemRestrictions();
+        if (itemRestrictions.rules == null) itemRestrictions.rules = new ArrayList<>();
         if (spawnSize.overrides == null) spawnSize.overrides = new LinkedHashMap<>();
         if (sizeLimit.minOverrides == null) sizeLimit.minOverrides = new LinkedHashMap<>();
         if (sizeLimit.maxOverrides == null) sizeLimit.maxOverrides = new LinkedHashMap<>();
@@ -223,6 +226,8 @@ public final class GulliverConfig {
         g.trampleDamage = sizeValue(g.trampleDamage, 1.0D, 0.0D, MAX_TRAMPLE_DAMAGE, "general.trampleDamage", fixes);
         g.breathGustMinSize = sizeValue(g.breathGustMinSize, GiantBossBars.MIN_SIZE, 0.0D, MAX_SIZE, "general.breathGustMinSize", fixes);
         g.soundVolumeScaling = sizeValue(g.soundVolumeScaling, 1.0D, 0.0D, MAX_SOUND_SCALING, "general.soundVolumeScaling", fixes);
+        g.wingsMaxSize = sizeValue(g.wingsMaxSize, 0.3D, MIN_SIZE, MAX_SIZE, "general.wingsMaxSize", fixes);
+        g.wingStamina = sizeValue(g.wingStamina, 1.0D, 0.25D, 10.0D, "general.wingStamina", fixes);
 
         SizeLimit l = sizeLimit;
         l.minPlayerSize = limitValue(l.minPlayerSize, lo, hi, "sizeLimit.minPlayerSize", fixes);
@@ -269,8 +274,75 @@ public final class GulliverConfig {
         c.screenShake = ratioValue(c.screenShake, 1.0D, "client.screenShake", fixes);
         c.soundPitchScaling = sizeValue(c.soundPitchScaling, 1.0D, 0.0D, MAX_SOUND_SCALING, "client.soundPitchScaling", fixes);
 
+        validateItemRestrictions(fixes);
+
         for (String fix : fixes) Gulliver.LOGGER.warn("gulliver.json: {}", fix);
         return fixes.size();
+    }
+
+    private void validateItemRestrictions(List<String> fixes) {
+        ItemRestrictions r = itemRestrictions;
+        String penalty = penaltyName(r.penalty);
+        if (penalty == null) {
+            fixes.add("itemRestrictions.penalty must be drop, break or deny; using drop");
+            penalty = ItemRestrictions.DROP;
+        }
+        r.penalty = penalty;
+        List<ItemRule> rules = new ArrayList<>();
+        int i = 0;
+        for (ItemRule rule : r.rules) {
+            String name = "itemRestrictions.rules[" + i++ + "]";
+            if (rule == null) continue;
+            if (rule.items == null) rule.items = new ArrayList<>();
+            rule.items.removeIf(id -> id == null || id.isBlank());
+            String mode = rule.mode == null ? "" : rule.mode.trim().toLowerCase(Locale.ROOT);
+            switch (mode) {
+                case "deny", "blacklist", "block" -> mode = ItemRule.DENY;
+                case "allow", "whitelist", "only" -> mode = ItemRule.ALLOW;
+                default -> {
+                    fixes.add(name + ".mode must be deny or allow; using deny");
+                    mode = ItemRule.DENY;
+                }
+            }
+            rule.mode = mode;
+            if (rule.penalty != null && !rule.penalty.isBlank()) {
+                String own = penaltyName(rule.penalty);
+                if (own == null) fixes.add(name + ".penalty must be drop, break or deny; using the general one");
+                rule.penalty = own;
+            } else {
+                rule.penalty = null;
+            }
+            rule.minSize = boundValue(rule.minSize, name + ".minSize", fixes);
+            rule.maxSize = boundValue(rule.maxSize, name + ".maxSize", fixes);
+            if (rule.maxSize > 0.0D && rule.minSize > rule.maxSize) {
+                fixes.add(name + ".maxSize " + rule.maxSize + " is below minSize; swapped");
+                double t = rule.minSize;
+                rule.minSize = rule.maxSize;
+                rule.maxSize = t;
+            }
+            rules.add(rule);
+        }
+        r.rules = rules;
+    }
+
+    /** "drop", "break" or "deny" (and their synonyms), normalised; null when it is none of them. */
+    private static String penaltyName(String raw) {
+        String p = raw == null ? "" : raw.trim().toLowerCase(Locale.ROOT);
+        return switch (p) {
+            case "drop", "classic" -> ItemRestrictions.DROP;
+            case "break", "destroy", "modern" -> ItemRestrictions.BREAK;
+            case "deny", "block", "refuse" -> ItemRestrictions.DENY;
+            default -> null;
+        };
+    }
+
+    /** A rule's size bound: 0 (none) or a positive size. */
+    private static double boundValue(double v, String name, List<String> fixes) {
+        if (Double.isNaN(v) || Double.isInfinite(v) || v < 0.0D) {
+            fixes.add(name + " " + v + " is not a size; using 0 (no bound)");
+            return 0.0D;
+        }
+        return v;
     }
 
     /** Every per-class and per-entity limit that is set (0 = follows the general range). */
@@ -403,6 +475,18 @@ public final class GulliverConfig {
         public boolean sizePushing = true;
         /** A creeper's explosion grows and shrinks with the creeper. */
         public boolean creeperExplosionScaling = true;
+        /**
+         * Tinies can grow wings (TinyWings): eating a phantom membrane,
+         * honeycomb, flower or amethyst shard while tiny grows fly, bee,
+         * butterfly or fairy wings that let them hover and fly.
+         */
+        public boolean tinyWings = true;
+        /** Largest size wings can carry (and show on) a body. */
+        public double wingsMaxSize = 0.3D;
+        /** How long the wings last before they tire: 1 is normal, up to 10x. */
+        public double wingStamina = 1.0D;
+        /** Whether wings stay with a player who dies. */
+        public boolean keepWingsOnDeath = true;
     }
 
     /** Client-only look and feel; ignored by dedicated servers. */
@@ -438,6 +522,63 @@ public final class GulliverConfig {
         public boolean proportionalHeldItems() {
             return "proportional".equalsIgnoreCase(heldItemScaling);
         }
+    }
+
+    /**
+     * Items players may not use at some sizes (#30). Empty by default: write
+     * rules to use it, e.g. guns only at normal size:
+     *   {"items": ["tacz:*"], "mode": "allow", "minSize": 0.75, "maxSize": 1.5}
+     */
+    public static final class ItemRestrictions {
+        public static final String DROP = "drop";
+        public static final String BREAK = "break";
+        public static final String DENY = "deny";
+
+        public boolean enabled = true;
+        /**
+         * What happens to a restricted item: "drop" (classic, falls out of
+         * your hands), "break" (modern, shatters like a worn-out tool) or
+         * "deny" (stays, but can't be used; worn armor goes back into the
+         * inventory).
+         */
+        public String penalty = DROP;
+        /** Caught while held in either hand. */
+        public boolean checkHeld = true;
+        /** Caught while worn in an armor slot. */
+        public boolean checkWorn = true;
+        /** Caught when used: right-clicked, swung at a creature or used to mine. */
+        public boolean checkUsed = true;
+        /** "This item is restricted at your size" on the action bar. */
+        public boolean showMessage = true;
+        /** Creative and spectator players are never restricted. */
+        public boolean exemptCreative = true;
+        public List<ItemRule> rules = new ArrayList<>();
+
+        public String penalty() {
+            return penalty == null ? DROP : penalty;
+        }
+    }
+
+    public static final class ItemRule {
+        public static final String DENY = "deny";
+        public static final String ALLOW = "allow";
+
+        /**
+         * Item ids ("minecraft:diamond_sword"), a whole mod ("tacz:*"),
+         * patterns ("*_sword") or item tags ("#minecraft:swords").
+         */
+        public List<String> items = new ArrayList<>();
+        /**
+         * "deny": restricted while your size is inside [minSize, maxSize].
+         * "allow": restricted while it is outside (usable only inside).
+         */
+        public String mode = DENY;
+        /** 0 = no lower bound. */
+        public double minSize = 0.0D;
+        /** 0 = no upper bound. */
+        public double maxSize = 0.0D;
+        /** This rule's own penalty ("drop", "break" or "deny"); unset uses itemRestrictions.penalty. */
+        public String penalty;
     }
 
     public static final class SpawnSize {

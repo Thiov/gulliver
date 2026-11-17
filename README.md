@@ -57,6 +57,12 @@ Download **Gulliver Unbound** from [CurseForge](https://www.curseforge.com/proje
 - Wind charges and breezes fling tinies across the room; giants barely notice them.
 - Paper, lily pads, slimeballs, and string all work from **either hand**, and their tooltips tell you what they do while you're tiny.
 
+**Tiny wings**
+- Sneak + right-click the air while tiny to eat a **phantom membrane**, **honeycomb**, **flower** or **amethyst shard** and grow **fly**, **bee**, **butterfly** (in the flower's colour) or **fairy** wings. They unfold out of your back over three seconds.
+- Jump, then jump again in the air: you hover, bobbing gently on the beat of your wings. Fly the way you look, sprint to dart, hold jump to climb and sneak to drop. Land to fold them.
+- Not creative flight: the body has momentum and the wings tire. A slim stamina bar under the crosshair refills on the ground; spent or rain-soaked wings only let you glide down.
+- Flies are fastest and hover dead still, bees climb best and last longest, butterflies flap slowly and glide for free, fairies sparkle and glow. Each has its own sound.
+
 **Carry**
 - Sneak + right-click (empty hand) a creature under 0.4× your size to scoop it into your hand.
 - Press **V** to move carried creatures between hand and shoulders, up to three at once.
@@ -71,7 +77,7 @@ Download **Gulliver Unbound** from [CurseForge](https://www.curseforge.com/proje
 
 - **Potions**: brew Ensmallening from an awkward potion + red mushroom, Embiggening with a brown mushroom. Redstone extends, glowstone strengthens.
 - **Drink Me / Eat Me**: right-click cyan dye or a red mushroom to shrink, purple dye or a brown mushroom to grow.
-- **Commands** (operators): `/gulliver size <targets> <size>`, `/gulliver scale <targets> <factor>`, `/gulliver get <target>` and `/gulliver reload` take normal selectors (`@e[type=cow,distance=..10]`, player names). The classic `/basesize`, `/halfsize`, `/doublesize`, `/showsize`, `/instantkarma` and their `entity…` variants (by entity id) still work. `/showmysize` and `/shoulderentity` work for everyone.
+- **Commands** (operators): `/gulliver size <targets> <size>`, `/gulliver scale <targets> <factor>`, `/gulliver get <target>` and `/gulliver reload` take normal selectors (`@e[type=cow,distance=..10]`, player names); `/gulliver wings <players> <fly|bee|butterfly|fairy|none> [colour]` gives or takes away wings. The classic `/basesize`, `/halfsize`, `/doublesize`, `/showsize`, `/instantkarma` and their `entity…` variants (by entity id) still work. `/showmysize` and `/shoulderentity` work for everyone.
 - **Keybinds** (creative): **U** grow, **I** shrink. Hold a **stick** and they resize the creature under your crosshair instead. For everyone: **V** moves carried creatures between hand and shoulders, **G** (hold) blows a breath gust, **J** switches a sprinting tiny's full-block jump on and off. All of them can be rebound in Controls.
 
 ## Configuration
@@ -87,6 +93,18 @@ Everything is stored in `config/gulliver.json` (reload with `/gulliver reload`):
 - `general.lootScaling`, `general.giantBossBars` (off by default), `general.tinyMounts`.
 - `general.sizePushing` (creatures under a quarter of your size can't push you), `general.creeperExplosionScaling`, `general.soundVolumeScaling` and `client.soundPitchScaling` (0 to 10, default 1), `client.particleScaling`, `client.sprintFullJump` (also on the J key).
 - `client.heldItemScaling`: `"classic"` (items look bigger when you're tiny, as in the original) or `"proportional"` (items stay in proportion to your body).
+- `general.tinyWings`, `general.wingsMaxSize` (default 0.3), `general.wingStamina` (1 to 10, default 1), `general.keepWingsOnDeath`.
+- `itemRestrictions`: items players can't use at some sizes. Empty by default; each rule in `rules` names `items` (ids, `"mod:*"`, patterns like `"*_sword"`, or tags like `"#minecraft:swords"`), a `mode` (`"deny"`: restricted between `minSize` and `maxSize`; `"allow"`: usable only between them; 0 means no bound) and optionally its own `penalty`. `penalty` is `"drop"` (falls out of your hands, the classic way), `"break"` (shatters) or `"deny"` (can't be used; worn armor goes back into the inventory). `checkHeld`, `checkWorn` and `checkUsed` choose when an item is caught, `showMessage` the action-bar note, `exemptCreative` leaves creative players alone. For example, guns for normal-size players only:
+
+  ```json
+  "itemRestrictions": {
+    "penalty": "drop",
+    "rules": [
+      { "items": ["tacz:*"], "mode": "allow", "minSize": 0.75, "maxSize": 1.5 },
+      { "items": ["#minecraft:swords"], "mode": "deny", "maxSize": 0.3, "penalty": "break" }
+    ]
+  }
+  ```
 
 Game rule `gulliver:size_griefing` (`gulliverSizeGriefing` before 1.21.11) turns off every size-based block breaking.
 
@@ -103,7 +121,7 @@ Gradle must run on **JDK 25** (older targets are compiled for Java 17 or 21 thro
 
 - `src/common` holds the mod itself, `src/fabric`, `src/neoforge` and `src/forge` the thin loader glue.
 - Version differences are handled at build time by `gradle/gulliver.gradle`: `//#if MC >= 1.21.2 && !FORGE … //#else … //#endif` blocks, whole-file conditions, and `versions/<mc>/remap.txt` for plain renames. Sources are written against the newest Minecraft names. A target can share another version's Java overlay through `gulliver_java_overlays` in its `gradle.properties`: 1.21.1 still renders the pre-1.21.2 way and uses 1.20.1's renderer files, with `//#if MC >= 1.21` where the two differ.
-- `scripts/selftest.sh <mc> <loader>` boots a dedicated server and then a client that joins it, with `-Dgulliver.selftest=true`: every mixin is force-applied and resizing, combat, trampling, carrying, spawn sizes, effects, brewing and the grappling hook are exercised before the game quits. `scripts/prodtest.sh <mc>` does the same with the release jar on a real Fabric server. `scripts/check_mixins.py` checks every mixin target and handler signature against a Minecraft jar without launching. With a file named `gulliver-showcase` in a target's `run` folder, the self-test client plays a scripted tour of the breath gust (on land, over water and under it), carrying and eating instead and saves screenshots (`run/screenshots`). A file named `gulliver-showcase-issues` plays a tour of the newer fixes instead (the 1/32 crouch camera, name tags, particles off and on, creeper blasts, pushing, the sprint-jump toggle), logging what it measures; settings a build doesn't have are skipped, so the same tour also shows an older build's behaviour.
+- `scripts/selftest.sh <mc> <loader>` boots a dedicated server and then a client that joins it, with `-Dgulliver.selftest=true`: every mixin is force-applied and resizing, combat, trampling, carrying, spawn sizes, effects, brewing and the grappling hook are exercised before the game quits. `scripts/prodtest.sh <mc>` does the same with the release jar on a real Fabric server. `scripts/check_mixins.py` checks every mixin target and handler signature against a Minecraft jar without launching. With a file named `gulliver-showcase` in a target's `run` folder, the self-test client plays a scripted tour of the breath gust (on land, over water and under it), carrying and eating instead and saves screenshots (`run/screenshots`). A file named `gulliver-showcase-wings` plays a real-time tour for filming: tiny creatures staying in view (#26, before and after), items restricted by size (#30) and tiny wings, from the metamorphosis to flying with each kind. A file named `gulliver-showcase-issues` plays a tour of the newer fixes instead (the 1/32 crouch camera, name tags, particles off and on, creeper blasts, pushing, the sprint-jump toggle), logging what it measures; settings a build doesn't have are skipped, so the same tour also shows an older build's behaviour.
 
 ## Credits and license
 
