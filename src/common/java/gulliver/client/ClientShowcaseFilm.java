@@ -32,8 +32,8 @@ import java.util.function.IntConsumer;
  * pressed by setting their key mappings, as the keyboard would, and a
  * smoothed film camera (a client-side marker the view is taken from) follows
  * or circles the player. With a "gulliver-showcase-slow" file as well the
- * game runs at a quarter speed (/tick rate 5), for a slow renderer to film
- * smoothly; speeding the film up four times gives the real pace.
+ * game runs slowed down (/tick rate 5, or the rate written in the file), for a slow renderer to film
+ * smoothly; speeding the film up by 20 / rate gives the real pace.
  */
 public final class ClientShowcaseFilm {
     private ClientShowcaseFilm() {}
@@ -89,11 +89,19 @@ public final class ClientShowcaseFilm {
 
     private static void script(Minecraft mc) {
         LocalPlayer p = mc.player;
-        boolean slow = java.nio.file.Files.exists(mc.gameDirectory.toPath().resolve("gulliver-showcase-slow"));
+        java.nio.file.Path slowFile = mc.gameDirectory.toPath().resolve("gulliver-showcase-slow");
+        boolean slow = java.nio.file.Files.exists(slowFile);
+        int rate = 5;
+        try {
+            if (slow) rate = Math.max(1, Integer.parseInt(java.nio.file.Files.readString(slowFile).trim()));
+        } catch (java.io.IOException | NumberFormatException e) {
+            rate = 5;
+        }
+        int tickRate = rate;
         // ---- setup -------------------------------------------------------------------
         at(20, () -> {
             mark("start");
-            if (slow) cmd(mc, "tick rate 5");
+            if (slow) cmd(mc, "tick rate " + tickRate);
             mc.options.setCameraType(CameraType.FIRST_PERSON);
         });
         at(30, () -> applyConfig(mc));
@@ -232,40 +240,41 @@ public final class ClientShowcaseFilm {
             set(mc, -1, 1, 8, "lever[face=wall,facing=north]");
             set(mc, 1, 1, 8, "oak_wall_sign[facing=north]");
             set(mc, 0, 2, 8, "stone_button[face=wall,facing=north]");
-            camOn(mc, 70.0F, 3.2F, 0.9F, 0.45F);
             title(mc, "#19", "Buttons, levers, plates and signs are solid for tinies");
         });
+        // A new shot only once the server has put the tiny in place.
+        at(s + 10, () -> camAt(mc, 1.45D, 0.45D, 3.3D));
         at(s + 50, () -> sub(mc, "Walking over a button, a plate and a lever - not through them"));
-        during(s + 60, s + 300, i -> {
+        during(s + 60, s + 150, i -> {
             key(mc.options.keyUp, true);
             key(mc.options.keyJump, i % 14 < 3);
         });
-        at(s + 301, () -> {
+        at(s + 151, () -> {
             key(mc.options.keyUp, false);
             key(mc.options.keyJump, false);
             sub(mc, "...and the sign post is in the way");
         });
 
         // Ledges: a lever and a sign on a wall (their tops: 13/16 and 12.5/16 up the block).
-        int l = s + 360;
+        int l = s + 230;
         at(l, () -> {
             size(mc, 0.125F);
             sub(mc, "A lever on a wall is a ledge to stand on");
             tpBlock(mc, -0.5D, 1.0D + 13.0D / 16.0D + 0.01D, 8.0D + 13.0D / 16.0D);
             look(p, 180.0F, 20.0F);
             p.yBodyRot = p.yBodyRotO = 180.0F;
-            camOn(mc, 150.0F, 4.0F, 0.6F, 0.4F);
         });
+        at(l + 10, () -> camAt(mc, 0.1D, 2.05D, 7.4D));
         at(l + 100, () -> {
             sub(mc, "...so is a sign");
             tpBlock(mc, 1.5D, 1.0D + 12.5D / 16.0D + 0.01D, 8.0D + 15.0D / 16.0D);
             look(p, 180.0F, 20.0F);
             p.yBodyRot = p.yBodyRotO = 180.0F;
         });
-        during(l + 140, l + 180, i -> camYaw = 150.0F + i * 1.0F);
+        at(l + 110, () -> camAt(mc, 0.9D, 2.0D, 7.5D));
 
         // Pressure plates are springs.
-        int f = l + 220;
+        int f = l + 190;
         at(f, () -> {
             mark("plate-spring");
             size(mc, 0.25F);
@@ -274,8 +283,8 @@ public final class ClientShowcaseFilm {
             look(p, 0.0F, 10.0F);
             p.yBodyRot = p.yBodyRotO = 0.0F;
             summonPresser(mc, "chicken", 5);
-            camAt(mc, 2.6D, 0.55D, 5.4D);
         });
+        at(f + 10, () -> camAt(mc, 2.6D, 0.55D, 5.4D));
         at(f + 40, () -> sub(mc, "A chicken presses the stone plate, the tiny sinks with it..."));
         at(f + 80, () -> {
             sub(mc, "...the chicken leaves, the plate pops back up: stone throws hard");
@@ -289,9 +298,9 @@ public final class ClientShowcaseFilm {
             look(p, 0.0F, 10.0F);
             p.yBodyRot = p.yBodyRotO = 0.0F;
             summonPresser(mc, "item", 3);
-            camAt(mc, 2.6D, 0.55D, 3.4D);
             sub(mc, "An apple on a wooden plate: wood springs back gentler");
         });
+        at(w + 10, () -> camAt(mc, 2.6D, 0.55D, 3.4D));
         at(w + 70, () -> cmd(mc, "kill @e[tag=gv_press]"));
         at(w + 200, () -> {
             title(mc, "Gulliver Unbound", "Solid small blocks");
@@ -345,6 +354,8 @@ public final class ClientShowcaseFilm {
     private static Vec3 camPos, camPosO;
     /** Where a standing camera stands, or null for one that follows. */
     private static Vec3 camAnchor;
+    /** Where the camera looks, gliding after the player. */
+    private static Vec3 camLook;
     private static float camYawNow, camYawO, camPitchNow, camPitchO;
 
     /** Whether the film camera is on (the stamina bar stays out of the shot). */
@@ -376,7 +387,10 @@ public final class ClientShowcaseFilm {
 
     private static void start(Minecraft mc) {
         if (mc.player == null) return;
-        if (!filming) camPos = camPosO = null;
+        if (!filming) {
+            camPos = camPosO = null;
+            camLook = null;
+        }
         filming = true;
         mc.options.setCameraType(CameraType.THIRD_PERSON_BACK);
     }
@@ -416,8 +430,10 @@ public final class ClientShowcaseFilm {
         Vec3 next = camPos == null ? want : camPos.add(want.subtract(camPos).scale(0.22D));
         camPos = next;
         float size = VisualSize.of(p);
-        Vec3 aim = new Vec3(p.getX(), p.getY() + 1.8D * size * camAim, p.getZ());
-        Vec3 d = aim.subtract(next);
+        Vec3 want2 = new Vec3(p.getX(), p.getY() + 1.8D * size * camAim, p.getZ());
+        // The aim glides after the player too, so the camera turns calmly instead of twitching at every hop.
+        camLook = camLook == null || camPosO == want ? want2 : camLook.add(want2.subtract(camLook).scale(0.3D));
+        Vec3 d = camLook.subtract(next);
         camYawO = camYawNow;
         camPitchO = camPitchNow;
         camYawNow = (float) (Mth.atan2(d.z, d.x) * Mth.RAD_TO_DEG) - 90.0F;
