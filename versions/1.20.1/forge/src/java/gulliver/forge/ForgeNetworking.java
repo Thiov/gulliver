@@ -12,7 +12,7 @@ final class ForgeNetworking {
     private ForgeNetworking() {}
 
     // Message ids follow the packet table's order: bump whenever it changes.
-    private static final String VERSION = "2";
+    private static final String VERSION = "3";
 
     static final SimpleChannel CHANNEL = NetworkRegistry.newSimpleChannel(Gulliver.id("main"),
             () -> VERSION, NetworkRegistry.acceptMissingOr(VERSION), NetworkRegistry.acceptMissingOr(VERSION));

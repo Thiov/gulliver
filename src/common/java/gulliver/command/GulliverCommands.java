@@ -173,7 +173,16 @@ public final class GulliverCommands {
                                     return 1;
                                 })))
                 .then(Commands.literal("reload").requires(OP4)
-                        .executes(GulliverCommands::reloadConfig)));
+                        .executes(GulliverCommands::reloadConfig))
+                // /gulliver starter: (re)open your own starter size picker, if you haven't picked yet, or to
+                // change it where re-picking is allowed (config starterSize.allowRepick + game rule) (#32).
+                // /gulliver starter reset <players>: let them pick again (operators).
+                .then(Commands.literal("starter")
+                        .requires(s -> s.getEntity() instanceof ServerPlayer || OP2.test(s))
+                        .executes(GulliverCommands::starterOpen)
+                        .then(Commands.literal("reset").requires(OP2)
+                                .then(Commands.argument("targets", EntityArgument.players())
+                                        .executes(GulliverCommands::starterReset)))));
 
         // /reloadgullivercfg  (perm 4, the 1.6.4 mod's reload)
         dispatcher.register(Commands.literal("reloadgullivercfg").requires(OP4)
@@ -194,6 +203,39 @@ public final class GulliverCommands {
                 + " out of range corrected, see the log)";
         ctx.getSource().sendSuccess(() -> Component.literal("Reloaded Gulliver configuration" + note), true);
         return 1;
+    }
+
+    // ---- starter sizes (#32) ----
+
+    private static int starterOpen(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
+        ServerPlayer player = ctx.getSource().getPlayerOrException();
+        if (!GulliverConfig.INSTANCE.starterSize.enabled) {
+            ctx.getSource().sendFailure(Component.translatable("gulliver.starter.disabled"));
+            return 0;
+        }
+        if (gulliver.common.StarterSizes.hasChosen(player)) {
+            if (gulliver.common.StarterSizes.canRepick(player)) {
+                gulliver.common.StarterSizes.offer(player, true);
+                return 1;
+            }
+            ctx.getSource().sendFailure(Component.translatable("gulliver.starter.already"));
+            return 0;
+        }
+        gulliver.common.StarterSizes.offer(player);
+        return 1;
+    }
+
+    private static int starterReset(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
+        int n = 0;
+        for (ServerPlayer p : EntityArgument.getPlayers(ctx, "targets")) {
+            gulliver.common.StarterSizes.reset(ctx.getSource().getServer(), p);
+            n++;
+        }
+        int count = n;
+        ctx.getSource().sendSuccess(() -> Component.literal(count + " player" + (count == 1 ? "" : "s")
+                + " can pick a starter size again"
+                + (GulliverConfig.INSTANCE.starterSize.enabled ? "" : " (once starterSize.enabled is on)")), true);
+        return n;
     }
 
     // ---- selector handlers ----

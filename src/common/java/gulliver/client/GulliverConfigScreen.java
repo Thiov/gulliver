@@ -169,6 +169,13 @@ public class GulliverConfigScreen extends Screen {
         y += ROW + 12;
         sizeField(left, y, "monster", s.baseMonsterSize, false, v -> s.baseMonsterSize = v);
         sizeField(right, y, "npc", s.baseNpcSize, false, v -> s.baseNpcSize = v);
+        y += ROW + 16;
+        // Starter sizes (#32): the sizes themselves are a list, edited in gulliver.json.
+        GulliverConfig.StarterSize st = draft.starterSize;
+        addRenderableWidget(toggle(left, y, "starterSize", st.enabled, v -> st.enabled = v));
+        addRenderableWidget(toggle(right, y, "starterCustom", st.allowCustom, v -> st.allowCustom = v));
+        y += ROW;
+        addRenderableWidget(toggle(left, y, "starterRepick", st.allowRepick, v -> st.allowRepick = v));
     }
 
     private void initLimits(int left, int right, int y) {

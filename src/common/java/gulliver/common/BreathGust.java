@@ -4,6 +4,7 @@ import gulliver.access.IGulliverShoulderInternal;
 import gulliver.api.IResizeableEntity;
 import gulliver.platform.Services;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
@@ -27,7 +28,9 @@ import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -41,9 +44,13 @@ import java.util.concurrent.ConcurrentHashMap;
  * they really fly. Nothing as heavy as the blower moves at all, so a
  * giant blows normal mobs away the way a normal player blows a tiny
  * away, and a giant's gust turns arrows and fireballs around (deflected
- * projectiles count as the blower's). Lit candles, campfires and fire straight ahead are blown
- * out, walls stop the wind, and the blower's pets, teammates and anything
- * it carries are left alone, like with trampling.
+ * projectiles count as the blower's). The gust puts fires out (#34):
+ * every flame the wind reaches anywhere in the cone - fire and soul fire on
+ * floors, walls and ceilings, lit candles and campfires - and burning
+ * creatures no bigger than the blower (pets and teammates included, but
+ * nothing standing in lava). Walls stop the wind, and the blower's pets,
+ * teammates and anything it carries are not blown away, like with
+ * trampling.
  *
  * The server only says who is blowing (ActionState); every client draws
  * the gust itself, sized to the blower (client.BreathFx).
@@ -79,6 +86,20 @@ public final class BreathGust {
     private static final double MAX_WIND = 2.0D;
     private static final double MAX_RANGE = 48.0D;
     private static final int MAX_BLOWN = 48;
+    /**
+     * Ticks one sweep of the cone for flames is spread over: each tick looks
+     * at every fifth slice across the cone, so all of it is covered this often.
+     */
+    public static final int FLAME_SWEEP_TICKS = 5;
+    /** Most flames one tick puts out (a burning forest goes out over a few seconds). */
+    private static final int MAX_FLAMES = 24;
+    /**
+     * Spacing of the points the flame sweep samples the cone at, in blocks:
+     * finer than a block for a small cone, coarser for a colossus's 48-block one.
+     */
+    static double flameStep(double range) {
+        return Math.max(0.7D, range / 40.0D);
+    }
 
     private static final class State {
         long lastRequest;
@@ -185,7 +206,7 @@ public final class BreathGust {
         Vec3 eye = blower.getEyePosition();
         Vec3 dir = blower.getLookAngle();
 
-        if (tick % 5 == 0 && blower instanceof ServerPlayer player) blowOutFlames(level, player, eye, dir, range);
+        blowOutFlames(level, blower, eye, dir, range, Math.floorMod(tick, FLAME_SWEEP_TICKS), FLAME_SWEEP_TICKS);
 
         AABB box = new AABB(eye, eye.add(dir.scale(range))).inflate(range * 0.5D);
         int blown = 0;
@@ -193,9 +214,6 @@ public final class BreathGust {
         for (Entity e : level.getEntities(blower, box, e -> e.isAlive() && !e.isSpectator())) {
             if (e.getVehicle() == blower || blower.getVehicle() == e) continue;
             if (blowerId.equals(((IGulliverShoulderInternal) e).gulliver$getHoldingEntity())) continue;
-            if (GiantAoe.spares(blower, e)) continue;
-            if (e instanceof Player p && (p.getAbilities().flying || p.isCreative()
-                    || (blower instanceof Player bp && !bp.canHarmPlayer(p)))) continue;
 
             Vec3 center = e.getBoundingBox().getCenter();
             Vec3 to = center.subtract(eye);
@@ -204,6 +222,13 @@ public final class BreathGust {
             double cos = to.dot(dir) / dist;
             if (cos < CONE_COS) continue;
             if (!windReaches(level, blower, eye, e)) continue;
+
+            // Blowing out a burning friend is help, not harm: before the sparing below.
+            blowOutBody(level, e, size);
+
+            if (GiantAoe.spares(blower, e)) continue;
+            if (e instanceof Player p && (p.getAbilities().flying || p.isCreative()
+                    || (blower instanceof Player bp && !bp.canHarmPlayer(p)))) continue;
 
             Vec3 before = e.getDeltaMovement();
             Vec3 kick = gust(size, e, along(dir, eye, center, e), dist / range);
@@ -302,22 +327,99 @@ public final class BreathGust {
         //#endif
     }
 
-    /** Lit candles, campfires and fire in the middle of the gust go out. */
-    private static void blowOutFlames(ServerLevel level, ServerPlayer player, Vec3 eye, Vec3 dir, double range) {
-        BlockHitResult hit = level.clip(new ClipContext(eye, eye.add(dir.scale(range)),
-                ClipContext.Block.OUTLINE, ClipContext.Fluid.NONE, player));
-        if (hit.getType() != HitResult.Type.BLOCK) return;
-        BlockPos pos = hit.getBlockPos();
-        BlockState state = level.getBlockState(pos);
-        boolean candle = state.getBlock() instanceof AbstractCandleBlock && state.getValue(AbstractCandleBlock.LIT);
-        boolean campfire = CampfireBlock.isLitCampfire(state);
-        boolean fire = state.getBlock() instanceof BaseFireBlock;
-        if (!candle && !campfire && !fire) return;
-        if (!Services.platform().mayBreakBlock(level, pos, state, player)) return;
-        if (candle) {
+    /**
+     * A burning creature in the wind goes out, unless it is bigger than the
+     * blower (a breath can't blow out a bonfire that size) or still standing
+     * in lava, which would light it again at once. Burning arrows go out too.
+     * Returns whether it did.
+     */
+    static boolean blowOutBody(ServerLevel level, Entity e, float blowerSize) {
+        if (!e.isOnFire() || e.isInLava()) return false;
+        if (((IResizeableEntity) e).getSizeMultiplier() > blowerSize + 1.0E-4F) return false;
+        e.clearFire();
+        AABB box = e.getBoundingBox();
+        Vec3 c = box.getCenter();
+        level.playSound(null, c.x, c.y, c.z, SoundEvents.GENERIC_EXTINGUISH_FIRE, SoundSource.NEUTRAL,
+                0.5F, 1.6F + level.getRandom().nextFloat() * 0.4F);
+        level.sendParticles(ParticleTypes.SMOKE, c.x, c.y, c.z, 8,
+                box.getXsize() * 0.3D, box.getYsize() * 0.3D, box.getZsize() * 0.3D, 0.02D);
+        return true;
+    }
+
+    /**
+     * Every flame the wind reaches in the cone goes out: fire and soul fire
+     * (on the floor, up a wall or under a ceiling), lit candles and candle
+     * cakes, lit campfires. The cone is sampled in slices across its axis,
+     * so a fire beside the look line goes out as well as one right ahead;
+     * a wall between the mouth and a flame keeps it burning. Only loaded
+     * blocks are looked at, and a player blower needs the right to change
+     * the block (claims, spawn protection). Returns how many went out.
+     *
+     * One call looks at the slices {@code part}, {@code part + parts}, ...
+     * so the work of a big cone is spread over {@code parts} ticks.
+     */
+    static int blowOutFlames(ServerLevel level, LivingEntity blower, Vec3 eye, Vec3 dir, double range,
+                             int part, int parts) {
+        Vec3 ref = Math.abs(dir.y) > 0.95D ? new Vec3(1.0D, 0.0D, 0.0D) : new Vec3(0.0D, 1.0D, 0.0D);
+        Vec3 u = dir.cross(ref).normalize();
+        Vec3 v = u.cross(dir).normalize();
+        double tan = Math.sqrt(1.0D - CONE_COS * CONE_COS) / CONE_COS;
+        double step = flameStep(range);
+        Set<Long> seen = new HashSet<>();
+        BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos();
+        int out = 0;
+        int slices = (int) Math.ceil(range / step);
+        for (int slice = part; slice < slices; slice += parts) {
+            double t = (slice + 0.5D) * step;
+            double radius = t * tan;
+            int rings = (int) Math.ceil(radius / step);
+            for (int ring = 0; ring <= rings; ring++) {
+                double r = Math.min(radius, ring * step);
+                int around = ring == 0 ? 1 : (int) Math.ceil(2.0D * Math.PI * r / step);
+                for (int k = 0; k < around; k++) {
+                    double a = 2.0D * Math.PI * k / around;
+                    double cos = Math.cos(a) * r;
+                    double sin = Math.sin(a) * r;
+                    pos.set(Mth.floor(eye.x + dir.x * t + u.x * cos + v.x * sin),
+                            Mth.floor(eye.y + dir.y * t + u.y * cos + v.y * sin),
+                            Mth.floor(eye.z + dir.z * t + u.z * cos + v.z * sin));
+                    if (!seen.add(pos.asLong())) continue;
+                    if (!level.hasChunkAt(pos)) continue;
+                    BlockState state = level.getBlockState(pos);
+                    if (!isFlame(state)) continue;
+                    BlockPos at = pos.immutable();
+                    if (!windReachesBlock(level, blower, eye, at)) continue;
+                    if (blower instanceof ServerPlayer player
+                            && !Services.platform().mayBreakBlock(level, at, state, player)) continue;
+                    douse(level, blower, at, state);
+                    if (++out >= MAX_FLAMES) return out;
+                }
+            }
+        }
+        return out;
+    }
+
+    /** Fire, a lit candle (or candle cake) or a lit campfire. */
+    static boolean isFlame(BlockState state) {
+        return state.getBlock() instanceof BaseFireBlock
+                || (state.getBlock() instanceof AbstractCandleBlock && state.getValue(AbstractCandleBlock.LIT))
+                || CampfireBlock.isLitCampfire(state);
+    }
+
+    /** Nothing solid (and no water) between the mouth and the flame. */
+    private static boolean windReachesBlock(ServerLevel level, LivingEntity blower, Vec3 eye, BlockPos pos) {
+        BlockHitResult hit = level.clip(new ClipContext(eye, Vec3.atCenterOf(pos), ClipContext.Block.COLLIDER,
+                ClipContext.Fluid.ANY, blower));
+        // A candle or campfire is solid itself: the wind reaches it when the first thing in the way is it.
+        return hit.getType() == HitResult.Type.MISS || hit.getBlockPos().equals(pos);
+    }
+
+    private static void douse(ServerLevel level, LivingEntity blower, BlockPos pos, BlockState state) {
+        Player player = blower instanceof Player p ? p : null;
+        if (state.getBlock() instanceof AbstractCandleBlock) {
             AbstractCandleBlock.extinguish(player, state, level, pos);
-        } else if (campfire) {
-            CampfireBlock.dowse(player, level, pos, state);
+        } else if (state.getBlock() instanceof CampfireBlock) {
+            CampfireBlock.dowse(blower, level, pos, state);
             level.setBlock(pos, state.setValue(CampfireBlock.LIT, false), 11);
             level.levelEvent(null, 1009, pos, 0);
         } else {

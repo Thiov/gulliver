@@ -37,7 +37,8 @@ public final class ClientSelfTest {
                 // A showcase tour runs much longer than the checks (and slowly on a software renderer).
                 boolean tour = java.nio.file.Files.exists(java.nio.file.Path.of("gulliver-showcase-issues"))
                         || java.nio.file.Files.exists(java.nio.file.Path.of("gulliver-showcase-fixes"))
-                        || java.nio.file.Files.exists(java.nio.file.Path.of("gulliver-showcase-blocks"));
+                        || java.nio.file.Files.exists(java.nio.file.Path.of("gulliver-showcase-blocks"))
+                        || java.nio.file.Files.exists(java.nio.file.Path.of("gulliver-showcase-new"));
                 Thread.sleep(tour ? 1_800_000L : 180_000L);
             } catch (InterruptedException e) {
                 return;
@@ -92,7 +93,7 @@ public final class ClientSelfTest {
         if (!SelfTest.ENABLED) return;
         // Never leave a window hanging: bail out if we don't reach a world
         // (a stray confirmation screen, a failed quick-play, ...).
-        if (++ticksTotal > 1600 && ticksInWorld < 330) {
+        if (++ticksTotal > 1600 && ticksInWorld < 430) {
             finished = true;
             Gulliver.LOGGER.error("GULLIVER SELFTEST CLIENT FAIL [stuck on {}]",
                     mc.gui.screen() == null ? "no screen" : mc.gui.screen().getClass().getName());
@@ -101,6 +102,11 @@ public final class ClientSelfTest {
         }
         LocalPlayer p = mc.player;
         if (p == null || mc.level == null) return;
+        // Tours film a world already set up: no starter size picker in the way.
+        if ((ClientShowcaseFilm.active(mc) || ClientShowcaseIssues.active(mc) || ClientShowcase.active(mc))
+                && !ClientShowcaseFilm.pickerScene()) {
+            StarterSizeClient.dismiss();
+        }
         // With a "gulliver-showcase-fixes" or "-blocks" file: a tour for filming (ClientShowcaseFilm).
         if (ClientShowcaseFilm.active(mc)) {
             ticksTotal = 0;
@@ -133,6 +139,45 @@ public final class ClientSelfTest {
         // Opt-in: a "selftest-screenshots" file in the run folder saves each settings tab.
         if (ticksInWorld >= 303 && ticksInWorld <= 315 && (ticksInWorld - 303) % 4 == 0) screenshot(mc);
         switch (ticksInWorld) {
+            // Starter size picker (#32): opens for a player who hasn't picked; picking Giant makes the player size 8.
+            case 20 -> {
+                // A world from an earlier run already knows this player's pick: forget it, which asks again.
+                var server = mc.getSingleplayerServer();
+                java.util.UUID id = p.getUUID();
+                if (server != null) server.execute(() -> {
+                    var sp = server.getPlayerList().getPlayer(id);
+                    if (sp != null && gulliver.common.StarterSizes.hasChosen(sp)) {
+                        gulliver.common.StarterSizes.reset(server, sp);
+                    }
+                });
+            }
+            // With screenshots on: the stage at Tiny and at Normal too (it glides for half a second).
+            case 52 -> {
+                if (mc.gui.screen() instanceof StarterSizeScreen picker) picker.pick(0);
+            }
+            case 64, 78 -> screenshot(mc);
+            case 66 -> {
+                if (mc.gui.screen() instanceof StarterSizeScreen picker) picker.pick(1);
+            }
+            case 80 -> {
+                boolean open = mc.gui.screen() instanceof StarterSizeScreen;
+                check(open, "the starter size picker opens on the first join (screen: "
+                        + (mc.gui.screen() == null ? "none" : mc.gui.screen().getClass().getSimpleName()) + ")");
+                if (open) {
+                    StarterSizeScreen picker = (StarterSizeScreen) mc.gui.screen();
+                    check(picker.optionCount() == 3, "the picker offers Tiny, Normal and Giant");
+                    picker.pick(2);
+                }
+            }
+            case 92 -> {
+                screenshot(mc); // the picker with Giant picked, when screenshots are on
+                if (mc.gui.screen() instanceof StarterSizeScreen picker) picker.pressStart();
+            }
+            case 99 -> {
+                check(mc.gui.screen() == null, "the picker closes on Start");
+                check(Math.abs(((IResizeableEntity) p).getSizeMultiplier() - 8.0F) < 1.0E-3F,
+                        "picking Giant makes the player size 8 (got " + ((IResizeableEntity) p).getSizeMultiplier() + ")");
+            }
             case 100 -> {
                 try {
                     MixinEnvironment.getCurrentEnvironment().audit();
@@ -210,7 +255,37 @@ public final class ClientSelfTest {
                 gulliver.common.GulliverConfig.INSTANCE.general.trampleSizeRatio = 0.4D;
                 gulliver.common.GulliverConfig.save();
             }
+            // Re-picking (#32): with the config option and the game rule on, /gulliver starter opens the
+            // picker again to change the size; with the rule off it doesn't.
             case 330 -> {
+                gulliver.common.GulliverConfig.INSTANCE.starterSize.allowRepick = true;
+                repickRule(mc, true);
+            }
+            case 336 -> p.connection.sendCommand("gulliver starter");
+            case 366 -> screenshot(mc); // the picker in change-your-size mode, when screenshots are on
+            case 370 -> {
+                boolean open = mc.gui.screen() instanceof StarterSizeScreen s && s.repick();
+                check(open, "/gulliver starter opens the picker again to change the size (config and rule on)");
+                if (mc.gui.screen() instanceof StarterSizeScreen picker) {
+                    picker.pick(2);
+                    picker.pressStart();
+                }
+            }
+            case 385 -> {
+                check(Math.abs(((IResizeableEntity) p).getSizeMultiplier() - 8.0F) < 1.0E-3F,
+                        "changing the starter size to Giant makes the player size 8 (got "
+                                + ((IResizeableEntity) p).getSizeMultiplier() + ")");
+                repickRule(mc, false);
+            }
+            case 390 -> p.connection.sendCommand("gulliver starter");
+            case 420 -> {
+                check(!(mc.gui.screen() instanceof StarterSizeScreen),
+                        "with the game rule off, /gulliver starter doesn't open the picker again");
+                gulliver.common.GulliverConfig.INSTANCE.starterSize.allowRepick = false;
+                repickRule(mc, true);
+                resizeOnServer(mc, 1.0F);
+            }
+            case 430 -> {
                 finished = true;
                 if (FAILURES.isEmpty()) Gulliver.LOGGER.info("GULLIVER SELFTEST CLIENT PASS");
                 else Gulliver.LOGGER.error("GULLIVER SELFTEST CLIENT FAIL {}", FAILURES);
@@ -239,6 +314,20 @@ public final class ClientSelfTest {
         server.execute(() -> {
             var sp = server.getPlayerList().getPlayer(id);
             if (sp != null) ((gulliver.api.IResizeableLiving) sp).setBaseSize(size);
+        });
+    }
+
+    /** Sets the starter re-pick game rule on the integrated server. */
+    private static void repickRule(Minecraft mc, boolean on) {
+        var server = mc.getSingleplayerServer();
+        if (server == null) return;
+        server.execute(() -> {
+            //#if MC >= 1.21.11
+            String rule = "gulliver:starter_repick";
+            //#else
+            //$$ String rule = "gulliverStarterRepick";
+            //#endif
+            SelfTest.runCommand(server.overworld(), "gamerule " + rule + " " + on);
         });
     }
 

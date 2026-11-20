@@ -61,6 +61,7 @@ public final class GulliverConfig {
     public SizeLimit sizeLimit = new SizeLimit();
     public Client client = new Client();
     public ItemRestrictions itemRestrictions = new ItemRestrictions();
+    public StarterSize starterSize = new StarterSize();
 
     public static GulliverConfig INSTANCE = new GulliverConfig();
 
@@ -172,6 +173,8 @@ public final class GulliverConfig {
         if (client == null) client = new Client();
         if (itemRestrictions == null) itemRestrictions = new ItemRestrictions();
         if (itemRestrictions.rules == null) itemRestrictions.rules = new ArrayList<>();
+        if (starterSize == null) starterSize = new StarterSize();
+        if (starterSize.choices == null) starterSize.choices = StarterSize.defaultChoices();
         if (spawnSize.overrides == null) spawnSize.overrides = new LinkedHashMap<>();
         if (sizeLimit.minOverrides == null) sizeLimit.minOverrides = new LinkedHashMap<>();
         if (sizeLimit.maxOverrides == null) sizeLimit.maxOverrides = new LinkedHashMap<>();
@@ -271,8 +274,11 @@ public final class GulliverConfig {
         }
         c.screenShake = ratioValue(c.screenShake, 1.0D, "client.screenShake", fixes);
         c.soundPitchScaling = sizeValue(c.soundPitchScaling, 1.0D, 0.0D, MAX_SOUND_SCALING, "client.soundPitchScaling", fixes);
+        c.cinematicMinSize = sizeValue(c.cinematicMinSize, 0.75D, 0.0D, MAX_SIZE, "client.cinematicMinSize", fixes);
+        c.cinematicMaxSize = sizeValue(c.cinematicMaxSize, 1.5D, c.cinematicMinSize, MAX_SIZE, "client.cinematicMaxSize", fixes);
 
         validateItemRestrictions(fixes);
+        validateStarterSize(fixes);
 
         for (String fix : fixes) Gulliver.LOGGER.warn("gulliver.json: {}", fix);
         return fixes.size();
@@ -321,6 +327,75 @@ public final class GulliverConfig {
             rules.add(rule);
         }
         r.rules = rules;
+    }
+
+    /**
+     * Starter sizes (#32): every choice a positive size inside the player
+     * range (clamped into it), named, at most {@link StarterSize#MAX_CHOICES}
+     * of them, no two the same size; the custom range inside the player
+     * range too. An empty list with custom sizes off turns the choice off.
+     */
+    private void validateStarterSize(List<String> fixes) {
+        StarterSize st = starterSize;
+        double lo = playerMin();
+        double hi = playerMax();
+        List<StarterChoice> choices = new ArrayList<>();
+        int i = 0;
+        for (StarterChoice c : st.choices) {
+            String name = "starterSize.choices[" + i++ + "]";
+            if (c == null) continue;
+            if (Double.isNaN(c.size) || Double.isInfinite(c.size) || c.size <= 0.0D) {
+                fixes.add(name + ".size " + c.size + " is not a size; dropped");
+                continue;
+            }
+            double fixed = Math.max(lo, Math.min(hi, c.size));
+            if (fixed != c.size) {
+                fixes.add(name + ".size " + c.size + " is outside the player size range; using " + fixed);
+                c.size = fixed;
+            }
+            boolean duplicate = false;
+            for (StarterChoice other : choices) duplicate |= Math.abs(other.size - c.size) < 1.0E-4D;
+            if (duplicate) {
+                fixes.add(name + " has the same size as an earlier choice; dropped");
+                continue;
+            }
+            if (c.name != null) c.name = c.name.trim();
+            if (choices.size() >= StarterSize.MAX_CHOICES) {
+                fixes.add(name + ": at most " + StarterSize.MAX_CHOICES + " choices; dropped");
+                continue;
+            }
+            choices.add(c);
+        }
+        st.choices = choices;
+        // 0 follows the player limits (and keeps following them when they change).
+        if (st.customMin != 0.0D) st.customMin = sizeValue(st.customMin, lo, lo, hi, "starterSize.customMin", fixes);
+        if (st.customMax != 0.0D) st.customMax = sizeValue(st.customMax, hi, lo, hi, "starterSize.customMax", fixes);
+        if (st.customMax != 0.0D && st.customMax < customMin()) {
+            fixes.add("starterSize.customMax " + st.customMax + " is below customMin; raised to " + customMin());
+            st.customMax = customMin();
+        }
+    }
+
+    /** The smallest custom starter size: starterSize.customMin, or the player minimum when 0. */
+    public double customMin() {
+        return starterSize.customMin > 0.0D ? starterSize.customMin : playerMin();
+    }
+
+    /** The largest custom starter size. */
+    public double customMax() {
+        return starterSize.customMax > 0.0D ? Math.max(starterSize.customMax, customMin()) : playerMax();
+    }
+
+    /** Smallest size a player may have: the player class limit, else the general range. */
+    public double playerMin() {
+        double base = Math.max(general.minEntitySize, general.minEntityBaseSize);
+        return sizeLimit.minPlayerSize > 0.0D ? Math.max(base, sizeLimit.minPlayerSize) : base;
+    }
+
+    /** Largest size a player may have. */
+    public double playerMax() {
+        double base = Math.min(general.maxEntitySize, general.maxEntityBaseSize);
+        return sizeLimit.maxPlayerSize > 0.0D ? Math.min(base, sizeLimit.maxPlayerSize) : base;
     }
 
     /** "drop", "break" or "deny" (and their synonyms), normalised; null when it is none of them. */
@@ -509,6 +584,13 @@ public final class GulliverConfig {
          * as high as a walking tiny. Toggled with its key (default J).
          */
         public boolean sprintFullJump = true;
+        /**
+         * Cinematic Interactions (#33) stages its workstation scenes for a
+         * normal-size body; outside this size range stations open their
+         * normal window instead. Set both to 0 and 32 to always allow scenes.
+         */
+        public double cinematicMinSize = 0.75D;
+        public double cinematicMaxSize = 1.5D;
 
         public boolean proportionalHeldItems() {
             return "proportional".equalsIgnoreCase(heldItemScaling);
@@ -570,6 +652,62 @@ public final class GulliverConfig {
         public double maxSize = 0.0D;
         /** This rule's own penalty ("drop", "break" or "deny"); unset uses itemRestrictions.penalty. */
         public String penalty;
+    }
+
+    /**
+     * Starter sizes (#32): the first time a player joins a world, a screen
+     * lets them pick the size they start at, once. No operator or cheats
+     * needed. Turn it off with {@code enabled}; operators can let a player
+     * pick again with {@code /gulliver starter reset <players>}.
+     */
+    public static final class StarterSize {
+        public static final int MAX_CHOICES = 6;
+
+        /** Ask every player who hasn't picked yet, on joining (also existing worlds and players). */
+        public boolean enabled = true;
+        /**
+         * The sizes on offer. A name of tiny, small, normal, big or giant is
+         * translated; anything else is shown as written, and a missing name
+         * is made from the size.
+         */
+        public List<StarterChoice> choices = defaultChoices();
+        /** Also offer a slider for any size between customMin and customMax. */
+        public boolean allowCustom = false;
+        /** Custom slider bounds; 0 follows the player size limits. */
+        public double customMin = 0.0D;
+        public double customMax = 0.0D;
+        /**
+         * Players may close the screen and decide later (it opens again on
+         * their next join, or with /gulliver starter). Off: they have to pick.
+         */
+        public boolean allowLater = true;
+        /**
+         * Players who picked may pick again whenever they like, with
+         * /gulliver starter, where the game rule gulliver:starter_repick
+         * (default on) allows it in that world. Off: one pick per player
+         * (operators can still reset it).
+         */
+        public boolean allowRepick = false;
+
+        public static List<StarterChoice> defaultChoices() {
+            List<StarterChoice> list = new ArrayList<>();
+            list.add(new StarterChoice("tiny", 0.125D));
+            list.add(new StarterChoice("normal", 1.0D));
+            list.add(new StarterChoice("giant", 8.0D));
+            return list;
+        }
+    }
+
+    public static final class StarterChoice {
+        public String name;
+        public double size = 1.0D;
+
+        public StarterChoice() {}
+
+        public StarterChoice(String name, double size) {
+            this.name = name;
+            this.size = size;
+        }
     }
 
     public static final class SpawnSize {

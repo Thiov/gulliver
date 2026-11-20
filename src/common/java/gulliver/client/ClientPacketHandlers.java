@@ -33,6 +33,8 @@ public final class ClientPacketHandlers {
                 ((IGulliverShoulderInternal) e).gulliver$setChewTicks(p.active() ? 0 : -1);
                 if (!p.active()) ((IGulliverShoulderInternal) e).gulliver$setGrabOffset(null);
             }
+        } else if (payload instanceof Payloads.StarterSizeOffer p) {
+            StarterSizeClient.offer(p);
         } else if (payload instanceof Payloads.HookAnchor p) {
             Entity hook = entityById(p.hookId());
             if (hook instanceof gulliver.access.IGulliverHookInternal h) {

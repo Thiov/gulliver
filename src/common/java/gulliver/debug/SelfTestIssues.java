@@ -204,11 +204,79 @@ final class SelfTestIssues {
 
         check(failures, Math.abs(BreathGust.range(1.0F) - 4.0D) < 1.0E-9D && BreathGust.range(32.0F) <= 48.0D,
                 "breath range is four body lengths, capped");
+        arrow.discard();
+        fire(level, failures, giant, pig);
         pig.setPos(eye.x + 30.0D, eye.y, eye.z);
         check(failures, BreathGust.bigEnough(giant) && !BreathGust.bigEnough(pig), "only giants blow a gust (from size 4)");
         arrow.discard();
         giant.discard();
         pig.discard();
+    }
+
+    /**
+     * #34: a giant's breath puts out fire anywhere in its cone (not just
+     * dead ahead), candles and campfires, and a burning pig; a wall keeps
+     * the fire behind it burning.
+     */
+    private static void fire(ServerLevel level, List<String> failures, Mob giant, Mob pig) {
+        // Look level along +z from high in the sky.
+        Vec3 eye = giant.getEyePosition();
+        giant.lookAt(EntityAnchorArgument.Anchor.EYES, eye.add(0.0D, 0.0D, 10.0D));
+        Vec3 dir = giant.getLookAngle();
+        BlockPos base = BlockPos.containing(eye.x, eye.y - 2.0D, eye.z + 10.0D);
+        // A stone shelf with fire on it, off to the side of the look line.
+        BlockPos side = base.offset(3, 0, 0);
+        BlockPos ahead = base.offset(0, 0, 2);
+        BlockPos camp = base.offset(-2, 0, 0);
+        BlockPos candle = base.offset(1, 0, -3);
+        BlockPos hidden = base.offset(0, 0, 6);
+        BlockPos wall = hidden.offset(0, 0, -1);
+        java.util.List<BlockPos> touched = new java.util.ArrayList<>();
+        try {
+            for (BlockPos p : BlockPos.betweenClosed(base.offset(-4, -1, -4), base.offset(4, -1, 8))) {
+                level.setBlock(p, Blocks.STONE.defaultBlockState(), 3);
+                touched.add(p.immutable());
+            }
+            level.setBlock(ahead.below(), Blocks.SOUL_SOIL.defaultBlockState(), 3);
+            level.setBlock(side, Blocks.FIRE.defaultBlockState(), 3);
+            level.setBlock(ahead, Blocks.SOUL_FIRE.defaultBlockState(), 3);
+            boolean placed = level.getBlockState(side).is(Blocks.FIRE) && level.getBlockState(ahead).is(Blocks.SOUL_FIRE);
+            level.setBlock(camp, Blocks.CAMPFIRE.defaultBlockState(), 3);
+            level.setBlock(candle, Blocks.CANDLE.defaultBlockState()
+                    .setValue(net.minecraft.world.level.block.AbstractCandleBlock.LIT, true), 3);
+            for (BlockPos p : BlockPos.betweenClosed(wall.offset(-1, 0, 0), wall.offset(1, 3, 0))) {
+                level.setBlock(p, Blocks.STONE.defaultBlockState(), 3);
+                touched.add(p.immutable());
+            }
+            level.setBlock(hidden, Blocks.FIRE.defaultBlockState(), 3);
+            touched.add(side);
+            touched.add(ahead);
+            touched.add(camp);
+            touched.add(candle);
+            touched.add(hidden);
+            boolean hiddenPlaced = level.getBlockState(hidden).is(Blocks.FIRE);
+            boolean campLit = net.minecraft.world.level.block.CampfireBlock.isLitCampfire(level.getBlockState(camp));
+
+            pig.setPos(eye.x + 1.0D, eye.y - 1.5D, eye.z + 6.0D);
+            pig.setDeltaMovement(Vec3.ZERO);
+            pig.setRemainingFireTicks(200);
+            boolean pigBurning = pig.isOnFire();
+
+            for (int i = 0; i < BreathGust.FLAME_SWEEP_TICKS; i++) BreathGust.blow(level, giant, i);
+
+            check(failures, placed && level.getBlockState(side).isAir() && level.getBlockState(ahead).isAir(),
+                    "a size-8 breath puts out fire beside its look line and soul fire ahead (#34)");
+            check(failures, campLit && !net.minecraft.world.level.block.CampfireBlock.isLitCampfire(level.getBlockState(camp))
+                    && !level.getBlockState(candle).getValue(net.minecraft.world.level.block.AbstractCandleBlock.LIT),
+                    "a size-8 breath puts out a campfire and a candle (#34)");
+            check(failures, hiddenPlaced && level.getBlockState(hidden).is(Blocks.FIRE),
+                    "fire behind a wall keeps burning (#34)");
+            check(failures, pigBurning && !pig.isOnFire(), "a size-8 breath puts out a burning pig (#34)");
+            check(failures, dir.z > 0.99D, "fire test looks along +z");
+        } finally {
+            for (BlockPos p : touched) level.setBlock(p, Blocks.AIR.defaultBlockState(), 3);
+            pig.clearFire();
+        }
     }
 
     /** #12: a tiny in a boat sits in the hull, not under it, and keeps its air. */

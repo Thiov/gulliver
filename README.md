@@ -40,7 +40,7 @@ Download **Gulliver Unbound** from [CurseForge](https://www.curseforge.com/proje
 - **Fists that span blocks**: breaking a block shatters a fist-shaped crater around it, up to a 7×7 disc at size 8. Collateral blocks only drop what your tool can harvest, and wear the tool.
 - **Sweeping blows**: melee hits splash damage onto creatures around your target.
 - **Appetite**: anything can eat a creature a quarter of its size or smaller. Hold a creature in your hand and hold sneak + right-click: you lift it to your mouth (you see your arm come up in first and third person) and bite it. Monsters eat what they fight: once you hurt one far bigger than you, its blows become grabs (missing as often as the size gap says), at any health for a giant (2× and up), at a third of your health for smaller monsters. It reaches down with both hands, lifts you to its mouth over a second and a half and bites four times, half a second apart. Every bite is real damage that armor, Protection and Resistance reduce, so a well-armored tiny takes more bites, and one that survives them all is spat out, hurt but alive. Hurting the monster makes it let go, and you fall from where it held you; it can't grab you again for three seconds. Sneaking doesn't get you out. Eaten creatures leave no loot and feed the eater.
-- **Breath gust**: giants (4× and up, a setting) hold **G** to blow a cone of wind, four of their own lengths long. It only moves what's lighter than you, harder the lighter it is: a giant blows normal mobs clean away, a normal player blows a tiny away, and nobody can shove something their own size. It turns arrows and fireballs around and blows out candles, campfires and fire. Wisps of air leave your mouth and fly on by themselves, drawn to your size: they swirl, slow down and drift up, trail behind when you turn your head, and spread out over walls, the ground and water instead of going through them. A whisper for a tiny, a gale that kicks up the ground and whips up spray for a giant, rolling rings of wind for a colossus. Water stops the wind, so nothing under the surface is blown; under water your breath goes up as a stream of bubbles. A full breath lasts three seconds, so you can't blow forever.
+- **Breath gust**: giants (4× and up, a setting) hold **G** to blow a cone of wind, four of their own lengths long. It only moves what's lighter than you, harder the lighter it is: a giant blows normal mobs clean away, a normal player blows a tiny away, and nobody can shove something their own size. It turns arrows and fireballs around, and puts out every fire its wind reaches: fire on floors, walls and ceilings, candles, campfires, and burning creatures no bigger than you. Wisps of air leave your mouth and fly on by themselves, drawn to your size: they swirl, slow down and drift up, trail behind when you turn your head, and spread out over walls, the ground and water instead of going through them. A whisper for a tiny, a gale that kicks up the ground and whips up spray for a giant, rolling rings of wind for a colossus. Water stops the wind, so nothing under the surface is blown; under water your breath goes up as a stream of bubbles. A full breath lasts three seconds, so you can't blow forever.
 - **Precision mode**: hold sneak for a single block and a single target.
 - **Growing pains**: grow indoors and your body bursts through weak blocks above you.
 
@@ -70,9 +70,10 @@ Download **Gulliver Unbound** from [CurseForge](https://www.curseforge.com/proje
 
 ## Resizing
 
+- **Starting size**: the first time you join a world, you pick the size you start at (Tiny, Normal or Giant by default), once. The picker shows your own model to scale next to a block, with your height and what the size is like. Servers and modpacks choose the sizes, can add a slider for any size, or turn it off (`starterSize` in the config); `/gulliver starter` opens it if you chose to decide later, `/gulliver starter reset <players>` (operators) lets players pick again.
 - **Potions**: brew Ensmallening from an awkward potion + red mushroom, Embiggening with a brown mushroom. Redstone extends, glowstone strengthens.
 - **Drink Me / Eat Me**: right-click cyan dye or a red mushroom to shrink, purple dye or a brown mushroom to grow.
-- **Commands** (operators): `/gulliver size <targets> <size>`, `/gulliver scale <targets> <factor>`, `/gulliver get <target>` and `/gulliver reload` take normal selectors (`@e[type=cow,distance=..10]`, player names). The classic `/basesize`, `/halfsize`, `/doublesize`, `/showsize`, `/instantkarma` and their `entity…` variants (by entity id) still work. `/showmysize` and `/shoulderentity` work for everyone.
+- **Commands** (operators): `/gulliver size <targets> <size>`, `/gulliver scale <targets> <factor>`, `/gulliver get <target>` and `/gulliver reload` take normal selectors (`@e[type=cow,distance=..10]`, player names). The classic `/basesize`, `/halfsize`, `/doublesize`, `/showsize`, `/instantkarma` and their `entity…` variants (by entity id) still work. `/showmysize`, `/shoulderentity` and `/gulliver starter` work for everyone.
 - **Keybinds** (creative): **U** grow, **I** shrink. Hold a **stick** and they resize the creature under your crosshair instead. For everyone: **V** moves carried creatures between hand and shoulders, **G** (hold) blows a breath gust, **J** switches a sprinting tiny's full-block jump on and off. All of them can be rebound in Controls.
 
 ## Configuration
@@ -101,7 +102,23 @@ Everything is stored in `config/gulliver.json` (reload with `/gulliver reload`):
   }
   ```
 
-Game rule `gulliver:size_griefing` (`gulliverSizeGriefing` before 1.21.11) turns off every size-based block breaking.
+- `starterSize`: the size each player picks the first time they join a world. `enabled` (default on), `choices` (up to 6 `{ "name", "size" }`; `tiny`, `small`, `normal`, `big`, `giant`, `huge` and `colossal` are translated, other names shown as written), `allowCustom` with `customMin`/`customMax` (a slider for any size; 0 follows the player size limits), `allowLater` (players may close it and pick later with `/gulliver starter`), `allowRepick` (default off: players who picked may change their size again with `/gulliver starter`, where the game rule `gulliver:starter_repick` is on, which it is by default). For example:
+
+  ```json
+  "starterSize": {
+    "enabled": true,
+    "choices": [
+      { "name": "tiny", "size": 0.25 },
+      { "name": "normal", "size": 1.0 },
+      { "name": "Titan", "size": 4.0 }
+    ],
+    "allowCustom": false,
+    "allowLater": true
+  }
+  ```
+- `client.cinematicMinSize` / `client.cinematicMaxSize` (default 0.75 and 1.5): the sizes at which Cinematic Interactions, Cinematic Cookery and Cinematic Delight play their scenes (and Cinematic Belongings its chest scenes); outside them stations, pots and boards work as without those mods. Cinematic Belongings' own bag works at every size, scaled with you.
+
+Game rule `gulliver:size_griefing` (`gulliverSizeGriefing` before 1.21.11) turns off every size-based block breaking. Game rule `gulliver:starter_repick` (`gulliverStarterRepick` before 1.21.11) turns changing the starter size on and off per world, where `starterSize.allowRepick` allows it.
 
 ## Building
 
@@ -116,7 +133,7 @@ Gradle must run on **JDK 25** (older targets are compiled for Java 17 or 21 thro
 
 - `src/common` holds the mod itself, `src/fabric`, `src/neoforge` and `src/forge` the thin loader glue.
 - Version differences are handled at build time by `gradle/gulliver.gradle`: `//#if MC >= 1.21.2 && !FORGE … //#else … //#endif` blocks, whole-file conditions, and `versions/<mc>/remap.txt` for plain renames. Sources are written against the newest Minecraft names. A target can share another version's Java overlay through `gulliver_java_overlays` in its `gradle.properties`: 1.21.1 still renders the pre-1.21.2 way and uses 1.20.1's renderer files, with `//#if MC >= 1.21` where the two differ.
-- `scripts/selftest.sh <mc> <loader>` boots a dedicated server and then a client that joins it, with `-Dgulliver.selftest=true`: every mixin is force-applied and resizing, combat, trampling, carrying, spawn sizes, effects, brewing and the grappling hook are exercised before the game quits. `scripts/prodtest.sh <mc>` does the same with the release jar on a real Fabric server. `scripts/check_mixins.py` checks every mixin target and handler signature against a Minecraft jar without launching. With a file named `gulliver-showcase` in a target's `run` folder, the self-test client plays a scripted tour of the breath gust (on land, over water and under it), carrying and eating instead and saves screenshots (`run/screenshots`). A file named `gulliver-showcase-blocks` plays a tour of the solid small blocks (#19), `gulliver-showcase-fixes` one of tiny creatures staying in view (#26, before and after) and items restricted by size (#30), both in real time for filming. A file named `gulliver-showcase-issues` plays a tour of the newer fixes instead (the 1/32 crouch camera, name tags, particles off and on, creeper blasts, pushing, the sprint-jump toggle), logging what it measures; settings a build doesn't have are skipped, so the same tour also shows an older build's behaviour.
+- `scripts/selftest.sh <mc> <loader>` boots a dedicated server and then a client that joins it, with `-Dgulliver.selftest=true`: every mixin is force-applied and resizing, combat, trampling, carrying, spawn sizes, effects, brewing and the grappling hook are exercised before the game quits. `scripts/prodtest.sh <mc>` does the same with the release jar on a real Fabric server. `scripts/check_mixins.py` checks every mixin target and handler signature against a Minecraft jar without launching. With a file named `gulliver-showcase` in a target's `run` folder, the self-test client plays a scripted tour of the breath gust (on land, over water and under it), carrying and eating instead and saves screenshots (`run/screenshots`). A file named `gulliver-showcase-blocks` plays a tour of the solid small blocks (#19), `gulliver-showcase-fixes` one of tiny creatures staying in view (#26, before and after) and items restricted by size (#30), both in real time for filming. A file named `gulliver-showcase-new` films the starter size picker (#32), the breath gust putting out fires (#34) and Cinematic Interactions, Cookery, Delight and Belongings at normal, giant and tiny size (#33, with those mods in `run/mods`; the file containing `addons` films only those, `proper` uses them for real: crafting at the table, cooking and cutting, and Belongings' bag clicked with the mouse at sizes 1/8 to 8). A file named `gulliver-showcase-issues` plays a tour of the newer fixes instead (the 1/32 crouch camera, name tags, particles off and on, creeper blasts, pushing, the sprint-jump toggle), logging what it measures; settings a build doesn't have are skipped, so the same tour also shows an older build's behaviour.
 
 ## Credits and license
 

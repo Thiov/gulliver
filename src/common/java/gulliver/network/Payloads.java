@@ -216,6 +216,79 @@ public final class Payloads {
     }
 
     /**
+     * S2C (#32): this player hasn't picked a starter size yet (or, with
+     * repick, asked to pick again); open the picker. names and sizes are the choices in order (a name may be a
+     * known key like "tiny", see StarterSizes); custom sizes in
+     * [customMin, customMax] may be picked too when allowCustom.
+     */
+    public record StarterSizeOffer(java.util.List<String> names, java.util.List<Float> sizes, boolean allowCustom,
+                                   float customMin, float customMax, boolean allowLater, float currentSize,
+                                   boolean repick)
+            implements GulliverPayload {
+        public static final Identifier ID = Gulliver.id("starter_size_offer");
+        /** More than any config allows; a damaged packet can't make the client allocate much. */
+        private static final int MAX = 16;
+
+        public static StarterSizeOffer read(FriendlyByteBuf b) {
+            int n = Math.min(b.readVarInt(), MAX);
+            java.util.List<String> names = new java.util.ArrayList<>();
+            java.util.List<Float> sizes = new java.util.ArrayList<>();
+            for (int i = 0; i < n; i++) {
+                names.add(b.readUtf(64));
+                sizes.add(b.readFloat());
+            }
+            return new StarterSizeOffer(names, sizes, b.readBoolean(), b.readFloat(), b.readFloat(), b.readBoolean(),
+                    b.readFloat(), b.readBoolean());
+        }
+
+        @Override
+        public void write(FriendlyByteBuf b) {
+            int n = Math.min(Math.min(names.size(), sizes.size()), MAX);
+            b.writeVarInt(n);
+            for (int i = 0; i < n; i++) {
+                String name = names.get(i) == null ? "" : names.get(i);
+                b.writeUtf(name.length() > 64 ? name.substring(0, 64) : name, 64);
+                b.writeFloat(sizes.get(i));
+            }
+            b.writeBoolean(allowCustom);
+            b.writeFloat(customMin);
+            b.writeFloat(customMax);
+            b.writeBoolean(allowLater);
+            b.writeFloat(currentSize);
+            b.writeBoolean(repick);
+        }
+
+        //#if MC >= 1.20.5
+        public static final Type<StarterSizeOffer> TYPE = new Type<>(ID);
+        @Override public Type<StarterSizeOffer> type() { return TYPE; }
+        //#endif
+    }
+
+    /**
+     * C2S (#32): the player picked a starter size, or (later) closed the
+     * picker to decide another time. The server checks the size against
+     * what it offered.
+     */
+    public record StarterSizeChoice(float size, boolean later) implements GulliverPayload {
+        public static final Identifier ID = Gulliver.id("starter_size_choice");
+
+        public static StarterSizeChoice read(FriendlyByteBuf b) {
+            return new StarterSizeChoice(b.readFloat(), b.readBoolean());
+        }
+
+        @Override
+        public void write(FriendlyByteBuf b) {
+            b.writeFloat(size);
+            b.writeBoolean(later);
+        }
+
+        //#if MC >= 1.20.5
+        public static final Type<StarterSizeChoice> TYPE = new Type<>(ID);
+        @Override public Type<StarterSizeChoice> type() { return TYPE; }
+        //#endif
+    }
+
+    /**
      * S2C: a body started or stopped an action others should see:
      * blowing a breath gust (BreathGust) or bringing its hand-held creature
      * to its mouth (Appetite).

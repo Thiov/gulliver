@@ -26,6 +26,9 @@ import java.util.function.IntConsumer;
  * their times, for cutting the film) and quits:
  *  - "gulliver-showcase-fixes": tiny creatures staying in view (#26) and
  *    items restricted by size (#30);
+ *  - "gulliver-showcase-new": the starter size picker (#32), the breath
+ *    gust putting out fires (#34) and Cinematic Interactions stations at
+ *    giant and tiny size (#33, needs that mod in run/mods);
  *  - "gulliver-showcase-blocks": small blocks solid for tinies (#19):
  *    walking over buttons and plates, standing on a lever and a sign on a
  *    wall, and pressure plates springing tinies into the air. Keys are
@@ -43,6 +46,13 @@ public final class ClientShowcaseFilm {
 
     private static Boolean enabled;
     private static boolean blocksTour;
+    private static boolean newTour;
+    /** The starter size picker scene is on: the offer it asks for must not be dismissed. */
+    private static boolean picker;
+
+    public static boolean pickerScene() {
+        return picker;
+    }
     private static int t;
     private static final List<Step> STEPS = new ArrayList<>();
     private static int end;
@@ -52,7 +62,9 @@ public final class ClientShowcaseFilm {
     public static boolean active(Minecraft mc) {
         if (enabled == null) {
             blocksTour = java.nio.file.Files.exists(mc.gameDirectory.toPath().resolve("gulliver-showcase-blocks"));
-            enabled = blocksTour || java.nio.file.Files.exists(mc.gameDirectory.toPath().resolve("gulliver-showcase-fixes"));
+            newTour = java.nio.file.Files.exists(mc.gameDirectory.toPath().resolve("gulliver-showcase-new"));
+            enabled = blocksTour || newTour
+                    || java.nio.file.Files.exists(mc.gameDirectory.toPath().resolve("gulliver-showcase-fixes"));
         }
         return enabled;
     }
@@ -72,7 +84,7 @@ public final class ClientShowcaseFilm {
     public static boolean tick(Minecraft mc) {
         if (STEPS.isEmpty()) script(mc);
         t++;
-        for (Step s : STEPS) {
+        for (Step s : new ArrayList<>(STEPS)) {
             if (t >= s.from() && t <= s.to()) s.action().accept(t - s.from());
         }
         film(mc);
@@ -144,6 +156,35 @@ public final class ClientShowcaseFilm {
             blocks(mc, 200);
             return;
         }
+        if (newTour) {
+            String only = "";
+            try {
+                only = java.nio.file.Files.readString(mc.gameDirectory.toPath().resolve("gulliver-showcase-new")).trim();
+            } catch (java.io.IOException e) {
+                only = "";
+            }
+            // "addons" in the file: only the scenes of the mods in Cinematic Interactions' style.
+            if (only.equals("addons")) {
+                at(200, () -> applyConfig(mc));
+                addons(mc, p, 220);
+            } else if (only.equals("bag")) {
+                at(200, () -> applyConfig(mc));
+                int e = bagAtEverySize(mc, p, 220);
+                at(e, () -> mark("end"));
+            } else if (only.equals("craft")) {
+                at(200, () -> applyConfig(mc));
+                int e = craftAtTable(mc, p, 220);
+                at(e, () -> mark("end"));
+            } else if (only.equals("proper")) {
+                // The mods in Cinematic Interactions' style used for real: crafting, cooking, cutting,
+                // and Belongings' bag clicked with the mouse at every size.
+                at(200, () -> applyConfig(mc));
+                proper(mc, p, 220);
+            } else {
+                newFeatures(mc, 200);
+            }
+            return;
+        }
 
         // ---- #26: tiny creatures stay in view -------------------------------------------
         int s1 = 90;
@@ -213,6 +254,732 @@ public final class ClientShowcaseFilm {
         });
 
         at(s2 + 400, () -> mark("end"));
+    }
+
+    // ---- #32, #34, #33 -------------------------------------------------------------------
+
+    private static void newFeatures(Minecraft mc, int s) {
+        LocalPlayer p = mc.player;
+
+        // ---- #32: the starter size picker ----
+        at(s, () -> {
+            mark("starter-size");
+            size(mc, 1.0F);
+            onServer(mc, sp -> sp.teleportTo(arena.x, arena.y, arena.z));
+            look(p, 0.0F, 0.0F);
+            clearChat(mc);
+            title(mc, "#32", "Pick your starting size on your first join");
+        });
+        at(s + 70, () -> {
+            picker = true;
+            // Forget this player's pick, which asks again: the same as a first join.
+            var server = mc.getSingleplayerServer();
+            onServer(mc, sp -> {
+                if (server != null) gulliver.common.StarterSizes.reset(server, sp);
+            });
+        });
+        int[] picks = {0, 1, 2, 3, 2};
+        for (int i = 0; i < picks.length; i++) {
+            int index = picks[i];
+            at(s + 130 + i * 55, () -> {
+                if (mc.gui.screen() instanceof StarterSizeScreen screen && index < screen.optionCount()) screen.pick(index);
+            });
+        }
+        at(s + 130 + picks.length * 55 + 20, () -> {
+            if (mc.gui.screen() instanceof StarterSizeScreen screen) screen.pressStart();
+            picker = false;
+            look(p, 0.0F, 0.0F);
+            camOn(mc, 150.0F, 1.6F, 0.4F, 0.55F);
+        });
+        int s2 = s + 130 + picks.length * 55 + 140;
+
+        // ---- #34: the breath gust puts out fires ----
+        at(s2, () -> {
+            mark("breath-fire");
+            camOff(mc);
+            onServer(mc, sp -> sp.teleportTo(arena.x + 0.5D, arena.y, arena.z - 10.0D));
+            cmd(mc, "gamerule fire_spread_radius_around_player 0");
+            cmd(mc, "gamerule doFireTick false");
+            int x = Mth.floor(arena.x), y = Mth.floor(arena.y), z = Mth.floor(arena.z);
+            // A bare field ahead: grass, a plank wall at the far end.
+            cmd(mc, String.format(Locale.ROOT, "fill %d %d %d %d %d %d minecraft:air", x - 9, y, z - 4, x + 9, y + 8, z + 16));
+            cmd(mc, String.format(Locale.ROOT, "fill %d %d %d %d %d %d minecraft:oak_planks", x - 7, y, z + 14, x + 7, y + 5, z + 14));
+            for (int fx = -6; fx <= 6; fx += 2) {
+                for (int fz = -1; fz <= 11; fz += 3) {
+                    cmd(mc, String.format(Locale.ROOT, "setblock %d %d %d minecraft:netherrack", x + fx, y - 1, z + fz));
+                }
+            }
+            lightFires(mc);
+            clearChat(mc);
+            title(mc, "#34", "The breath gust puts out fires");
+            look(p, 0.0F, 25.0F);
+        });
+        at(s2 + 20, () -> size(mc, 8.0F));
+        // Burning pigs among the flames.
+        at(s2 + 60, () -> {
+            for (int i = -2; i <= 2; i++) {
+                cmd(mc, String.format(Locale.ROOT,
+                        "summon pig %.1f %.1f %.1f {NoAI:1b,Silent:1b,Tags:[\"gv_burn\"]}",
+                        arena.x + i * 2.5D, arena.y, arena.z + 9.0D));
+            }
+        });
+        at(s2 + 100, () -> onServer(mc, sp -> {
+            for (var e : ((ServerLevel) sp.level()).getEntities((net.minecraft.world.entity.Entity) null,
+                    sp.getBoundingBox().inflate(60.0D), e -> tags(e).contains("gv_burn"))) {
+                e.setRemainingFireTicks(400);
+            }
+        }));
+        at(s2 + 110, () -> sub(mc, "Hold G: every flame the wind reaches goes out"));
+        during(s2 + 120, s2 + 175, i -> {
+            key(KeyInputHandler.BREATH, true);
+            look(p, -18.0F + i * 0.65F, 40.0F);
+        });
+        at(s2 + 176, () -> key(KeyInputHandler.BREATH, false));
+        at(s2 + 190, () -> {
+            lightFires(mc);
+            onServer(mc, sp -> {
+                for (var e : ((ServerLevel) sp.level()).getEntities((net.minecraft.world.entity.Entity) null,
+                        sp.getBoundingBox().inflate(60.0D), e -> tags(e).contains("gv_burn"))) {
+                    e.setRemainingFireTicks(400);
+                }
+            });
+        });
+        at(s2 + 200, () -> {
+            // Over the giant's shoulder, onto the field it blows at.
+            camOn(mc, 40.0F, 0.55F, 1.15F, 0.0F);
+            sub(mc, "Wall fires, campfires, candles and burning mobs too");
+        });
+        during(s2 + 230, s2 + 285, i -> {
+            key(KeyInputHandler.BREATH, true);
+            look(p, 18.0F - i * 0.65F, 24.0F);
+        });
+        at(s2 + 286, () -> key(KeyInputHandler.BREATH, false));
+        int s3 = s2 + 360;
+        at(s3 - 20, () -> {
+            camOff(mc);
+            cmd(mc, "kill @e[tag=gv_burn]");
+            cmd(mc, "kill @e[type=item]");
+        });
+
+        // ---- #33: Cinematic Interactions at any size ----
+        at(s3, () -> {
+            mark("cinematic");
+            size(mc, 1.0F);
+            int x = Mth.floor(arena.x), y = Mth.floor(arena.y), z = Mth.floor(arena.z);
+            cmd(mc, String.format(Locale.ROOT, "fill %d %d %d %d %d %d minecraft:air", x - 10, y, z - 12, x + 10, y + 8, z + 16));
+            cmd(mc, String.format(Locale.ROOT, "fill %d %d %d %d %d %d minecraft:grass_block", x - 10, y - 1, z - 12, x + 10, y - 1, z + 16));
+            cmd(mc, "kill @e[type=item]");
+            clearChat(mc);
+            cmd(mc, String.format(Locale.ROOT, "setblock %d %d %d minecraft:crafting_table", x, y, z + 2));
+            onServer(mc, sp -> sp.teleportTo(arena.x + 0.5D, arena.y, z + 0.6D));
+            cmd(mc, "item replace entity @a weapon.mainhand with minecraft:stick");
+            title(mc, "#33", "Cinematic Interactions at any size");
+        });
+        // Normal size: the cinematic scene plays.
+        at(s3 + 60, () -> {
+            sub(mc, "Normal size: the cinematic scene plays");
+            lookAtTable(p, z(s3));
+        });
+        at(s3 + 70, () -> key(mc.options.keyUse, true));
+        at(s3 + 72, () -> key(mc.options.keyUse, false));
+        at(s3 + 200, CinematicCompat::leaveScene);
+        // Giant: the normal window instead.
+        at(s3 + 240, () -> onServer(mc, sp -> sp.teleportTo(arena.x + 0.5D, arena.y, Mth.floor(arena.z) - 4.0D)));
+        at(s3 + 246, () -> {
+            size(mc, 8.0F);
+            sub(mc, "Giant: the normal crafting window instead");
+        });
+        at(s3 + 290, () -> lookAtTable(p, z(s3)));
+        at(s3 + 300, () -> key(mc.options.keyUse, true));
+        at(s3 + 302, () -> key(mc.options.keyUse, false));
+        at(s3 + 370, () -> p.closeContainer());
+        // Tiny: the normal window too.
+        at(s3 + 390, () -> {
+            size(mc, 0.125F);
+            sub(mc, "Tiny: the normal window too");
+        });
+        at(s3 + 396, () -> onServer(mc, sp -> sp.teleportTo(arena.x + 0.5D, arena.y, Mth.floor(arena.z) + 1.85D)));
+        at(s3 + 440, () -> lookAtTable(p, z(s3)));
+        at(s3 + 450, () -> key(mc.options.keyUse, true));
+        at(s3 + 452, () -> key(mc.options.keyUse, false));
+        at(s3 + 520, () -> p.closeContainer());
+        // A scene playing when the size changes ends.
+        at(s3 + 540, () -> onServer(mc, sp -> sp.teleportTo(arena.x + 0.5D, arena.y, Mth.floor(arena.z) + 0.6D)));
+        at(s3 + 546, () -> size(mc, 1.0F));
+        at(s3 + 580, () -> {
+            sub(mc, "Growing during a scene ends it");
+            lookAtTable(p, z(s3));
+        });
+        at(s3 + 590, () -> key(mc.options.keyUse, true));
+        at(s3 + 592, () -> key(mc.options.keyUse, false));
+        // 2.5: well past the scene range, and still clear of the table.
+        at(s3 + 680, () -> size(mc, 2.5F));
+        at(s3 + 780, () -> size(mc, 1.0F));
+        addons(mc, p, s3 + 800);
+    }
+
+    private static void addons(Minecraft mc, LocalPlayer p, int s4) {
+
+        // ---- #33: the mods in Cinematic Interactions' style, where installed ----
+        if (installed("com.cinematicbelongings.scene.PersonalScene")) s4 = belongings(mc, p, s4);
+        if (installed("com.example.cinematiccookery.CookScene")) {
+            s4 = station(mc, p, s4, "Cinematic Cookery", "kaleidoscope_cookery:stove[lit=true]", "kaleidoscope_cookery:pot",
+                    "the cooking scene plays", "the pot works as without the mod");
+            s4 = station(mc, p, s4, "Cinematic Cookery", null, "kaleidoscope_cookery:chopping_board",
+                    "the chopping scene plays", "the board works as without the mod");
+        }
+        if (installed("com.arbuzobr1.cinematicdelight.CookScene")) {
+            s4 = station(mc, p, s4, "Cinematic Delight", "minecraft:campfire[lit=true]", "farmersdelight:cooking_pot",
+                    "the cooking scene plays", "the pot works as without the mod");
+            s4 = station(mc, p, s4, "Cinematic Delight", null, "farmersdelight:cutting_board", "the cutting scene plays",
+                    "the board works as without the mod");
+        }
+        int end = s4;
+        at(end, () -> {
+            size(mc, 1.0F);
+            mark("end");
+        });
+    }
+
+    /** Logs whether a scene started, and if not, what the mod's own tryBegin says when asked directly. */
+    private static void diagnose(Minecraft mc, String block) {
+        log("showcase {}: hit {} scene active {}", block, mc.hitResult == null ? null : mc.hitResult.getType(),
+                CinematicCompat.activeScene());
+        if (CinematicCompat.activeScene() != null || !(mc.hitResult instanceof net.minecraft.world.phys.BlockHitResult hit)) return;
+        for (String name : new String[] {"com.example.cinematiccookery.CookScene", "com.arbuzobr1.cinematicdelight.CookScene"}) {
+            try {
+                Class<?> c = Class.forName(name);
+                for (java.lang.reflect.Method m : c.getMethods()) {
+                    if (!m.getName().equals("tryBegin")) continue;
+                    Object r = m.invoke(null, mc.level, hit.getBlockPos(), mc.player);
+                    log("showcase {}: {}.tryBegin -> {}, debug {}", block, name, r,
+                            c.getMethod("debugLine").invoke(null));
+                    var be = mc.level.getBlockEntity(hit.getBlockPos());
+                    Class<?> station = Class.forName(name.replace("CookScene", "Station"));
+                    Object st = station.getMethod("of", net.minecraft.world.level.block.entity.BlockEntity.class).invoke(null, be);
+                    log("showcase {}: block entity {}, station {}, distance {}, screen {}, camera {}", block,
+                            be == null ? null : be.getClass().getName(), st,
+                            Math.sqrt(mc.player.distanceToSqr(Vec3.atCenterOf(hit.getBlockPos()))), mc.gui.screen(),
+                            mc.options.getCameraType());
+                }
+            } catch (ReflectiveOperationException | LinkageError e) {
+                // not installed
+            }
+        }
+    }
+
+    // ---- the cinematic mods used for real ---------------------------------------------
+
+    private static void proper(Minecraft mc, LocalPlayer p, int s) {
+        if (installed("dev.dyslexic.cinematic.client.Scene")) s = craftAtTable(mc, p, s);
+        if (installed("com.cinematicbelongings.scene.PersonalScene")) s = bagAtEverySize(mc, p, s);
+        if (installed("com.example.cinematiccookery.CookScene")) {
+            String scene = "com.example.cinematiccookery.CookScene";
+            s = cook(mc, p, s, "Cinematic Cookery: stir-frying beef", scene, "kaleidoscope_cookery:stove[lit=true]",
+                    "kaleidoscope_cookery:pot", new String[] {"kaleidoscope_cookery:oil", "minecraft:beef 2",
+                            "kaleidoscope_cookery:kitchen_shovel"},
+                    new int[] {0, 1, 2, 2, 2, 2, 2, 2, 2, 2}, 30);
+            s = cook(mc, p, s, "Cinematic Cookery: carving a chicken", scene, null, "kaleidoscope_cookery:chopping_board",
+                    new String[] {"minecraft:cooked_chicken", "kaleidoscope_cookery:iron_kitchen_knife"},
+                    new int[] {0, 1, 1, 1, 1, 1}, 30);
+        }
+        if (installed("com.arbuzobr1.cinematicdelight.CookScene")) {
+            String scene = "com.arbuzobr1.cinematicdelight.CookScene";
+            s = cook(mc, p, s, "Cinematic Delight: tomato sauce", scene, "minecraft:campfire[lit=true]",
+                    "farmersdelight:cooking_pot", new String[] {"farmersdelight:tomato 2", "minecraft:bowl"},
+                    new int[] {0, 0, -1, -1, -1, -1, -1, -1, 1, 1}, 30);
+            s = cook(mc, p, s, "Cinematic Delight: mincing beef", scene, null, "farmersdelight:cutting_board",
+                    new String[] {"minecraft:beef", "farmersdelight:iron_knife"}, new int[] {0, 1, -1, -1}, 30);
+        }
+        int end = s;
+        at(end, () -> {
+            size(mc, 1.0F);
+            mark("end");
+        });
+    }
+
+    /** Cinematic Interactions at normal size: logs into planks, planks into sticks, with its own hands. */
+    private static int craftAtTable(Minecraft mc, LocalPlayer p, int s) {
+        at(s, () -> {
+            mark("craft");
+            camOff(mc);
+            clearChat(mc);
+            size(mc, 1.0F);
+            int x = Mth.floor(arena.x), y = Mth.floor(arena.y), z = Mth.floor(arena.z);
+            cmd(mc, String.format(Locale.ROOT, "fill %d %d %d %d %d %d minecraft:air", x - 3, y, z, x + 3, y + 3, z + 4));
+            cmd(mc, String.format(Locale.ROOT, "setblock %d %d %d minecraft:crafting_table", x, y, z + 2));
+            cmd(mc, "clear @a");
+            cmd(mc, "item replace entity @a hotbar.0 with minecraft:oak_log 4");
+            onServer(mc, sp -> sp.teleportTo(arena.x + 0.5D, arena.y, z + 0.6D));
+            title(mc, "#33", "Cinematic Interactions: crafting at normal size");
+        });
+        at(s + 50, () -> lookAtTable(p, Mth.floor(arena.z)));
+        at(s + 60, () -> key(mc.options.keyUse, true));
+        at(s + 62, () -> key(mc.options.keyUse, false));
+        // The table keeps the inventory open: items are picked up from it onto the cursor
+        // (a normal container click), laid on a cell of the table and crafted there.
+        String table = "dev.dyslexic.cinematic.client.Scene";
+        // Steps: pick up a stack (container click), hover a table cell and right-click (one item),
+        // put the rest back, hover the result and click (craft), put the result in the hotbar.
+        Object[][] steps = {
+                {"pick", "minecraft:oak_log", "Logs on the table"}, {"cell", 4}, {"put", 36},
+                {"craft", "Craft the planks"}, {"put", 37},
+                {"pick", "minecraft:oak_planks", "Planks into sticks"}, {"cell", 1}, {"cell", 4}, {"put", 37},
+                {"craft", "Craft the sticks"}, {"put", 38}};
+        int t = s + 170;
+        for (Object[] step : steps) {
+            at(t, () -> {
+                Object station = staticField(table, "station");
+                if (station == null) {
+                    log("showcase craft: no station");
+                    return;
+                }
+                switch ((String) step[0]) {
+                    case "pick" -> {
+                        if (step[2] != null) sub(mc, (String) step[2]);
+                        containerClick(mc, p, menuSlotOf(p, (String) step[1]));
+                    }
+                    case "put" -> containerClick(mc, p, (Integer) step[1]);
+                    case "cell" -> {
+                        setField(station, "hoverResult", false);
+                        setField(station, "hoverCell", (Integer) step[1]);
+                        invokeOn(station, "click", 1, false);
+                    }
+                    case "craft" -> {
+                        sub(mc, (String) step[1]);
+                        setField(station, "hoverCell", -1);
+                        setField(station, "hoverResult", true);
+                        invokeOn(station, "click", 0, false);
+                    }
+                    default -> { }
+                }
+                log("showcase craft {} -> carried {}, hotbar {}", java.util.Arrays.toString(step),
+                        p.containerMenu.getCarried(), p.getInventory().getItem(0) + " / " + p.getInventory().getItem(1)
+                                + " / " + p.getInventory().getItem(2));
+            });
+            t += step[0].equals("craft") ? 70 : 30;
+        }
+        at(t + 30, () -> log("showcase craft: inventory {}", p.getInventory().getItem(1) + " / " + p.getInventory().getItem(2)));
+        at(t + 40, CinematicCompat::leaveScene);
+        return t + 100;
+    }
+
+    /** Cinematic Belongings' bag at every size, its items moved with the real mouse. */
+    private static int bagAtEverySize(Minecraft mc, LocalPlayer p, int s) {
+        at(s, () -> {
+            mark("bag");
+            camOff(mc);
+            clearChat(mc);
+            size(mc, 1.0F);
+            onServer(mc, sp -> sp.teleportTo(arena.x + 0.5D, arena.y, arena.z - 6.0D));
+            cmd(mc, "clear @a");
+            cmd(mc, "item replace entity @a hotbar.0 with minecraft:bread 12");
+            cmd(mc, "item replace entity @a hotbar.1 with minecraft:iron_pickaxe");
+            cmd(mc, "item replace entity @a inventory.4 with minecraft:oak_log 20");
+            title(mc, "#33", "Cinematic Belongings at every size");
+        });
+        float[] sizes = {0.125F, 0.25F, 0.5F, 1.0F, 2.0F, 4.0F, 8.0F};
+        String[] names = {"1/8", "1/4", "1/2", "1", "2", "4", "8"};
+        int t = s + 60;
+        for (int i = 0; i < sizes.length; i++) {
+            float size = sizes[i];
+            String name = names[i];
+            int at = t;
+            at(at, () -> {
+                size(mc, size);
+                sub(mc, "Size " + name + ": moving bread with the mouse");
+            });
+            at(at + 40, () -> {
+                look(p, 0.0F, 10.0F);
+                mc.gui.setScreen(new net.minecraft.client.gui.screens.inventory.InventoryScreen(p));
+            });
+            // Inventory menu: 36 = first hotbar slot, 20 = an empty inventory slot.
+            // Belongings' hand reaches into the bag before the item moves: leave it time.
+            at(at + 100, () -> mouseOnSlot(mc, 36, name));
+            at(at + 106, () -> mouseClick(mc));
+            at(at + 150, () -> mouseOnSlot(mc, 20, name));
+            at(at + 156, () -> mouseClick(mc));
+            at(at + 200, () -> log("showcase bag size {}: after moving with the mouse: hotbar 0 {}, slot 20 {}, carried {}",
+                    name, p.getInventory().getItem(0), p.getInventory().getItem(20), p.containerMenu.getCarried()));
+            at(at + 205, () -> mouseOnSlot(mc, 20, name));
+            at(at + 211, () -> mouseClick(mc));
+            at(at + 255, () -> mouseOnSlot(mc, 36, name));
+            at(at + 261, () -> mouseClick(mc));
+            at(at + 305, () -> {
+                log("showcase bag size {}: moved back: hotbar 0 {}, slot 20 {}", name, p.getInventory().getItem(0),
+                        p.getInventory().getItem(20));
+                if (mc.gui.screen() != null) mc.gui.screen().onClose();
+            });
+            t += 335;
+        }
+        at(t, () -> size(mc, 1.0F));
+        return t + 30;
+    }
+
+    /** Puts the real mouse cursor where Belongings draws a menu slot, and logs whether it agrees. */
+    private static void mouseOnSlot(Minecraft mc, int menuSlot, String size) {
+        //#if MC >= 26.1
+        try {
+            Object spot = invokeStatic("com.cinematicbelongings.bag.Bag", "spot", menuSlot);
+            if (spot == null) {
+                log("showcase bag size {}: no spot {}", size, menuSlot);
+                return;
+            }
+            Vec3 pos = (Vec3) invokeOn(spot, "pos");
+            double[] gui = (double[]) invokeStatic("com.cinematicbelongings.render.Picking", "toGui", pos);
+            var window = mc.getWindow();
+            double x = gui[0] * window.getScreenWidth() / window.getGuiScaledWidth();
+            double y = gui[1] * window.getScreenHeight() / window.getGuiScaledHeight();
+            java.lang.reflect.Field fx = net.minecraft.client.MouseHandler.class.getDeclaredField("xpos");
+            java.lang.reflect.Field fy = net.minecraft.client.MouseHandler.class.getDeclaredField("ypos");
+            fx.setAccessible(true);
+            fy.setAccessible(true);
+            fx.setDouble(mc.mouseHandler, x);
+            fy.setDouble(mc.mouseHandler, y);
+            mc.execute(() -> log("showcase bag size {}: cursor on slot {} -> hovered {}", size, menuSlot,
+                    invokeStatic("com.cinematicbelongings.bag.Bag", "hovered")));
+        } catch (ReflectiveOperationException | RuntimeException e) {
+            log("showcase bag size {}: could not move the mouse: {}", size, e.toString());
+        }
+        //#endif
+    }
+
+    /** A left click (SDL button 1) at the cursor, delivered to the open screen as the mouse handler does. */
+    private static void mouseClick(Minecraft mc) {
+        //#if MC >= 26.1
+        var screen = mc.gui.screen();
+        if (screen == null) return;
+        var window = mc.getWindow();
+        double x = mc.mouseHandler.xpos() * window.getGuiScaledWidth() / window.getScreenWidth();
+        double y = mc.mouseHandler.ypos() * window.getGuiScaledHeight() / window.getScreenHeight();
+        var event = new net.minecraft.client.input.MouseButtonEvent(x, y, new net.minecraft.client.input.MouseButtonInfo(1, 0));
+        Object hovered = invokeStatic("com.cinematicbelongings.bag.Bag", "hovered");
+        log("showcase click: phase {}, bag valid {}", staticField("com.cinematicbelongings.scene.PersonalScene", "phase"),
+                invokeStatic("com.cinematicbelongings.bag.Bag", "valid"));
+        boolean pressed = screen.mouseClicked(event, false);
+        Object afterPress = mc.player == null ? null : mc.player.containerMenu.getCarried().copy();
+        // A real click: the button comes up a moment later.
+        net.minecraft.client.gui.screens.Screen pressedOn = screen;
+        at(t + 3, () -> {
+            boolean released = pressedOn.mouseReleased(event);
+            log("showcase click released {}: carried {}", released, mc.player == null ? null : mc.player.containerMenu.getCarried());
+        });
+        log("showcase click at {},{} on hovered {}: screen {}, pressed {}, carried after press {}", Math.round(x),
+                Math.round(y), hovered, screen.getClass().getSimpleName(), pressed, afterPress);
+        //#endif
+    }
+
+    /**
+     * A cooking mod's block used for real: the items go in the hotbar, the
+     * block is used (the scene starts), and each step selects a hotbar slot
+     * and acts with it (-1: just wait).
+     */
+    private static int cook(Minecraft mc, LocalPlayer p, int s, String what, String scene, String under, String block,
+                            String[] hotbar, int[] steps, int gap) {
+        float lift = under == null ? 0.0F : 1.0F;
+        at(s, () -> {
+            mark("cook " + block);
+            camOff(mc);
+            clearChat(mc);
+            size(mc, 1.0F);
+            int x = Mth.floor(arena.x), y = Mth.floor(arena.y), z = Mth.floor(arena.z);
+            cmd(mc, String.format(Locale.ROOT, "fill %d %d %d %d %d %d minecraft:air", x - 3, y, z, x + 3, y + 3, z + 4));
+            if (under != null) cmd(mc, String.format(Locale.ROOT, "setblock %d %d %d %s", x, y, z + 2, under));
+            cmd(mc, String.format(Locale.ROOT, "setblock %d %d %d %s", x, y + (under == null ? 0 : 1), z + 2, block));
+            cmd(mc, "kill @e[type=item]");
+            cmd(mc, "clear @a");
+            for (int i = 0; i < hotbar.length; i++) {
+                cmd(mc, "item replace entity @a hotbar." + i + " with " + hotbar[i]);
+            }
+            onServer(mc, sp -> sp.teleportTo(arena.x + 0.5D, arena.y, z + 0.6D));
+            title(mc, "#33", what);
+        });
+        at(s + 50, () -> lookAtBlock(p, Mth.floor(arena.z), lift));
+        at(s + 60, () -> key(mc.options.keyUse, true));
+        at(s + 62, () -> key(mc.options.keyUse, false));
+        int t = s + 150;
+        for (int step : steps) {
+            int at = t;
+            if (step >= 0) {
+                at(at, () -> invokeStatic(scene, "select", step));
+                at(at + 6, () -> {
+                    invokeStatic(scene, "act");
+                    log("showcase cook {} slot {}: status {}", block, step, invokeStatic(scene, "potStatus"));
+                });
+            }
+            t += gap;
+        }
+        at(t + 40, CinematicCompat::leaveScene);
+        return t + 100;
+    }
+
+    /** The inventory menu slot holding the first stack of this item (hotbar 0-8 is 36-44), or -1. */
+    private static int menuSlotOf(LocalPlayer p, String item) {
+        for (int i = 0; i < 36; i++) {
+            var stack = p.getInventory().getItem(i);
+            if (!stack.isEmpty() && net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(stack.getItem()).toString()
+                    .equals(item)) {
+                return i < 9 ? 36 + i : i;
+            }
+        }
+        return -1;
+    }
+
+    /** A left click on a slot of the open container, as the inventory screen sends it (any version). */
+    private static void containerClick(Minecraft mc, LocalPlayer p, int slot) {
+        if (slot < 0 || mc.gameMode == null) return;
+        for (java.lang.reflect.Method m : mc.gameMode.getClass().getMethods()) {
+            Class<?>[] params = m.getParameterTypes();
+            if (params.length == 5 && params[0] == int.class && params[1] == int.class && params[2] == int.class
+                    && params[3].isEnum()) {
+                try {
+                    Object pickup = null;
+                    for (Object c : params[3].getEnumConstants()) if (((Enum<?>) c).name().equals("PICKUP")) pickup = c;
+                    m.invoke(mc.gameMode, p.containerMenu.containerId, slot, 0, pickup, p);
+                    return;
+                } catch (ReflectiveOperationException | RuntimeException e) {
+                    log("showcase: container click failed: {}", e.toString());
+                }
+            }
+        }
+    }
+
+    private static Object invokeStatic(String className, String name, Object... args) {
+        try {
+            Class<?> c = Class.forName(className);
+            for (java.lang.reflect.Method m : c.getMethods()) {
+                if (m.getName().equals(name) && m.getParameterCount() == args.length
+                        && java.lang.reflect.Modifier.isStatic(m.getModifiers())) {
+                    return m.invoke(null, args);
+                }
+            }
+            log("showcase: no {}.{}", className, name);
+        } catch (ReflectiveOperationException | RuntimeException | LinkageError e) {
+            log("showcase: {}.{} failed: {}", className, name, e.toString());
+        }
+        return null;
+    }
+
+    private static Object invokeOn(Object target, String name, Object... args) {
+        try {
+            for (java.lang.reflect.Method m : target.getClass().getMethods()) {
+                if (m.getName().equals(name) && m.getParameterCount() == args.length) return m.invoke(target, args);
+            }
+            log("showcase: no {}.{}", target.getClass().getName(), name);
+        } catch (ReflectiveOperationException | RuntimeException e) {
+            log("showcase: {}.{} failed: {}", target.getClass().getName(), name, e.toString());
+        }
+        return null;
+    }
+
+    private static void setField(Object target, String name, Object value) {
+        try {
+            java.lang.reflect.Field f = target.getClass().getField(name);
+            f.set(target, value);
+        } catch (ReflectiveOperationException | RuntimeException e) {
+            log("showcase: set {} failed: {}", name, e.toString());
+        }
+    }
+
+    private static Object staticField(String className, String name) {
+        try {
+            return Class.forName(className).getField(name).get(null);
+        } catch (ReflectiveOperationException | RuntimeException | LinkageError e) {
+            return null;
+        }
+    }
+
+    private static boolean installed(String className) {
+        try {
+            Class.forName(className, false, ClientShowcaseFilm.class.getClassLoader());
+            return true;
+        } catch (ClassNotFoundException | LinkageError e) {
+            return false;
+        }
+    }
+
+    /** Cinematic Belongings: the inventory as a 3D bag at normal size, the plain inventory at giant and tiny size. */
+    private static int belongings(Minecraft mc, LocalPlayer p, int s) {
+        at(s, () -> {
+            mark("belongings");
+            camOff(mc);
+            clearChat(mc);
+            size(mc, 1.0F);
+            onServer(mc, sp -> sp.teleportTo(arena.x + 0.5D, arena.y, arena.z - 6.0D));
+            look(p, 0.0F, 10.0F);
+            cmd(mc, "clear @a");
+            cmd(mc, "give @a minecraft:bread 12");
+            cmd(mc, "give @a minecraft:oak_log 20");
+            cmd(mc, "give @a minecraft:iron_pickaxe");
+            title(mc, "#33", "Cinematic Belongings at any size");
+        });
+        String[][] steps = {{"1.0", "Normal size: the 3D bag"}, {"8.0", "Giant: a giant's bag in giant hands"},
+                {"0.125", "Tiny: a tiny bag in tiny hands"}};
+        int t = s + 60;
+        for (String[] step : steps) {
+            float size = Float.parseFloat(step[0]);
+            int at = t;
+            at(at, () -> {
+                size(mc, size);
+                sub(mc, step[1]);
+            });
+            at(at + 40, () -> {
+                look(p, 0.0F, 10.0F);
+                mc.gui.setScreen(new net.minecraft.client.gui.screens.inventory.InventoryScreen(p));
+            });
+            at(at + 130, () -> {
+                if (mc.gui.screen() != null) mc.gui.screen().onClose();
+            });
+            t += 170;
+        }
+        // Growing with the bag open: the scene grows along.
+        int g = t;
+        at(g, () -> {
+            size(mc, 1.0F);
+            sub(mc, "Growing with the bag open");
+        });
+        at(g + 40, () -> {
+            look(p, 0.0F, 10.0F);
+            mc.gui.setScreen(new net.minecraft.client.gui.screens.inventory.InventoryScreen(p));
+        });
+        at(g + 90, () -> size(mc, 6.0F));
+        at(g + 170, () -> size(mc, 0.25F));
+        at(g + 250, () -> {
+            if (mc.gui.screen() != null) mc.gui.screen().onClose();
+        });
+        at(g + 270, () -> size(mc, 1.0F));
+        return g + 300;
+    }
+
+    /**
+     * One block of a cooking mod in front of the player: used at normal size
+     * (its scene plays, then is left), as a giant and as a tiny (no scene).
+     */
+    private static int station(Minecraft mc, LocalPlayer p, int s, String mod, String under, String block,
+                               String normalText, String otherText) {
+        float lift = under == null ? 0.0F : 1.0F;
+        at(s, () -> {
+            mark("station " + block);
+            camOff(mc);
+            clearChat(mc);
+            size(mc, 1.0F);
+            int x = Mth.floor(arena.x), y = Mth.floor(arena.y), z = Mth.floor(arena.z);
+            cmd(mc, String.format(Locale.ROOT, "fill %d %d %d %d %d %d minecraft:air", x - 3, y, z, x + 3, y + 3, z + 4));
+            if (under != null) cmd(mc, String.format(Locale.ROOT, "setblock %d %d %d %s", x, y, z + 2, under));
+            cmd(mc, String.format(Locale.ROOT, "setblock %d %d %d %s", x, y + (under == null ? 0 : 1), z + 2, block));
+            cmd(mc, "kill @e[type=item]");
+            onServer(mc, sp -> sp.teleportTo(arena.x + 0.5D, arena.y, z + 0.6D));
+            cmd(mc, "clear @a");
+            title(mc, "#33", mod + " at any size");
+        });
+        // Normal: the scene.
+        at(s + 50, () -> {
+            sub(mc, "Normal size: " + normalText);
+            lookAtBlock(p, Mth.floor(arena.z), lift);
+        });
+        at(s + 60, () -> key(mc.options.keyUse, true));
+        at(s + 62, () -> key(mc.options.keyUse, false));
+        at(s + 80, () -> diagnose(mc, block));
+        at(s + 190, CinematicCompat::leaveScene);
+        // Giant: no scene.
+        at(s + 230, () -> onServer(mc, sp -> sp.teleportTo(arena.x + 0.5D, arena.y, Mth.floor(arena.z) - 4.0D)));
+        at(s + 236, () -> {
+            size(mc, 8.0F);
+            sub(mc, "Giant: no scene, " + otherText);
+        });
+        at(s + 280, () -> lookAtBlock(p, Mth.floor(arena.z), lift));
+        at(s + 290, () -> key(mc.options.keyUse, true));
+        at(s + 292, () -> key(mc.options.keyUse, false));
+        at(s + 350, () -> {
+            if (mc.gui.screen() != null) p.closeContainer();
+        });
+        // Tiny: no scene.
+        at(s + 370, () -> {
+            size(mc, 0.125F);
+            sub(mc, "Tiny: no scene, " + otherText);
+        });
+        at(s + 376, () -> onServer(mc, sp -> sp.teleportTo(arena.x + 0.5D, arena.y, Mth.floor(arena.z) + 1.85D)));
+        at(s + 420, () -> {
+            cmd(mc, "item replace entity @a weapon.mainhand with minecraft:stick");
+            lookAtBlock(p, Mth.floor(arena.z), lift);
+        });
+        at(s + 430, () -> key(mc.options.keyUse, true));
+        at(s + 432, () -> key(mc.options.keyUse, false));
+        at(s + 490, () -> {
+            if (mc.gui.screen() != null) p.closeContainer();
+            onServer(mc, sp -> sp.teleportTo(arena.x + 0.5D, arena.y, Mth.floor(arena.z) + 0.6D));
+        });
+        at(s + 496, () -> size(mc, 1.0F));
+        return s + 520;
+    }
+
+    /** Clears the advancement pop-ups the tour's setup leaves queued (whatever the version calls the toast list). */
+    private static void clearToasts(Minecraft mc) {
+        for (String getter : new String[] {"getToastManager", "getToasts"}) {
+            try {
+                Object toasts = Minecraft.class.getMethod(getter).invoke(mc);
+                toasts.getClass().getMethod("clear").invoke(toasts);
+                return;
+            } catch (ReflectiveOperationException | RuntimeException e) {
+                // try the other name
+            }
+        }
+    }
+
+    private static void clearChat(Minecraft mc) {
+        clearToasts(mc);
+        //#if MC >= 26.2
+        mc.gui.hud.getChat().clearMessages(false);
+        //#else
+        //$$ mc.gui.getChat().clearMessages(false);
+        //#endif
+    }
+
+    /** Fire across the netherrack field and up the plank wall, a row of campfires and one of candles. */
+    private static void lightFires(Minecraft mc) {
+        int x = Mth.floor(arena.x), y = Mth.floor(arena.y), z = Mth.floor(arena.z);
+        for (int fx = -6; fx <= 6; fx += 2) {
+            for (int fz = -1; fz <= 11; fz += 3) {
+                cmd(mc, String.format(Locale.ROOT, "setblock %d %d %d minecraft:fire", x + fx, y, z + fz));
+            }
+            for (int fy = 1; fy <= 4; fy += 1) {
+                cmd(mc, String.format(Locale.ROOT, "setblock %d %d %d minecraft:fire", x + fx, y + fy, z + 13));
+            }
+        }
+        for (int fx = -5; fx <= 5; fx += 2) {
+            cmd(mc, String.format(Locale.ROOT, "setblock %d %d %d minecraft:campfire[lit=true]", x + fx, y, z + 3));
+            cmd(mc, String.format(Locale.ROOT, "setblock %d %d %d minecraft:candle[lit=true,candles=4]", x + fx + 1, y, z + 6));
+        }
+    }
+
+    private static java.util.Set<String> tags(net.minecraft.world.entity.Entity e) {
+        //#if MC >= 26.1
+        return e.entityTags();
+        //#else
+        //$$ return e.getTags();
+        //#endif
+    }
+
+    private static int z(int unused) {
+        return Mth.floor(arena.z);
+    }
+
+    /** Like lookAtTable, at a block {@code lift} blocks up (a pot on its stove). */
+    private static void lookAtBlock(LocalPlayer p, int z, float lift) {
+        Vec3 target = new Vec3(Mth.floor(arena.x) + 0.5D, Mth.floor(arena.y) + 0.15D + lift, z + 2.5D);
+        Vec3 d = target.subtract(p.getEyePosition());
+        float yaw = (float) (Mth.atan2(d.z, d.x) * Mth.RAD_TO_DEG) - 90.0F;
+        float pitch = (float) (-Mth.atan2(d.y, Math.sqrt(d.x * d.x + d.z * d.z)) * Mth.RAD_TO_DEG);
+        look(p, yaw, pitch);
+    }
+
+    /** Turns the player to look at the middle of the crafting table two blocks north of the arena. */
+    private static void lookAtTable(LocalPlayer p, int z) {
+        Vec3 table = new Vec3(Mth.floor(arena.x) + 0.5D, Mth.floor(arena.y) + 0.75D, z + 2.5D);
+        Vec3 d = table.subtract(p.getEyePosition());
+        float yaw = (float) (Mth.atan2(d.z, d.x) * Mth.RAD_TO_DEG) - 90.0F;
+        float pitch = (float) (-Mth.atan2(d.y, Math.sqrt(d.x * d.x + d.z * d.z)) * Mth.RAD_TO_DEG);
+        look(p, yaw, pitch);
     }
 
     // ---- #19: small blocks are solid for tinies -------------------------------------------
@@ -465,6 +1232,7 @@ public final class ClientShowcaseFilm {
         armor.minSize = 2.0001D;
         armor.penalty = GulliverConfig.ItemRestrictions.BREAK;
         c.itemRestrictions.rules.add(armor);
+        c.starterSize.allowCustom = true;
         c.validate();
         onServer(mc, sp -> {
             GulliverConfig.INSTANCE = c;

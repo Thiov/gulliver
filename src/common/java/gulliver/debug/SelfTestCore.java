@@ -262,6 +262,45 @@ final class SelfTestCore {
         Payloads.ServerSettings oldBack = Payloads.ServerSettings.read(old);
         check(failures, oldBack.dyeResizing() && !oldBack.smallBlocks(), "an older server's settings packet reads without the small-block rule");
         old.release();
+        starterSizes(failures);
+    }
+
+    /** #32: the starter size config is made sane, the server only takes what it offered, the offer round-trips. */
+    private static void starterSizes(List<String> failures) {
+        GulliverConfig c = new GulliverConfig();
+        c.validate();
+        GulliverConfig.StarterSize st = c.starterSize;
+        check(failures, !st.allowRepick, "re-picking the starter size is off unless the config turns it on");
+        check(failures, st.enabled && st.choices.size() == 3 && st.choices.get(0).size == 0.125D
+                        && st.choices.get(2).size == 8.0D && c.customMin() == 0.125D && c.customMax() == 8.0D,
+                "starter sizes default to Tiny 1/8, Normal, Giant 8; the custom range follows the player limits");
+        st.choices.remove(2);
+        st.choices.add(new GulliverConfig.StarterChoice("huge", 64.0D));
+        st.choices.add(new GulliverConfig.StarterChoice("dup", 1.0D));
+        st.choices.add(new GulliverConfig.StarterChoice("bad", -2.0D));
+        st.choices.add(null);
+        c.validate();
+        check(failures, st.choices.size() == 3 && st.choices.get(2).size == 8.0D,
+                "a starter size above the player limit is clamped; duplicates, negatives and blanks are dropped");
+        check(failures, gulliver.common.StarterSizes.resolve(c, 0.125F) == 0.125F
+                        && gulliver.common.StarterSizes.resolve(c, 1.0001F) == 1.0F
+                        && Float.isNaN(gulliver.common.StarterSizes.resolve(c, 2.0F))
+                        && Float.isNaN(gulliver.common.StarterSizes.resolve(c, Float.NaN)),
+                "the server takes only offered starter sizes");
+        st.allowCustom = true;
+        check(failures, gulliver.common.StarterSizes.resolve(c, 2.5F) == 2.5F
+                        && Float.isNaN(gulliver.common.StarterSizes.resolve(c, 9.0F)),
+                "with custom sizes on, anything inside the custom range is taken");
+
+        FriendlyByteBuf buf = new FriendlyByteBuf(io.netty.buffer.Unpooled.buffer());
+        new Payloads.StarterSizeOffer(List.of("tiny", "Mouse-sized"), List.of(0.125F, 0.25F), true, 0.25F, 4.0F, false, 1.0F,
+                true).write(buf);
+        Payloads.StarterSizeOffer back = Payloads.StarterSizeOffer.read(buf);
+        check(failures, back.names().equals(List.of("tiny", "Mouse-sized")) && back.sizes().equals(List.of(0.125F, 0.25F))
+                        && back.allowCustom() && back.customMin() == 0.25F && back.customMax() == 4.0F
+                        && !back.allowLater() && back.currentSize() == 1.0F && back.repick(),
+                "starter size offer packet round-trips");
+        buf.release();
     }
 
     /** A config that can't be read is backed up and left alone, and the previous settings stay (D3). */

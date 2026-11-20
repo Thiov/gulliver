@@ -32,6 +32,8 @@ public final class VisualSize {
 
     private static long ticks;
     private static int previewDepth;
+    /** Inside a drawing of the body at normal size (another mod's mirror of the player). */
+    private static int normalDepth;
     private static float viewPartial = Float.NaN;
 
     // ---- clock -------------------------------------------------------------
@@ -41,6 +43,7 @@ public final class VisualSize {
         if (!mc.isPaused()) ticks++;
         // Previews are drawn between ticks; a stuck count (a preview that threw) heals here.
         previewDepth = 0;
+        normalDepth = 0;
     }
 
     /** The partial tick of the frame being drawn. */
@@ -77,6 +80,19 @@ public final class VisualSize {
 
     public static void endPreview() {
         if (previewDepth > 0) previewDepth--;
+    }
+
+    /**
+     * Drawings of the player that frame it for a normal-size body and never
+     * divide its size back out (Cinematic Belongings' mirror): the model is
+     * drawn at size 1 inside.
+     */
+    public static void beginNormal() {
+        normalDepth++;
+    }
+
+    public static void endNormal() {
+        if (normalDepth > 0) normalDepth--;
     }
 
     public static boolean inPreview() {
@@ -133,6 +149,7 @@ public final class VisualSize {
      * the preview gets 1.
      */
     public static float renderScale(Entity entity, float partialTick) {
+        if (normalDepth > 0) return 1.0F;
         if (previewDepth > 0) {
             //#if MC >= 1.21.2
             return logical(entity);

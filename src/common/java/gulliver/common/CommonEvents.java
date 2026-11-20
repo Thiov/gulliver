@@ -78,6 +78,7 @@ public final class CommonEvents {
     public static void onPlayerJoin(ServerPlayer player) {
         SizeSync.sendSettings(player);
         SizeSync.broadcast(player);
+        StarterSizes.onJoin(player);
     }
 
     public static void onPlayerLeave(ServerPlayer player) {
