@@ -5,12 +5,13 @@ Shrink down to an ant's-eye view or grow into a world-crushing giant. Your size 
 ## Features
 
 - **Resize anything**: players, animals and monsters, from 1/8× to 8× by default (up to 1/32× and 32× if you allow it).
+- **Pick your starting size**: the first time you join a world, choose to start tiny, normal or giant (servers and modpacks set the choices, a custom slider and whether players may change it later).
 - **Everything scales**: speed, jumps, step height, falling, reach, damage, knockback, pushing, food and health. Anything under a quarter of your size bumps off you like a wall.
 - **Giants** shake the ground, crack weak floors, punch craters and trample what's beneath them (sneak or crawl to step carefully).
 - **Tinies** glide, climb, float, hide in flowers and ride small animals. A few everyday items help; their tooltips tell you how. Buttons, levers, pressure plates and signs are solid for them: step onto them, stand on a lever or sign on a wall like a ledge, and get thrown into the air by a pressure plate that springs back up.
 - **Carry creatures** in your hand or on your shoulders, and throw them.
 - **Eat what's small enough**: anything can eat a creature a quarter of its size. Lift it to your mouth and take a bite; a giant monster you pick a fight with grabs you with both hands and does the same. Every bite is real damage, so armor is what keeps a tiny alive, and a meal that survives every bite gets spat out.
-- **Breath gust**: as a giant, hold **G** to blow away anything lighter than you, turn arrows around and blow out candles. Wisps of wind fly from your mouth with their own momentum, drawn at your size, up to a colossus's rolling rings of wind; under water it's a stream of bubbles.
+- **Breath gust**: as a giant, hold **G** to blow away anything lighter than you, turn arrows around and put out fires, candles, campfires and burning creatures. Wisps of wind fly from your mouth with their own momentum, drawn at your size, up to a colossus's rolling rings of wind; under water it's a stream of bubbles.
 - **Mobs react to size**: most don't even look at what's far too small to notice, until it hurts them, and then their blows often miss; some hunt it on purpose. A creeper's blast grows and shrinks with the creeper.
 - **Item restrictions for modpacks and servers**: block or allow any item, vanilla or modded (by id, whole mod or tag), at the sizes you choose. A restricted item drops out of your hands, breaks, or simply refuses to work, when held, worn or used.
 - **Presence**: footsteps you feel, sounds pitched to your size (how strongly is a setting), particles drawn at the size of whatever makes them, name tags that scale with the body, tiny creatures that stay visible at a distance, smooth resizing, a Gulliver advancement tab.
@@ -27,6 +28,7 @@ Shrink down to an ant's-eye view or grow into a world-crushing giant. Your size 
 - **Fabric** (needs Fabric API; Mod Menu optional), **NeoForge** and **Forge**
 - No scaling library needed. Works in singleplayer and on servers (install on both).
 - Plays well with Better Combat (weapon reach scales with your size), ParCool and Crawl (crawling counts as stepping carefully).
+- Cinematic Interactions, Cinematic Cookery and Cinematic Delight play their scenes near normal size and open the normal window at other sizes; Cinematic Belongings' 3D bag scales with you.
 
 Settings are in-game (Mods → Gulliver) and in `config/gulliver.json`.
 
